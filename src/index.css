@@ -1,0 +1,15 @@
+/* Reset some default browser styles */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+  font-family: "Poppins", system-ui, -apple-system, sans-serif;
+}
+
