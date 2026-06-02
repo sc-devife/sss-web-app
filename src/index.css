@@ -7,8 +7,13 @@
   padding: 0;
 }
 
-#root {
+html,
+body {
   height: 100%;
+}
+
+#root {
+  min-height: 100vh;
   width: 100%;
   font-family: "Poppins", system-ui, -apple-system, sans-serif;
 }
