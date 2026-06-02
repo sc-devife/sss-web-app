@@ -6,7 +6,8 @@ export const Container = styled.div`
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  height: 100%;
+  min-height: 100vh;
+  width: 100%;
 `;
 
 export const LeftPart = styled.div`
@@ -34,7 +35,7 @@ export const RightPartMainCard = styled.div`
   align-items: center;
   justify-content: center;
   width: 100%;
-  max-width: 400px;
+  max-width: 450px;
   padding: 2rem;
   border-radius: 12px;
 `;
@@ -44,10 +45,17 @@ export const RightPartLogo = styled.img`
   height: auto;
 `;
 
+export const PageTitle = styled.p`
+  margin-top: 0.5rem;
+  color: #000000;
+  font-size: 1.25rem;
+  font-weight: bold;
+`;
+
 export const PageSubTitle = styled.p`
   margin-top: 0.5rem;
   color: #666;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 500;
 `;
 
@@ -66,22 +74,12 @@ export const InputWrapper = styled.div`
 `;
 
 export const Label = styled.label`
-  position: absolute;
-  top: 50%;
-  left: 10px;
-  transform: translateY(-50%);
-  background: white;
-  padding: 0 15px;
-  margin: 0 10px;
-  font-size: 0.9rem;
-  color: #666;
-  pointer-events: none;
-  transition: 0.2s ease all;
+  font-size: 0.8rem;
 `;
 
 export const Input = styled.input`
-  padding: 0.9rem 2.5rem 0.9rem 2.5rem;
-  border: 1.5px solid #009ee2;
+  padding: 0.7rem 2rem 0.7rem 2rem;
+  border: 1.5px solid #ccc;
   border-radius: 8px;
   width: 100%;
   outline: none;
@@ -89,16 +87,7 @@ export const Input = styled.input`
   background: transparent;
   box-sizing: border-box;
   &:focus {
-    border-color: #007bb5;
-  }
-
-  &:focus + label,
-  &:not(:placeholder-shown) + label {
-    top: -1px;
-    left: 10px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: #009ee2;
+    border-color: #D6FB4B;
   }
 `;
 
@@ -107,7 +96,7 @@ export const IconLeft = styled.div`
   top: 50%;
   left: 10px;
   transform: translateY(-40%);
-  color: #007bb5;
+  color: #ccc;
   font-size: 1.1rem;
   pointer-events: none;
 `;
@@ -134,16 +123,20 @@ export const ForgotPasswordLink = styled.a`
 `;
 
 export const Button = styled.button`
-  width: fit-content;
+  width: 100%;
   margin-top: 1rem;
   padding: 0.5rem 1.5rem;
   font-size: 1rem;
-  font-weight: 600;
-  background-color: #009ee2;
-  color: #fff;
+  font-weight: 700;
+  background-color: #D6FB4B;
+  color: #000000;
   border: none;
   border-radius: 6px;
   cursor: pointer;
+  transition: background-color 0.2s ease;
+  &:hover {
+    background-color: #c5e63a;
+  }
 `;
 
 export const Divider = styled.div`
@@ -180,4 +173,54 @@ export const Error = styled.div`
   font-size: 0.8rem;
   margin-top: 0.2rem;
   width: 100%;
+`;
+
+export const OtpForm = styled.form`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: 1rem;
+  
+`;
+
+export const OtpContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+`;
+
+export const OtpInput = styled.input<{ hasError?: boolean }>`
+  width: 3.5rem;
+  height: 3.5rem;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid
+    ${({ hasError }) => (hasError ? "#ef4444" : "#d1d5db")};
+  background-color: ${({ hasError }) =>
+    hasError ? "#fef2f2" : "#ffffff"};
+
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: ${({ hasError }) =>
+      hasError ? "#ef4444" : "#3b82f6"};
+    box-shadow: 0 0 0 2px
+      ${({ hasError }) =>
+        hasError ? "rgba(239,68,68,0.3)" : "rgba(59,130,246,0.3)"};
+  }
+`;
+
+export const ErrorContainer = styled.div`
+  min-height: 10px;
+`;
+
+export const ErrorText = styled.p`
+  color: #ef4444;
+  font-size: 0.875rem;
+  text-align: center;
+  margin: 0;
 `;
