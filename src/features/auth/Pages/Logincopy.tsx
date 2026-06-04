@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import AuthLeftPart from "../components/AuthLeftPart";
 import * as S from "./loginStyle";
 import { IoLockClosedOutline, IoMailOutline } from "react-icons/io5";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
@@ -16,89 +17,75 @@ const Login = (props: Props) => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
-    {},
-  );
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   const inputValidation = () => {
     const newErrors: { email?: string; password?: string } = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const passwordRegex =
-      /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{6,}$/;
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{6,}$/;
 
     if (!emailRegex.test(email)) {
       newErrors.email = "Please enter a valid email address.";
     }
     if (!passwordRegex.test(password)) {
-      newErrors.password =
-        "Password must be atleast 6 characters including uppercase, lowercase, number & special character.";
+      newErrors.password = "Password must be atleast 6 characters including uppercase, lowercase, number & special character.";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (inputValidation()) {
-      try {
-        const res = await dispatch(loginUser({ email, password })).unwrap();
-        console.log("Login successful:", res);
-        AppToast.showSuccess("Login successful!");
-        navigate("/dashboard", { replace: true });
-      } catch (error) {
-        console.error("Login failed:", error);
-        AppToast.showError(error as string);
-      }
+  if (inputValidation()) {
+    try {
+      const res = await dispatch(loginUser({ email, password })).unwrap();
+      console.log("Login successful:", res);
+      AppToast.showSuccess("Login successful!");
+      navigate("/dashboard", { replace: true });
+
+    } catch (error) {
+      console.error("Login failed:", error);
+      AppToast.showError(error as string);
     }
-  };
+  }
+};
   return (
     <S.Container>
+      <S.LeftPart>
+        <AuthLeftPart />
+      </S.LeftPart>
       <S.RightPart>
         <S.RightPartMainCard>
           <S.RightPartLogo
             src="https://cdn.prod.website-files.com/61ed56ae9da9fd7e0ef0a967/61f12d35fce2ed41dbb7ef3b_BlossomDefault.svg"
             alt="Logo"
           />
-          <S.PageTitle>Welcome Back</S.PageTitle>
-          <S.PageSubTitle>Sign in to access your workspace.</S.PageSubTitle>
+          <S.PageSubTitle>Login with Email</S.PageSubTitle>
           <S.LoginForm onSubmit={handleLogin}>
-            <div style={{ width: "100%", textAlign: "left" }}>
-              <S.Label>Email Address</S.Label>
-            </div>
-            <S.InputWrapper
-              style={{
-                marginTop: "0.2rem",
-                marginBottom: errors.email ? "0.2rem" : "0.5rem",
-              }}
-            >
+            <S.InputWrapper style={{marginTop: "1rem"}}>
               <S.Input
                 type="text"
                 placeholder=" "
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
+              <S.Label>Email</S.Label>
               <S.IconLeft>
                 <IoMailOutline />
               </S.IconLeft>
             </S.InputWrapper>
             {errors.email && <S.Error>{errors.email}</S.Error>}
 
-            <div style={{ width: "100%", textAlign: "left" }}>
-              <S.Label>Password</S.Label>
-            </div>
-            <S.InputWrapper
-              style={{
-                marginTop: "0.2rem",
-                marginBottom: errors.password ? "0.2rem" : "0.5rem",
-              }}
-            >
+            <S.InputWrapper style={{ marginTop: errors.email ? "0.5rem" : "1.2rem" }}>
               <S.Input
                 type={showPassword ? "text" : "password"}
                 placeholder=" "
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+              <S.Label>Password</S.Label>
+
               <S.IconLeft>
                 <IoLockClosedOutline />
               </S.IconLeft>
@@ -123,10 +110,6 @@ const Login = (props: Props) => {
           </S.PageSubTitle>
         </S.RightPartMainCard>
       </S.RightPart>
-      <span style={{ fontSize: "0.8rem", color: "#666", marginBottom: "0.7rem" }}>
-        © {new Date().getFullYear()} untitled UI Travel Operations. All rights
-        reserved.
-      </span>
     </S.Container>
   );
 };
