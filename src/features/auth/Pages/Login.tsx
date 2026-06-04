@@ -123,6 +123,10 @@ const Login = (props: Props) => {
           </S.PageSubTitle>
         </S.RightPartMainCard>
       </S.RightPart>
+      <span style={{ fontSize: "0.8rem", color: "#666" }}>
+        © {new Date().getFullYear()} untitled UI Travel Operations. All rights
+        reserved.
+      </span>
     </S.Container>
   );
 };

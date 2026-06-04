@@ -1,12 +1,15 @@
 import React, { useState } from "react";
 import * as S from "./loginStyle";
 import { IoMailOutline } from "react-icons/io5";
+import { useNavigate } from "react-router-dom";
 
 interface Props {}
 
 const ForgotPassword = (props: Props) => {
   const [email, setEmail] = useState<string>("");
   const [errors, setErrors] = useState<{ email?: string }>({});
+
+  const navigate = useNavigate();
 
   const inputValidation = () => {
     const newErrors: { email?: string } = {};
@@ -19,10 +22,10 @@ const ForgotPassword = (props: Props) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (inputValidation()) {
-      console.log("Email:", email);
+      navigate("/verify-otp");
     }
   };
   return (
@@ -37,7 +40,7 @@ const ForgotPassword = (props: Props) => {
           <S.PageSubTitle>
             Enter email address to reset your password.
           </S.PageSubTitle>
-          <S.LoginForm onSubmit={handleLogin}>
+          <S.LoginForm onSubmit={handleSubmit}>
             <div style={{ width: "100%", textAlign: "left" }}>
               <S.Label>Email Address</S.Label>
             </div>
@@ -66,10 +69,14 @@ const ForgotPassword = (props: Props) => {
             <S.Separator>OR</S.Separator> <hr />
           </S.Divider>
           <S.PageSubTitle>
-            <S.SignUpLink href="/signup">Back to Sign In?</S.SignUpLink>{" "}
+            <S.SignUpLink href="/login">Back to Sign in?</S.SignUpLink>{" "}
           </S.PageSubTitle>
         </S.RightPartMainCard>
       </S.RightPart>
+      <span style={{ fontSize: "0.8rem", color: "#666" }}>
+        © {new Date().getFullYear()} untitled UI Travel Operations. All rights
+        reserved.
+      </span>
     </S.Container>
   );
 };

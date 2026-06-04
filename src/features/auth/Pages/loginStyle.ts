@@ -3,7 +3,7 @@ import { screen } from "../../../styles/screen";
 
 export const Container = styled.div`
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
@@ -57,6 +57,7 @@ export const PageSubTitle = styled.p`
   color: #666;
   font-size: 0.8rem;
   font-weight: 500;
+  text-align: center;
 `;
 
 export const LoginForm = styled.form`
@@ -124,7 +125,7 @@ export const ForgotPasswordLink = styled.a`
 
 export const Button = styled.button`
   width: 100%;
-  margin-top: 1rem;
+  margin-top: 0.8rem;
   padding: 0.5rem 1.5rem;
   font-size: 1rem;
   font-weight: 700;
@@ -207,15 +208,15 @@ export const OtpInput = styled.input<{ hasError?: boolean }>`
   &:focus {
     outline: none;
     border-color: ${({ hasError }) =>
-      hasError ? "#ef4444" : "#3b82f6"};
+      hasError ? "#ef4444" : "#D6FB4B"};
     box-shadow: 0 0 0 2px
       ${({ hasError }) =>
-        hasError ? "rgba(239,68,68,0.3)" : "rgba(59,130,246,0.3)"};
+        hasError ? "rgba(239,68,68,0.3)" : "rgba(211, 240, 116, 0.3)"};
   }
 `;
 
 export const ErrorContainer = styled.div`
-  min-height: 10px;
+  min-height: 1rem;
 `;
 
 export const ErrorText = styled.p`
