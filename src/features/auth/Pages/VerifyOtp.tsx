@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import * as S from "./loginStyle";
 
 interface Props {}
@@ -7,7 +7,23 @@ const VerifyOtp = (props: Props) => {
   const [email, setEmail] = useState<string>("sanat@gmail.com");
   const [errors, setErrors] = useState<{ otp?: string }>({});
   const [otp, setOtp] = useState(["", "", "", ""]);
+  const [timer, setTimer] = useState(0);
+  const [isResendDisabled, setIsResendDisabled] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    let interval: any = null;
+
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    } else if (timer === 0) {
+      setIsResendDisabled(false);
+    }
+
+    return () => clearInterval(interval);
+  }, [timer]);
 
   const inputValidation = () => {
     const newErrors: { otp?: string } = {};
@@ -42,13 +58,25 @@ const VerifyOtp = (props: Props) => {
   };
 
   const handleKeyDown = (
-  e: React.KeyboardEvent<HTMLInputElement>,
-  index: number
-) => {
-  if (e.key === "Backspace" && !otp[index] && index > 0) {
-    inputRefs.current[index - 1]?.focus();
-  }
-};
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number,
+  ) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const handleResend = () => {
+    // Resend OTP API call
+    setTimer(120);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,8 +95,7 @@ const VerifyOtp = (props: Props) => {
           />
           <S.PageTitle>Verify your Email</S.PageTitle>
           <S.PageSubTitle>
-            We’ve sent an SMS with an activation code to your Email{" "}
-            <b>{email}</b>
+            We’ve sent an activation code to your Email <b>{email}</b>
           </S.PageSubTitle>
           <S.OtpForm onSubmit={handleSubmit}>
             <S.OtpContainer>
@@ -96,11 +123,21 @@ const VerifyOtp = (props: Props) => {
           </S.OtpForm>
 
           <S.PageSubTitle>
-            I didn't receive a code?{" "}
-            <S.SignUpLink href="/signup">Resend</S.SignUpLink>{" "}
+            Didn't receive the code?{" "}
+            {timer > 0 ? (
+              <span>Resend in {formatTime(timer)}</span>
+            ) : (
+              <S.SignUpLink type="button" onClick={handleResend}>
+                Resend
+              </S.SignUpLink>
+            )}
           </S.PageSubTitle>
         </S.RightPartMainCard>
       </S.RightPart>
+      <span style={{ fontSize: "0.8rem", color: "#666" }}>
+        © {new Date().getFullYear()} untitled UI Travel Operations. All rights
+        reserved.
+      </span>
     </S.Container>
   );
 };
