@@ -134,7 +134,7 @@ const VerifyOtp = (props: Props) => {
           </S.PageSubTitle>
         </S.RightPartMainCard>
       </S.RightPart>
-      <span style={{ fontSize: "0.8rem", color: "#666" }}>
+      <span style={{ fontSize: "0.8rem", color: "#666", marginBottom: "0.7rem" }}>
         © {new Date().getFullYear()} untitled UI Travel Operations. All rights
         reserved.
       </span>
