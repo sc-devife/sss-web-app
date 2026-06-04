@@ -38,6 +38,9 @@ export const RightPartMainCard = styled.div`
   max-width: 450px;
   padding: 2rem;
   border-radius: 12px;
+  ${screen.tablet} {
+    min-width: 400px;
+  }
 `;
 
 export const RightPartLogo = styled.img`
