@@ -1,9 +1,4 @@
 import React from "react";
-import {
-  LiaTachometerAltSolid,
-  LiaUserSolid,
-  LiaCogSolid,
-} from "react-icons/lia";
 import { TbSquareRoundedLetterCFilled } from "react-icons/tb";
 import * as S from "./sideBarIconsStyle";
 import ProtectedRouter from "../routes/ProtectedRouter";

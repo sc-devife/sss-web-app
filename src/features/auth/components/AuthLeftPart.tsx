@@ -1,7 +1,6 @@
 import * as S from "./authLeftPartStyle";
-interface Props {}
 
-const AuthLeftPart = (props: Props) => {
+const AuthLeftPart = () => {
   return (
     <S.Container>
       <S.MainCard>
