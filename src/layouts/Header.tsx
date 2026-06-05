@@ -5,7 +5,6 @@ import ProtectedRouter from "../routes/ProtectedRouter";
 import { CiCirclePlus } from "react-icons/ci";
 import { LiaSearchSolid } from "react-icons/lia";
 import { HiOutlineMenu } from "react-icons/hi";
-import { screen } from "../styles/screen";
 
 const Header: React.FC = () => {
   const location = useLocation();

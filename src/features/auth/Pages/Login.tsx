@@ -8,9 +8,8 @@ import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../../../app/store";
 import AppToast from "../../../services/toastService";
 
-interface Props {}
 
-const Login = (props: Props) => {
+const Login = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const [showPassword, setShowPassword] = useState(false);
