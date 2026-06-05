@@ -1,10 +1,8 @@
 import React, { useRef, useState, useEffect } from "react";
 import * as S from "./loginStyle";
 
-interface Props {}
-
-const VerifyOtp = (props: Props) => {
-  const [email, setEmail] = useState<string>("sanat@gmail.com");
+const VerifyOtp = () => {
+  const [email] = useState<string>("sanat@gmail.com");
   const [errors, setErrors] = useState<{ otp?: string }>({});
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [timer, setTimer] = useState(0);
@@ -124,7 +122,7 @@ const VerifyOtp = (props: Props) => {
 
           <S.PageSubTitle>
             Didn't receive the code?{" "}
-            {timer > 0 ? (
+            {timer > 0 && !isResendDisabled ? (
               <span>Resend in {formatTime(timer)}</span>
             ) : (
               <S.SignUpLink type="button" onClick={handleResend}>

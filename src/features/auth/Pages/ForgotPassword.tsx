@@ -3,9 +3,7 @@ import * as S from "./loginStyle";
 import { IoMailOutline } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 
-interface Props {}
-
-const ForgotPassword = (props: Props) => {
+const ForgotPassword = () => {
   const [email, setEmail] = useState<string>("");
   const [errors, setErrors] = useState<{ email?: string }>({});
 
