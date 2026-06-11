@@ -1,8 +1,7 @@
 import React from "react";
 import styled from "@emotion/styled";
-import SideBarIcons from "./SideBarIcons";
+import SideBar from "./SideBar";
 import { Outlet } from "react-router-dom";
-import ChildSideBar from "./ChildSideBar";
 import Header from "./Header";
 
 const MainLayoutContainer = styled.div`
@@ -26,8 +25,7 @@ const MainContent = styled.main`
 const MainLayout: React.FC = () => {
   return (
     <MainLayoutContainer>
-      <SideBarIcons />
-      <ChildSideBar />
+      <SideBar />
 
       <ContentWrapper>
         <Header />
