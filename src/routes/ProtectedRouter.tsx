@@ -1,19 +1,22 @@
+import { AiOutlineHome } from "react-icons/ai";
 import { LiaCogSolid, LiaTachometerAltSolid, LiaUserSolid } from "react-icons/lia";
-import SubPage1 from "../features/dashboard/Pages/SubPage1";
-import { Outlet } from "react-router-dom";
-import { MdAddShoppingCart } from "react-icons/md";
+import { RxDashboard } from "react-icons/rx";
+import DestinationsMangement from "../features/library/Pages/DestinationsMangement";
 
-const childRoutes = {
-    dashboard: [
-        { path: "/dashboard/subpage1", element: <SubPage1 />, title: "Sub Page 1", icon: <MdAddShoppingCart /> },
-        { path: "/dashboard/subpage2", element: <h1>Sub Page 2</h1>, title: "Sub Page 2", icon: <MdAddShoppingCart /> }
-    ]
-};
+
 
 const ProtectedRouter = [
-    { path: "/dashboard", element: <Outlet />, title: "Dashboard", icon: <LiaTachometerAltSolid />, childRoutes: childRoutes.dashboard },
+    // top links
+    { path: "/home", element: <h1>Home</h1>, title: "Home", icon: <AiOutlineHome />, position: "top" },
+    { path: "/dashboard", element: <h1>Dashboard</h1>, title: "Dashboard", icon: <LiaTachometerAltSolid />, position: "top" },
+    { path: "/library", element: <DestinationsMangement />, title: "Library", icon: <RxDashboard />, position: "top" },
+
+    // bottom links
+    { path: "/settings", element: <h1>Settings</h1>, title: "Settings", icon: <LiaCogSolid />, position: "bottom" },
+    
+    // profile link
     { path: "/profile", element: <h1>Profile</h1>, title: "Profile", icon: <LiaUserSolid /> },
-    { path: "/settings", element: <h1>Settings</h1>, title: "Settings", icon: <LiaCogSolid /> },
+
 ]
 
 export default ProtectedRouter;

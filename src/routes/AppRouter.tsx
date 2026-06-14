@@ -23,24 +23,6 @@ const AppRouter: React.FC = () => {
           <Route element={<MainLayout />}>
             {ProtectedRouter.map((route) => (
               <Route key={route.path} path={route.path} element={route.element}>
-                {/* Default redirect to first child */}
-                {(route.childRoutes?.length ?? 0) > 0 && (
-                  <Route
-                    index
-                    element={
-                      <Navigate to={route.childRoutes![0].path} replace />
-                    }
-                  />
-                )}
-
-                {/* Child routes */}
-                {route.childRoutes?.map((child) => (
-                  <Route
-                    key={child.path}
-                    path={child.path.replace(route.path + "/", "")}
-                    element={child.element}
-                  />
-                ))}
               </Route>
             ))}
           </Route>

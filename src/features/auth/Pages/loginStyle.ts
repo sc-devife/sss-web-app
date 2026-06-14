@@ -39,7 +39,7 @@ export const RightPartMainCard = styled.div`
   padding: 2rem;
   border-radius: 12px;
   ${screen.tablet} {
-    min-width: 400px;
+    min-width: 450px;
   }
 `;
 
@@ -66,7 +66,7 @@ export const PageSubTitle = styled.p`
 export const LoginForm = styled.form`
   display: flex;
   flex-direction: column;
-  margin-top: 1rem;
+  margin-top: 0.7rem;
   width: 100%;
   justify-content: center;
   align-items: center;
@@ -75,6 +75,7 @@ export const LoginForm = styled.form`
 export const InputWrapper = styled.div`
   position: relative;
   width: 100%;
+  margin-bottom: 0.5rem;
 `;
 
 export const Label = styled.label`
@@ -128,7 +129,7 @@ export const ForgotPasswordLink = styled.a`
 
 export const Button = styled.button`
   width: 100%;
-  margin-top: 0.8rem;
+  margin-top: 0.5rem;
   padding: 0.5rem 1.5rem;
   font-size: 1rem;
   font-weight: 700;
@@ -175,7 +176,6 @@ export const SignUpLink = styled.a`
 export const Error = styled.div`
   color: red;
   font-size: 0.8rem;
-  margin-top: 0.2rem;
   width: 100%;
 `;
 
