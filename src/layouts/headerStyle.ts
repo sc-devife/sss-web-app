@@ -4,7 +4,7 @@ import {screen} from "../styles/screen";
 export const HeaderContainer = styled.header`
    width: 100%;
   height: 3.5rem;
-  background-color: #F0F0F3;
+  background-color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: space-between;

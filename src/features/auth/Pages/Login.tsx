@@ -25,16 +25,25 @@ const Login = () => {
     const passwordRegex =
       /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{6,}$/;
 
-    if (!emailRegex.test(email)) {
+    // Email validation
+    if (!email || email.trim() === "") {
+      newErrors.email = "Email is Required";
+    } else if (!emailRegex.test(email)) {
       newErrors.email = "Please enter a valid email address.";
     }
-    if (!passwordRegex.test(password)) {
+
+    // Password validation
+    if (!password || password.trim() === "") {
+      newErrors.password = "Password is Required";
+    } else if (!passwordRegex.test(password)) {
       newErrors.password =
         "Password must be atleast 6 characters including uppercase, lowercase, number & special character.";
     }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+};
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,7 +77,7 @@ const Login = () => {
             <S.InputWrapper
               style={{
                 marginTop: "0.2rem",
-                marginBottom: errors.email ? "0.2rem" : "0.5rem",
+                marginBottom: errors.email ? "0.2rem" : "0.2rem",
               }}
             >
               <S.Input
@@ -83,13 +92,13 @@ const Login = () => {
             </S.InputWrapper>
             {errors.email && <S.Error>{errors.email}</S.Error>}
 
-            <div style={{ width: "100%", textAlign: "left" }}>
+            <div style={{ width: "100%", textAlign: "left", marginTop: errors.email ? "0.2rem" : "0.2rem" }}>
               <S.Label>Password</S.Label>
             </div>
             <S.InputWrapper
               style={{
                 marginTop: "0.2rem",
-                marginBottom: errors.password ? "0.2rem" : "0.5rem",
+                marginBottom: errors.password ? "0.2rem" : "0.2rem",
               }}
             >
               <S.Input
@@ -106,6 +115,7 @@ const Login = () => {
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
               </S.IconRight>
             </S.InputWrapper>
+            
             {errors.password && <S.Error>{errors.password}</S.Error>}
             <S.ForgotPasswordLink href="/forgot-password">
               Forgot Password?
