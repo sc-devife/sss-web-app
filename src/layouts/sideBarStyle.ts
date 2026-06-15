@@ -1,27 +1,97 @@
 import styled from "@emotion/styled";
 import { NavLink } from "react-router-dom";
+import { screen } from "../styles/screen";
 
-export const Sidebar = styled.aside`
-  width: 12rem;
+interface SidebarProps {
+  collapsed: boolean;
+  mobileOpen: boolean;
+}
+
+export const Sidebar = styled.aside<SidebarProps>`
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+
   height: 100vh;
-  padding: 10px;
   background-color: #ffffff;
   display: flex;
   flex-direction: column;
   border-right: 1px solid #e5e7eb;
+
+  width: ${({ collapsed }) => (collapsed ? "4rem" : "14rem")};
+
+  transform: ${({ mobileOpen }) =>
+    mobileOpen ? "translateX(0)" : "translateX(-100%)"};
+
+  transition: transform 0.3s ease;
+
+  ${screen.tablet} {
+    position: relative;
+    transform: translateX(0);
+  }
 `;
 
 export const Logo = styled.div`
-  font-size: 32px;
-  color: #5E81F4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 1px;
-  padding-left: 3px;
+  padding-right: 10px;
+  padding-left: 10px;
+  padding-top: 8px;
+  height: 55px;
+  border-bottom: 1px solid #e5e7eb;
+`;
+
+export const CollapseIcon = styled.span`
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #4b5563;
+  transition: color 0.3s ease;
+  padding: 7px;
+  border-radius: 8px;
+  background-color: #e7f0c2;
+  display: none;
+
+  ${screen.tablet} {
+    display: flex;
+  }
+
+  &:hover {
+    background-color: #e4f0b6;
+  }
+`;
+
+export const XIcon = styled.span`
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #4b5563;
+  transition: color 0.3s ease;
+  padding: 7px;
+  border-radius: 8px;
+  background-color: #e7f0c2;
+
+  &:hover {
+    background-color: #e4f0b6;
+  }
+
+  ${screen.tablet} {
+    display: none;
+  }
 `;
 
 export const Menu = styled.div`
   display: flex;
   flex-direction: column;
   flex: 1;
+  padding: 10px;
 `;
 
 export const TopMenu = styled.div`
