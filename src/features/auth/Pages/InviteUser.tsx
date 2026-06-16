@@ -3,7 +3,7 @@ import * as S from "./loginStyle";
 import { IoMailOutline } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 
-const ForgotPassword = () => {
+const InviteUser = () => {
   const [email, setEmail] = useState<string>("");
   const [errors, setErrors] = useState<{ email?: string }>({});
 
@@ -34,9 +34,9 @@ const ForgotPassword = () => {
             src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSHB7m2IeYeQuefiQ3f3LIKCWO4wX7hQ7ZRbQ&s"
             alt="Logo"
           />
-          <S.PageTitle>Reset Password</S.PageTitle>
+          <S.PageTitle>Invite User</S.PageTitle>
           <S.PageSubTitle>
-            Enter email address to reset your password.
+            Enter email address to invite user.
           </S.PageSubTitle>
           <S.LoginForm onSubmit={handleSubmit}>
             <div style={{ width: "100%", textAlign: "left" }}>
@@ -60,15 +60,8 @@ const ForgotPassword = () => {
             </S.InputWrapper>
             {errors.email && <S.Error>{errors.email}</S.Error>}
 
-            <S.Button type="submit">Send on Email</S.Button>
+            <S.Button type="submit" style={{marginTop: "1rem"}}>Send on Email</S.Button>
           </S.LoginForm>
-          <S.Divider>
-            <hr />
-            <S.Separator>OR</S.Separator> <hr />
-          </S.Divider>
-          <S.PageSubTitle>
-            <S.SignUpLink href="/login">Back to Sign in?</S.SignUpLink>{" "}
-          </S.PageSubTitle>
         </S.RightPartMainCard>
       </S.RightPart>
       <span style={{ fontSize: "0.8rem", color: "#666", marginBottom: "0.7rem" }}>
@@ -79,4 +72,4 @@ const ForgotPassword = () => {
   );
 };
 
-export default ForgotPassword;
+export default InviteUser;

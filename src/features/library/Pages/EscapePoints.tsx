@@ -1,12 +1,20 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import * as S from "../styles/DestinationsMangementStyle";
-import TableData from "../../../components/TableData.json";
 import GlobalTable from "../../../components/GlobalTable";
 import { FaPlus } from "react-icons/fa6";
 import AddDestinationPopup from "../../../components/AddDestinationPopup";
+import { getAllEscapePoints } from "../Redux/escapePointsThunk";
+import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 
 const DestinationsMangement = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+
+  const dispatch = useAppDispatch();
+  const {
+    getAllEscapePointsData,
+    getAllEscapePointsLoading,
+    getAllEscapePointsError,
+  } = useAppSelector((state) => state.escapePoints);
 
   const handleAddDestination = () => {
     setIsPopupOpen(true);
@@ -15,6 +23,10 @@ const DestinationsMangement = () => {
   const handleClosePopup = () => {
     setIsPopupOpen(false);
   };
+
+  useEffect(() => {
+    dispatch(getAllEscapePoints());
+  }, [dispatch]);
 
   return (
     <S.Container>
@@ -43,12 +55,10 @@ const DestinationsMangement = () => {
       </S.CardContainer>
 
       <S.DestinationTable>
-        <GlobalTable data={TableData} />
+        <GlobalTable data={getAllEscapePointsData} />
       </S.DestinationTable>
 
-      {isPopupOpen && (
-        <AddDestinationPopup onClose={handleClosePopup} />
-      )}
+      {isPopupOpen && <AddDestinationPopup onClose={handleClosePopup} />}
     </S.Container>
   );
 };
