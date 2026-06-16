@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import styled from "@emotion/styled";
 import SideBar from "./SideBar";
 import { Outlet } from "react-router-dom";
@@ -27,12 +27,13 @@ const MainContent = styled.main`
 `;
 
 const MainLayout: React.FC = () => {
+  const [mobileOpen, setMobileOpen] = useState(false);
   return (
     <MainLayoutContainer>
-      <SideBar />
+      <SideBar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
       <ContentWrapper>
-        <Header />
+        <Header onMobileMenuClick={() => setMobileOpen(true)} />
         <MainContent>
           <Outlet />
         </MainContent>

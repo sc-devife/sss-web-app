@@ -36,16 +36,17 @@ export const RightPartMainCard = styled.div`
   justify-content: center;
   width: 100%;
   max-width: 450px;
-  padding: 2rem;
+  padding: 1rem;
   border-radius: 12px;
   ${screen.tablet} {
     min-width: 450px;
+    padding: 2rem;
   }
 `;
 
 export const RightPartLogo = styled.img`
-  width: 150px;
-  height: auto;
+  height: 80px;
+  border-radius: 8px;
 `;
 
 export const PageTitle = styled.p`
@@ -56,7 +57,7 @@ export const PageTitle = styled.p`
 `;
 
 export const PageSubTitle = styled.p`
-  margin-top: 0.5rem;
+  margin-top: 0.2rem;
   color: #666;
   font-size: 0.8rem;
   font-weight: 500;
@@ -130,7 +131,7 @@ export const ForgotPasswordLink = styled.a`
 export const Button = styled.button`
   width: 100%;
   margin-top: 0.5rem;
-  padding: 0.5rem 1.5rem;
+  padding: 0.7rem 1.5rem;
   font-size: 1rem;
   font-weight: 700;
   background-color: #D6FB4B;
@@ -227,4 +228,14 @@ export const ErrorText = styled.p`
   font-size: 0.875rem;
   text-align: center;
   margin: 0;
+`;
+
+export const ProfilePicture = styled.img`
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 1rem;
+  padding: 1px;
+  border: 2px dashed #d1d5db;
 `;

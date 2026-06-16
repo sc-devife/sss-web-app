@@ -1,12 +1,18 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { loginUser } from "./authThunk";
 
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
 interface AuthState {
-  user: any | null;
+  user: User | null;
   loading: boolean;
   error: string | null;
   token: string | null;
-    isAuthenticated: boolean;
+  isAuthenticated: boolean;
 }
 
 const initialState: AuthState = {

@@ -65,7 +65,7 @@ const Login = () => {
       <S.RightPart>
         <S.RightPartMainCard>
           <S.RightPartLogo
-            src="https://cdn.prod.website-files.com/61ed56ae9da9fd7e0ef0a967/61f12d35fce2ed41dbb7ef3b_BlossomDefault.svg"
+            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSHB7m2IeYeQuefiQ3f3LIKCWO4wX7hQ7ZRbQ&s"
             alt="Logo"
           />
           <S.PageTitle>Welcome Back</S.PageTitle>
@@ -122,14 +122,14 @@ const Login = () => {
             </S.ForgotPasswordLink>
             <S.Button type="submit">Login</S.Button>
           </S.LoginForm>
-          <S.Divider>
+          {/*<S.Divider>
             <hr />
             <S.Separator>OR</S.Separator> <hr />
           </S.Divider>
           <S.PageSubTitle>
             Don't have an account?{" "}
             <S.SignUpLink href="/signup">Sign Up</S.SignUpLink>{" "}
-          </S.PageSubTitle>
+          </S.PageSubTitle>*/}
         </S.RightPartMainCard>
       </S.RightPart>
       <span style={{ fontSize: "0.8rem", color: "#666", marginBottom: "0.7rem" }}>

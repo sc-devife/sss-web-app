@@ -4,7 +4,11 @@ import * as S from "./headerStyle";
 import ProtectedRouter from "../routes/ProtectedRouter";
 import { HiOutlineMenu } from "react-icons/hi";
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  onMobileMenuClick: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ onMobileMenuClick }) => {
   const location = useLocation();
 
   let title = "SSS Web App";
@@ -20,8 +24,8 @@ const Header: React.FC = () => {
   return (
     <S.HeaderContainer>
       <S.MenuTitle>
-        <S.MenuIconWrapper>
-          <HiOutlineMenu />
+        <S.MenuIconWrapper onClick={() => {onMobileMenuClick();}}>
+          <HiOutlineMenu size={18} />
         </S.MenuIconWrapper>
         {title}
       </S.MenuTitle>

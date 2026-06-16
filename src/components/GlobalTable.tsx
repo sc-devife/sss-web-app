@@ -9,7 +9,12 @@ import {
   useReactTable,
   type ColumnDef,
 } from "@tanstack/react-table";
-import { FaAngleLeft, FaAngleRight, FaArrowDown, FaArrowUp } from "react-icons/fa6";
+import {
+  FaAngleLeft,
+  FaAngleRight,
+  FaArrowDown,
+  FaArrowUp,
+} from "react-icons/fa6";
 
 interface GlobalTableProps<T extends object> {
   data: T[];
@@ -21,15 +26,20 @@ function GlobalTable<T extends object>({ data }: GlobalTableProps<T>) {
     pageIndex: 0,
     pageSize: 10,
   });
+
+  const hiddenColumns = ["uid", "_id"];
+
   const columns = useMemo<ColumnDef<T>[]>(
     () =>
       data.length
-        ? Object.keys(data[0]).map((key) => ({
-            accessorKey: key,
-            header: key
-              .replace(/-/g, " ")
-              .replace(/\b\w/g, (c) => c.toUpperCase()),
-          }))
+        ? Object.keys(data[0])
+            .filter((key) => !hiddenColumns.includes(key))
+            .map((key) => ({
+              accessorKey: key,
+              header: key
+                .replace(/-/g, " ")
+                .replace(/\b\w/g, (c) => c.toUpperCase()),
+            }))
         : [],
     [data],
   );
@@ -157,7 +167,8 @@ function GlobalTable<T extends object>({ data }: GlobalTableProps<T>) {
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            <FaAngleLeft />Previous
+            <FaAngleLeft />
+            Previous
           </S.PageButton>
 
           {getPaginationItems().map((item, index) =>
