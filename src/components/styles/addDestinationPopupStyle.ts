@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { screen } from "../../styles/screen";
 
 export const Container = styled.div`
   position: fixed;
@@ -43,9 +44,20 @@ export const Form = styled.form`
 
 export const FormGroup = styled.div`
  margin-top: 14px;
-  display: flex;
-  justify-content: space-between;
-  gap: 18px;
+`;
+
+export const FormRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+
+  ${screen.tablet} {
+    grid-template-columns: 1fr 1fr;
+  }
+`;
+
+export const Field = styled.div`
+  width: 100%;
 `;
 
 export const Label = styled.label`
@@ -97,4 +109,10 @@ export const SubmitButton = styled.button`
   align-items: center;
   gap: 6px;
   cursor: pointer;
+`;
+
+export const ErrorText = styled.p`
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin: 0;
 `;

@@ -231,9 +231,9 @@ export const ErrorText = styled.p`
 `;
 
 export const ProfilePicture = styled.img`
-  width: 100px;
-  height: 100px;
-  border-radius: 10px;
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
   object-fit: cover;
   margin-bottom: 1rem;
   padding: 1px;
