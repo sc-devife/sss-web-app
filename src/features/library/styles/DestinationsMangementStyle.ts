@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { screen } from "../../../styles/screen";
 
 export const Container = styled.div`
     width: 100%;
@@ -27,8 +28,14 @@ export const AddDestinationButton = styled.button`
 
 export const CardContainer = styled.div`
     display: flex;
-    gap: 18px;
+    gap: 12px;
     margin-top: 12px;
+    flex-direction: column;
+
+    ${screen.tablet} {
+        flex-direction: row;
+        gap: 16px;
+    }
 `;
 
 export const Card = styled.div`

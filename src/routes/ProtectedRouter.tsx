@@ -1,16 +1,20 @@
 import { AiOutlineHome } from "react-icons/ai";
 import { LiaCogSolid, LiaTachometerAltSolid, LiaUserSolid } from "react-icons/lia";
 import EscapePoints from "../features/library/Pages/EscapePoints";
+import TripSource from "../features/library/Pages/TripSource";
 import { FaRoute } from "react-icons/fa";
 import { RiRouteFill } from "react-icons/ri";
+import { TbShoppingBagSearch } from "react-icons/tb";
+import { PiSuitcaseRolling } from "react-icons/pi";
+import { RxDashboard } from "react-icons/rx";
 
 
 
 const ProtectedRouter = [
     // top links
-    { path: "/home", element: <h1>Home</h1>, title: "Home", icon: <AiOutlineHome />, position: "top" },
-    { path: "/dashboard", element: <h1>Dashboard</h1>, title: "Dashboard", icon: <LiaTachometerAltSolid />, position: "top" },
-    { path: "/escape-points", element: <EscapePoints />, title: "Escape Points", icon: <RiRouteFill />, position: "top" },
+    { path: "/dashboard", element: <h1>Dashboard</h1>, title: "Dashboard", icon: <RxDashboard />, position: "top" },
+    { path: "/escape-points", element: <EscapePoints />, title: "Escape Points", icon: <PiSuitcaseRolling />, position: "top" },
+    { path: "trip-sources", element: <TripSource />, title: "Trip Sources", icon: <TbShoppingBagSearch />, position: "top" },
 
     // bottom links
     { path: "/settings", element: <h1>Settings</h1>, title: "Settings", icon: <LiaCogSolid />, position: "bottom" },

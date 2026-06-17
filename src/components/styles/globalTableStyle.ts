@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { screen } from "../../styles/screen";
 
 export const Container = styled.div`
   width: 100%;
@@ -86,14 +87,25 @@ export const PaginationContainer = styled.div`
   align-items: center;
   width: 100%;
   position: relative;
+  flex-direction: column;
+  gap: 4px;
+
+  ${screen.sm} {
+    flex-direction: row;
+  }
 `;
 
 export const PageInfo = styled.span`
-  position: absolute;
-  right: 0;
-  padding: 0 8px;
   font-size: 14px;
   color: #667085;
+  margin-top: 8px;
+
+  ${screen.sm} {
+    margin-top: 0;
+    position: absolute;
+    right: 0;
+    padding-right: 5px;
+  }
 `;
 
 export const Pagination = styled.div`
