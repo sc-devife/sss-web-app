@@ -56,7 +56,7 @@ const Login = () => {
         navigate("/dashboard", { replace: true });
       } catch (error) {
         console.error("Login failed:", error);
-        AppToast.showError(error as string);
+        AppToast.showError(error as string || "Something went wrong");
       }
     }
   };
