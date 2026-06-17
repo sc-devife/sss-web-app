@@ -11,7 +11,7 @@ export const getAllEscapePoints = createAsyncThunk(
       console.log("Escape Points:", response.data);
       return response;
     } catch (error) {
-      AppToast.showError("Error fetching escape points");
+      console.error("Error fetching escape points:", error);
       return rejectWithValue(error || "Something went wrong");
     }
   },
