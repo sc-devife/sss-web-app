@@ -7,8 +7,8 @@ const AuthChecking: React.FC = () => {
   //authentication checking logic
   const location = useLocation();
   //Authentication check
-//   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
-  const isAuthenticated = true;
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  // const isAuthenticated = true;
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const dispatch = useAppDispatch();
 
