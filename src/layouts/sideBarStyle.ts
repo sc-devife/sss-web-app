@@ -165,5 +165,31 @@ export const Text = styled.span`
   font-size: 16px;
   margin-left: 8px;
   font-weight: 500;
-  
-  `;
+`;
+
+export const Logout = styled.button`
+  display: flex;
+  align-items: center;
+  padding: 5px 6px 5px 6px;
+  border-radius: 8px;
+  text-decoration: none;
+  border: 1px solid #f15a67;
+  transition: all 0.3s ease;
+  color: #ffffff;
+  background-color: #f15a67;
+
+  &:hover {
+    background-color: #f97883;
+  }
+`;
+
+export const LogoutIcon = styled.span`
+  font-size: 18px;
+  height: 30px;
+  width: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  padding: 1px;
+`;
