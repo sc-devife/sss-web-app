@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { loginUser, restoreUser } from "./authThunk";
+import storageService from "../../services/localStorage";
 
 interface User {
   id: number;
@@ -26,7 +27,14 @@ const initialState: AuthState = {
 const authSlice = createSlice({
   name: "auth",
   initialState,
-  reducers: {},
+  reducers: {
+    logOutUser: (state) => {
+      state.user = null;
+      state.token = null;
+      state.isAuthenticated = false;
+      storageService.removeItem("token");
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(loginUser.pending, (state) => {
@@ -58,4 +66,5 @@ const authSlice = createSlice({
   },
 });
 
+export const { logOutUser } = authSlice.actions;
 export default authSlice.reducer;
