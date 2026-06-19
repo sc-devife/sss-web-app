@@ -1,13 +1,10 @@
-import { AiOutlineHome } from "react-icons/ai";
-import { LiaCogSolid, LiaTachometerAltSolid, LiaUserSolid } from "react-icons/lia";
+import { LiaCogSolid, LiaUserSolid } from "react-icons/lia";
 import EscapePoints from "../features/library/Pages/EscapePoints";
 import TripSource from "../features/library/Pages/TripSource";
-import { FaRoute } from "react-icons/fa";
-import { RiRouteFill } from "react-icons/ri";
 import { TbShoppingBagSearch } from "react-icons/tb";
 import { PiSuitcaseRolling } from "react-icons/pi";
 import { RxDashboard } from "react-icons/rx";
-
+import Profile from "../features/Profile/Pages/Profile";
 
 
 const ProtectedRouter = [
@@ -20,7 +17,7 @@ const ProtectedRouter = [
     { path: "/settings", element: <h1>Settings</h1>, title: "Settings", icon: <LiaCogSolid />, position: "bottom" },
     
     // profile link
-    { path: "/profile", element: <h1>Profile</h1>, title: "Profile", icon: <LiaUserSolid /> },
+    { path: "/profile", element: <Profile />, title: "Profile", icon: <LiaUserSolid /> },
 
 ]
 

@@ -177,6 +177,7 @@ export const Logout = styled.button`
   transition: all 0.3s ease;
   color: #ffffff;
   background-color: #f15a67;
+  cursor: pointer;
 
   &:hover {
     background-color: #f97883;

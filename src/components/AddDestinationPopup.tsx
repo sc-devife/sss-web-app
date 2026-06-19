@@ -4,6 +4,8 @@ import { FaPlus } from "react-icons/fa6";
 import { useDispatch } from "react-redux";
 import { createEscapePoint } from "../features/library/Redux/escapePointsThunk";
 import { useAppDispatch } from "../app/hooks";
+import { Country, State } from "country-state-city";
+import SearchableDropdown from "./SearchableDropdown";
 
 interface AddDestinationPopupProps {
   onClose: () => void;
@@ -13,39 +15,53 @@ const AddDestinationPopup = ({ onClose }: AddDestinationPopupProps) => {
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
+  const [countryCode, setCountryCode] = useState("");
+  const [stateCode, setStateCode] = useState("");
   const [errors, setErrors] = useState<{
     name?: string;
     city?: string;
     country?: string;
   }>({});
   const dispatch = useAppDispatch();
+  const countries = Country.getAllCountries();
+  const countryOptions = countries.map((country) => ({
+    value: country.isoCode,
+    label: country.name,
+  }));
+
+  const stateOptions = State.getStatesOfCountry(countryCode).map((state) => ({
+    value: state.isoCode,
+    label: state.name,
+  }));
+
   const inputValidation = () => {
     const newErrors: { name?: string; city?: string; country?: string } = {};
 
     if (name.trim() === "") newErrors.name = "Name is required";
     if (city.trim() === "") newErrors.city = "City is required";
-    if (country.trim() === "") newErrors.country = "Country is required";
+    // if (country.trim() === "") newErrors.country = "Country is required";
 
     return newErrors;
   };
 
   const handleAddDestination = (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const newErrors = inputValidation();
+    const newErrors = inputValidation();
 
-  if (Object.keys(newErrors).length > 0) {
-    setErrors(newErrors);
-    return;
-  }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
 
-  setErrors({});
+    setErrors({});
 
-  const id = `${name}-${Math.floor(Math.random() * 10000)}`;
+    const id = `${name}-${Math.floor(Math.random() * 10000)}`;
+    console.log(id, name, city, country, countryCode);
 
-  dispatch(createEscapePoint({ id, name, city, country }));
-  onClose();
-};
+    dispatch(createEscapePoint({ id, name, city, country }));
+    onClose();
+  };
 
   return (
     <S.Container>
@@ -66,6 +82,7 @@ const AddDestinationPopup = ({ onClose }: AddDestinationPopupProps) => {
                 <S.Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter destination name"
                 />
                 <S.ErrorText>{errors.name}</S.ErrorText>
               </S.Field>
@@ -75,6 +92,7 @@ const AddDestinationPopup = ({ onClose }: AddDestinationPopupProps) => {
                 <S.Input
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
+                  placeholder="Enter city name"
                 />
                 <S.ErrorText>{errors.city}</S.ErrorText>
               </S.Field>
@@ -83,15 +101,30 @@ const AddDestinationPopup = ({ onClose }: AddDestinationPopupProps) => {
             <S.FormRow>
               <S.Field>
                 <S.Label>Country</S.Label>
-                <S.Input
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
+                {/* insted of storing the country name, store the country code */}
+                <SearchableDropdown
+                  options={countryOptions}
+                  value={countryCode}
+                  onChange={setCountryCode}
+                  placeholder="Select Country"
                 />
 
                 <S.ErrorText>{errors.country}</S.ErrorText>
               </S.Field>
 
-              <S.Field />
+              <S.Field>
+                <S.Label>State</S.Label>
+                {/* insted of storing the country name, store the country code */}
+                <SearchableDropdown
+                  disabled={!countryCode}
+                  options={stateOptions}
+                  value={stateCode}
+                  onChange={setStateCode}
+                  placeholder="Select State"
+                />
+
+                <S.ErrorText>{errors.country}</S.ErrorText>
+              </S.Field>
             </S.FormRow>
           </S.FormGroup>
 
@@ -100,7 +133,7 @@ const AddDestinationPopup = ({ onClose }: AddDestinationPopupProps) => {
               Cancel
             </S.CancelButton>
 
-            <S.SubmitButton type="submit" >
+            <S.SubmitButton type="submit">
               <FaPlus />
               Add Destination
             </S.SubmitButton>
