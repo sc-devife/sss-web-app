@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { loginUser, restoreUser } from "./authThunk";
+import { loginUser, restoreUser, signupUser } from "./authThunk";
 import storageService from "../../services/localStorage";
 
 interface User {
@@ -14,14 +14,26 @@ interface AuthState {
   error: string | null;
   token: string | null;
   isAuthenticated: boolean;
+
+  // signup
+  signupLoading: boolean;
+  signupData: User | null;
+  signupError: string | null;
 }
 
 const initialState: AuthState = {
+
+  // login
   user: null,
   loading: false,
   error: null,
   token: null,
   isAuthenticated: false,
+
+  // signup
+  signupLoading: false,
+  signupData: null,
+  signupError: null,
 };
 
 const authSlice = createSlice({
@@ -62,6 +74,21 @@ const authSlice = createSlice({
       .addCase(restoreUser.rejected, (state) => {
         state.user = null;
         state.isAuthenticated = false;
+      })
+
+
+      // signup
+      .addCase(signupUser.pending, (state) => {
+        state.signupLoading = true;
+        state.signupError = null;
+      })
+      .addCase(signupUser.fulfilled, (state, action) => {
+        state.signupLoading = false;
+        state.signupData = action.payload.data;
+      })
+      .addCase(signupUser.rejected, (state, action) => {
+        state.signupLoading = false;
+        state.signupError = action.error.message || "Signup failed";
       });
   },
 });
