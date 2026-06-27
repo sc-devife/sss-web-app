@@ -3,12 +3,15 @@ import * as S from "./loginStyle";
 import { IoLockClosedOutline, IoMailOutline } from "react-icons/io5";
 import { FaEye, FaEyeSlash, FaRegUser, FaUser } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { loginUser } from "../authThunk";
+import { signupUser } from "../authThunk";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../../../app/store";
 import AppToast from "../../../services/toastService";
 import { IoMdPhoneLandscape } from "react-icons/io";
 import { FiPhone } from "react-icons/fi";
+import { useAppSelector } from "../../../app/hooks";
+import Spinner from "../../../components/Spinner";
+import { RiUserSearchLine } from "react-icons/ri";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -19,11 +22,14 @@ const Register = () => {
   const [lastName, setLastName] = useState<string>("");
   const [phone, setPhone] = useState<string>("");
   const [email, setEmail] = useState<string>("");
+  const [userId, setUserId] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [profilePic, setProfilePic] = useState<File | null>(null);
+  const { signupLoading} = useAppSelector((state) => state.auth);
   const [errors, setErrors] = useState<{
     email?: string;
+    userId?: string;
     password?: string;
     phone?: string;
     confirmPassword?: string;
@@ -34,6 +40,7 @@ const Register = () => {
   const inputValidation = () => {
     const newErrors: {
       email?: string;
+      userId?: string;
       password?: string;
       phone?: string;
       confirmPassword?: string;
@@ -43,6 +50,7 @@ const Register = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const passwordRegex =
       /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{6,}$/;
+    const userIdRegex = /^[a-zA-Z0-9._]{3,30}$/;
 
     if (!firstName || firstName.trim() === "") {
       newErrors.firstName = "First Name is Required";
@@ -53,6 +61,12 @@ const Register = () => {
       newErrors.email = "Email is Required";
     } else if (!emailRegex.test(email)) {
       newErrors.email = "Please enter a valid email address.";
+    }
+
+    if (!userId || userId.trim() === "") {
+      newErrors.userId = "User ID is Required";
+    } else if (!userIdRegex.test(userId)) {
+      newErrors.userId = "User ID must be 3-30 characters long and contain only letters, numbers, dots, or underscores";
     }
 
     if (!phone || phone.trim() === "") {
@@ -80,17 +94,28 @@ const Register = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const data = {
+    firstName,
+    lastName,
+    name: firstName + " " + lastName,
+    mobileNumber: phone,
+    email,
+    userId,
+    password,
+    profilePic,
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (inputValidation()) {
       try {
-        const res = await dispatch(loginUser({ email, password })).unwrap();
-        console.log("Login successful:", res);
-        AppToast.showSuccess("Login successful!");
-        navigate("/dashboard", { replace: true });
+        const res = await dispatch(signupUser(data)).unwrap();
+        console.log("Signup successful:", res);
+        AppToast.showSuccess("Signup successful!");
+        navigate("/login", { replace: true });
       } catch (error) {
-        console.error("Login failed:", error);
+        console.error("Signup failed:", error);
         AppToast.showError(error as string);
       }
     }
@@ -105,7 +130,7 @@ const Register = () => {
           />
           <S.PageTitle>Create Account</S.PageTitle>
           <S.PageSubTitle>Sign up to access your workspace.</S.PageSubTitle>
-          <S.LoginForm onSubmit={handleRegister}>
+          <S.LoginForm onSubmit={handleSignup}>
 
             {/* Form fields */}
             <div
@@ -159,6 +184,27 @@ const Register = () => {
               </div>
             </div>
             {errors.firstName && <S.Error>{errors.firstName}</S.Error>}
+
+            <div style={{ width: "100%", textAlign: "left", marginTop: "0.2rem" }}>
+              <S.Label>User ID</S.Label>
+            </div>
+            <S.InputWrapper
+              style={{
+                marginTop: "0.2rem",
+                marginBottom: errors.email ? "0.2rem" : "0.2rem",
+              }}
+            >
+              <S.Input
+                type="text"
+                placeholder=" "
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+              />
+              <S.IconLeft>
+                <RiUserSearchLine />
+              </S.IconLeft>
+            </S.InputWrapper>
+            {errors.userId && <S.Error>{errors.userId}</S.Error>}
 
             <div style={{ width: "100%", textAlign: "left", marginTop: "0.2rem" }}>
               <S.Label>Email Address</S.Label>
@@ -302,12 +348,14 @@ const Register = () => {
                 />
               <S.Input
                 type="file"
-                placeholder=" "
+                accept=".jpg,.jpeg,.png,.webp"
                 onChange={(e) => setProfilePic(e.target.files![0])}
               />
             </S.InputWrapper>
 
-            <S.Button type="submit">Register</S.Button>
+            <S.Button type="submit">
+              {signupLoading ? <Spinner /> : "Sign Up"}
+            </S.Button>
           </S.LoginForm>
         </S.RightPartMainCard>
       </S.RightPart>

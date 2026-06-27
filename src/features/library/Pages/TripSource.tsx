@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import * as S from "../styles/DestinationsMangementStyle";
 import GlobalTable from "../../../components/GlobalTable";
 import { FaPlus } from "react-icons/fa6";
-import AddDestinationPopup from "../../../components/AddDestinationPopup";
+import AddSourcePopup from "../../../components/AddSourcePopup";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import TableData from "../../../components/TableData.json"
 
@@ -50,7 +50,7 @@ const TripSource = () => {
         <GlobalTable data={TableData} />
       </S.DestinationTable>
 
-      {isPopupOpen && <AddDestinationPopup onClose={handleClosePopup} />}
+      {isPopupOpen && <AddSourcePopup onClose={handleClosePopup} />}
     </S.Container>
   );
 };

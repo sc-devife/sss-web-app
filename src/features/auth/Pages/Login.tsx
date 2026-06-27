@@ -7,6 +7,8 @@ import { loginUser } from "../authThunk";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../../../app/store";
 import AppToast from "../../../services/toastService";
+import { useAppSelector } from "../../../app/hooks";
+import Spinner from "../../../components/Spinner";
 
 
 const Login = () => {
@@ -15,6 +17,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const { loading } = useAppSelector((state) => state.auth);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
     {},
   );
@@ -45,17 +48,17 @@ const Login = () => {
 };
 
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (inputValidation()) {
       try {
         const res = await dispatch(loginUser({ email, password })).unwrap();
-        console.log("Login successful:", res);
-        AppToast.showSuccess("Login successful!");
+        console.log("Signin successful:", res);
+        AppToast.showSuccess("Signin successful!");
         navigate("/dashboard", { replace: true });
       } catch (error) {
-        console.error("Login failed:", error);
+        console.error("Signin failed:", error);
         AppToast.showError(error as string || "Something went wrong");
       }
     }
@@ -70,7 +73,7 @@ const Login = () => {
           />
           <S.PageTitle>Welcome Back</S.PageTitle>
           <S.PageSubTitle>Sign in to access your workspace.</S.PageSubTitle>
-          <S.LoginForm onSubmit={handleLogin}>
+          <S.LoginForm onSubmit={handleSignin}>
             <div style={{ width: "100%", textAlign: "left" }}>
               <S.Label>Email Address</S.Label>
             </div>
@@ -120,7 +123,9 @@ const Login = () => {
             <S.ForgotPasswordLink href="/forgot-password">
               Forgot Password?
             </S.ForgotPasswordLink>
-            <S.Button type="submit">Login</S.Button>
+            <S.Button type="submit">
+              {loading ? <Spinner /> : "Sign In"}
+            </S.Button>
           </S.LoginForm>
           {/*<S.Divider>
             <hr />

@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import {screen} from "../styles/screen";
+import { NavLink } from "react-router-dom";
 
 export const HeaderContainer = styled.header`
    width: 100%;
@@ -57,4 +58,32 @@ export const IconWrapper = styled.div`
   cursor: pointer;
   padding: 8px;
   font-size: 0.8rem;
+`;
+
+export const Profile = styled(NavLink)`
+  display: flex;
+  align-items: center;
+  padding: 5px 6px 5px 6px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  color: #4b5563;
+`;
+
+export const ProfileIcon = styled.span`
+  font-size: 18px;
+  height: 30px;
+  width: 30px;
+  border-radius: 50%;
+  padding: 1px;
+`;
+
+export const Text = styled.span`
+  font-size: 16px;
+  margin-left: 8px;
+  font-weight: 500;
+  display: none;
+  ${screen.tablet} {
+    display: block;
+  }
 `;

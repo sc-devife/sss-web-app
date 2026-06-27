@@ -132,6 +132,9 @@ export const Button = styled.button`
   width: 100%;
   margin-top: 0.5rem;
   padding: 0.7rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1rem;
   font-weight: 700;
   background-color: #D6FB4B;
@@ -233,9 +236,13 @@ export const ErrorText = styled.p`
 export const ProfilePicture = styled.img`
   width: 5rem;
   height: 5rem;
+  min-width: 5rem;
+  min-height: 5rem;
   border-radius: 50%;
   object-fit: cover;
-  margin-bottom: 1rem;
-  padding: 1px;
+  object-position: center;
   border: 2px dashed #d1d5db;
+  padding: 1px;
+  flex-shrink: 0;
+  display: block;
 `;

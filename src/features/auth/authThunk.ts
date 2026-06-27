@@ -1,6 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import authApi from "../../api/authApi";
 import storageService from "../../services/localStorage";
+import AppToast from "../../services/toastService";
 
 export const restoreUser = createAsyncThunk<
   string,
@@ -31,6 +32,20 @@ export const loginUser = createAsyncThunk(
       return response.data;
     } catch (error: any) {
       console.error("Login issue:", error.response.data);
+      return rejectWithValue(error?.response?.data || "Something went wrong");
+    }
+  },
+);
+
+export const signupUser = createAsyncThunk(
+  "auth/SignupUser",
+  async (data: any, { rejectWithValue }) => {
+    try {
+      const response = await authApi.signup(data);
+      return response.data;
+    } catch (error: any) {
+      console.error("Signup issue:", error.response.data.message);
+      AppToast.showError(error.response.data.message);
       return rejectWithValue(error?.response?.data || "Something went wrong");
     }
   },
