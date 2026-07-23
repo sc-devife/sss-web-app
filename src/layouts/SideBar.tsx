@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { FaChevronLeft, FaChevronRight, FaPowerOff, FaTimes } from "react-icons/fa";
+import { FiChevronDown } from "react-icons/fi";
 import * as S from "./sideBarStyle";
-import ProtectedRouter from "../routes/ProtectedRouter";
-import { FaChevronLeft, FaChevronRight, FaTimes } from "react-icons/fa";
-import { FaPowerOff } from "react-icons/fa6";
-import { useNavigate} from "react-router-dom";
+import { dashboardRoute, routeGroups } from "../routes/ProtectedRouter";
 import { useAppDispatch } from "../app/hooks";
 import { logOutUser } from "../features/auth/authSlice";
 
@@ -13,104 +13,80 @@ interface SideBarProps {
 }
 
 const SideBar: React.FC<SideBarProps> = ({ mobileOpen, setMobileOpen }) => {
-  const [collapsed, setCollapsed] = useState(false);
+  const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const icons = ProtectedRouter.map((route) => ({
-    path: route.path,
-    name: route.title,
-    icon: route.icon,
-    title: route.title,
-    position: route.position,
-  }));
+  const activeGroup = routeGroups.find((group) => group.routes.some((route) => location.pathname.startsWith(route.path)))?.id;
+  const [collapsed, setCollapsed] = useState(false);
+  const [openGroups, setOpenGroups] = useState<string[]>(activeGroup ? [activeGroup] : ["organization"]);
+
+  const closeMobile = () => setMobileOpen(false);
+  const toggleGroup = (id: string) => {
+    if (collapsed) {
+      setCollapsed(false);
+      setOpenGroups((current) => current.includes(id) ? current : [...current, id]);
+      return;
+    }
+    setOpenGroups((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  };
 
   const handleLogout = () => {
-    console.log("Logout");
     dispatch(logOutUser());
     navigate("/login", { replace: true });
   };
 
+  const DashboardIcon = dashboardRoute.icon;
+
   return (
-    <S.Sidebar collapsed={collapsed} mobileOpen={mobileOpen}>
-      {/* Logo */}
-      <S.Logo>
-        <h1 style={{ display: collapsed ? "none" : "inline" }}>CRM</h1>
-        <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
-          <S.CollapseIcon onClick={() => setCollapsed(!collapsed)}>
-            {collapsed ? (
-              <FaChevronRight size={16} color="black" />
-            ) : (
-              <FaChevronLeft size={16} color="black" />
-            )}
-          </S.CollapseIcon>
-          <S.XIcon onClick={() => setMobileOpen(false)}>
-            <FaTimes size={16} color="black" />
-          </S.XIcon>
-        </div>
-      </S.Logo>
+    <>
+      <S.Backdrop mobileOpen={mobileOpen} onClick={closeMobile} aria-hidden="true" />
+      <S.Sidebar collapsed={collapsed} mobileOpen={mobileOpen} aria-label="Primary navigation">
+        <S.Logo collapsed={collapsed}>
+          <S.BrandMark>SS</S.BrandMark>
+          {!collapsed && <S.BrandText><strong>Smart Sales</strong><span>Travel workspace</span></S.BrandText>}
+          <S.DesktopToggle type="button" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+            {collapsed ? <FaChevronRight /> : <FaChevronLeft />}
+          </S.DesktopToggle>
+          <S.MobileClose type="button" onClick={closeMobile} aria-label="Close navigation"><FaTimes /></S.MobileClose>
+        </S.Logo>
 
-      {/* Menu*/}
-      <S.Menu
-        onClick={() => {
-          setMobileOpen(false);
-        }}
-      >
-        <S.TopMenu>
-          {icons.map(
-            (item) =>
-              item.position === "top" && (
-                <div key={item.path} title={item.name}>
-                  <S.StyledNavLink to={item.path}>
-                    <S.Icon>{item.icon}</S.Icon>
-                    <S.Text style={{ display: collapsed ? "none" : "inline" }}>
-                      {item.title}
-                    </S.Text>
-                  </S.StyledNavLink>
-                </div>
-              ),
-          )}
-        </S.TopMenu>
+        <S.Navigation>
+          <S.PrimaryLink to={dashboardRoute.path} title={collapsed ? dashboardRoute.title : undefined} onClick={closeMobile}>
+            <S.Icon><DashboardIcon /></S.Icon>{!collapsed && <S.Text>{dashboardRoute.title}</S.Text>}
+          </S.PrimaryLink>
 
-        <S.BottomMenu>
-          {icons.map(
-            (item) =>
-              item.position === "bottom" && (
-                <div key={item.path} title={item.name}>
-                  <S.StyledNavLink to={item.path}>
-                    <S.Icon>{item.icon}</S.Icon>
-                    <S.Text style={{ display: collapsed ? "none" : "inline" }}>
-                      {item.title}
-                    </S.Text>
-                  </S.StyledNavLink>
-                </div>
-              ),
-          )}
-          {/*<S.Profile to="/profile" title="Profile">
-            <S.ProfileIcon>
-              <img
-                src="https://images.ctfassets.net/h6goo9gw1hh6/2sNZtFAWOdP1lmQ33VwRN3/24e953b920a9cd0ff2e1d587742a2472/1-intro-photo-final.jpg?w=1200&h=992&fl=progressive&q=70&fm=jpg"
-                alt="Profile"
-                style={{ borderRadius: "50%", width: "100%", height: "100%" }}
-              />
-            </S.ProfileIcon>
-            <S.Text style={{ display: collapsed ? "none" : "inline" }}>
-              John Doe
-            </S.Text>
-          </S.Profile>*/}
+          <S.GroupList>
+            {routeGroups.map((group) => {
+              const GroupIcon = group.icon;
+              const isOpen = (openGroups.includes(group.id) || group.id === activeGroup) && !collapsed;
+              const isActive = group.id === activeGroup;
+              return (
+                <S.Group key={group.id}>
+                  <S.GroupButton type="button" onClick={() => toggleGroup(group.id)} active={isActive} title={collapsed ? group.title : undefined} aria-expanded={isOpen} aria-controls={`nav-${group.id}`}>
+                    <S.Icon><GroupIcon /></S.Icon>
+                    {!collapsed && <><S.Text>{group.title}</S.Text><S.Chevron open={isOpen}><FiChevronDown /></S.Chevron></>}
+                  </S.GroupButton>
+                  {!collapsed && <S.Submenu id={`nav-${group.id}`} open={isOpen}>
+                    {group.routes.map((route) => {
+                      const RouteIcon = route.icon;
+                      return <S.ChildLink key={route.path} to={route.path} onClick={closeMobile} end={route.path === "/bookings"}>
+                        <RouteIcon aria-hidden="true" /><span>{route.title}</span>
+                      </S.ChildLink>;
+                    })}
+                  </S.Submenu>}
+                </S.Group>
+              );
+            })}
+          </S.GroupList>
+        </S.Navigation>
 
-
-          <S.Logout title="Logout" onClick= {handleLogout}>
-            <S.LogoutIcon>
-              <FaPowerOff size={20} />
-            </S.LogoutIcon>
-            <S.Text style={{ display: collapsed ? "none" : "inline", fontWeight: "bold", }}>
-              Logout
-            </S.Text>
+        <S.Footer>
+          <S.Logout type="button" title={collapsed ? "Logout" : undefined} onClick={handleLogout}>
+            <S.Icon><FaPowerOff /></S.Icon>{!collapsed && <S.Text>Logout</S.Text>}
           </S.Logout>
-
-        </S.BottomMenu>
-      </S.Menu>
-    </S.Sidebar>
+        </S.Footer>
+      </S.Sidebar>
+    </>
   );
 };
 

@@ -33,19 +33,23 @@ const SearchableDropdown = ({
   );
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handlePointerDownOutside = (event: PointerEvent) => {
+      const target = event.target;
+
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        target instanceof Node &&
+        !dropdownRef.current.contains(target)
       ) {
         setIsOpen(false);
         setSearch("");
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("pointerdown", handlePointerDownOutside, true);
 
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener("pointerdown", handlePointerDownOutside, true);
   }, []);
 
   return (
