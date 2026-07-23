@@ -148,54 +148,67 @@ function GlobalTable<T extends object>({ data }: GlobalTableProps<T>) {
           </S.TableHead>
 
           <tbody>
-            {table.getRowModel().rows.map((row) => (
-              <S.TableRow key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <S.TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </S.TableCell>
-                ))}
+            {table.getRowModel().rows.length === 0 ? (
+              <S.TableRow>
+                <S.TableCell colSpan={columns.length}>
+                  <S.NoDataMessage>No data found</S.NoDataMessage>
+                </S.TableCell>
               </S.TableRow>
-            ))}
+            ) : (
+              table.getRowModel().rows.map((row) => (
+                <S.TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <S.TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </S.TableCell>
+                  ))}
+                </S.TableRow>
+              ))
+            )}
           </tbody>
         </S.Table>
       </S.TableWrapper>
 
-      <S.PaginationContainer>
-        <S.Pagination>
-          <S.PageButton
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <FaAngleLeft />
-            Previous
-          </S.PageButton>
+      {table.getRowModel().rows.length > 0 && (
+        <S.PaginationContainer>
+          <S.Pagination>
+            <S.PageButton
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <FaAngleLeft />
+              Previous
+            </S.PageButton>
 
-          {getPaginationItems().map((item, index) =>
-            item === "..." ? (
-              <S.Ellipsis key={`ellipsis-${index}`}>...</S.Ellipsis>
-            ) : (
-              <S.PageButton
-                key={item}
-                active={pageIndex + 1 === item}
-                onClick={() => table.setPageIndex(Number(item) - 1)}
-              >
-                {item}
-              </S.PageButton>
-            ),
-          )}
+            {getPaginationItems().map((item, index) =>
+              item === "..." ? (
+                <S.Ellipsis key={`ellipsis-${index}`}>...</S.Ellipsis>
+              ) : (
+                <S.PageButton
+                  key={item}
+                  active={pageIndex + 1 === item}
+                  onClick={() => table.setPageIndex(Number(item) - 1)}
+                >
+                  {item}
+                </S.PageButton>
+              ),
+            )}
 
-          <S.PageButton
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next <FaAngleRight />
-          </S.PageButton>
-        </S.Pagination>
-        <S.PageInfo>
-          Page {pageIndex + 1} of {pageCount}
-        </S.PageInfo>
-      </S.PaginationContainer>
+            <S.PageButton
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Next <FaAngleRight />
+            </S.PageButton>
+          </S.Pagination>
+          <S.PageInfo>
+            Page {pageIndex + 1} of {pageCount}
+          </S.PageInfo>
+        </S.PaginationContainer>
+      )}
     </>
   );
 }

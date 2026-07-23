@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import * as S from "./headerStyle";
 import ProtectedRouter from "../routes/ProtectedRouter";
 import { HiOutlineMenu } from "react-icons/hi";
+import storageService from "../services/localStorage";
 
 interface HeaderProps {
   onMobileMenuClick: () => void;
@@ -10,6 +11,8 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onMobileMenuClick }) => {
   const location = useLocation();
+
+  const user = (storageService.getItem("user") as { name?: string } | null) ?? null;
 
   let title = "SSS Web App";
 
@@ -41,7 +44,7 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuClick }) => {
             style={{ borderRadius: "50%", width: "100%", height: "100%" }}
           />
         </S.ProfileIcon>
-        <S.Text>John Doe</S.Text>
+        <S.Text>{user?.name || "User"}</S.Text>
       </S.Profile>
     </S.HeaderContainer>
   );

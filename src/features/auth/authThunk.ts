@@ -28,7 +28,9 @@ export const loginUser = createAsyncThunk(
   ) => {
     try {
       const response = await authApi.login(email, password);
+      console.log("Login response:", response);
       storageService.setItem("token", response.data.token);
+      storageService.setItem("user", response.data);
       return response.data;
     } catch (error: any) {
       console.error("Login issue:", error.response.data);

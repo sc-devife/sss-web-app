@@ -11,7 +11,7 @@ const ProtectedRouter = [
     // top links
     { path: "/dashboard", element: <h1>Dashboard</h1>, title: "Dashboard", icon: <RxDashboard />, position: "top" },
     { path: "/escape-points", element: <EscapePoints />, title: "Escape Points", icon: <PiSuitcaseRolling />, position: "top" },
-    { path: "trip-sources", element: <TripSource />, title: "Trip Sources", icon: <TbShoppingBagSearch />, position: "top" },
+    { path: "/trip-sources", element: <TripSource />, title: "Trip Sources", icon: <TbShoppingBagSearch />, position: "top" },
 
     // bottom links
     { path: "/settings", element: <h1>Settings</h1>, title: "Settings", icon: <LiaCogSolid />, position: "bottom" },

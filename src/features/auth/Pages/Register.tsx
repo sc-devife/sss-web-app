@@ -324,7 +324,7 @@ const Register = () => {
                 marginTop: "0.2rem",
               }}
             >
-              <S.Label>Profile Picture</S.Label>
+              <S.Label>Profile Picture (Optional)</S.Label>
             </div>
 
             <S.InputWrapper

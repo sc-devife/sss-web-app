@@ -147,3 +147,9 @@ export const Ellipsis = styled.span`
   color: #667085;
   font-weight: 600;
 `;
+
+export const NoDataMessage = styled.div`
+  text-align: center;
+  font-size: 1rem;
+  color: #6b7280;
+`;

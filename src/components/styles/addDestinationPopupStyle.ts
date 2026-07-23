@@ -109,6 +109,10 @@ export const SubmitButton = styled.button`
   align-items: center;
   gap: 6px;
   cursor: pointer;
+
+  &:hover {
+    background: #aacf25;
+  }
 `;
 
 export const ErrorText = styled.p`

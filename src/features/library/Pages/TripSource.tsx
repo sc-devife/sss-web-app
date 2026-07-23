@@ -25,7 +25,7 @@ const TripSource = () => {
       <S.TopBar>
         <S.AddDestinationButton onClick={handleAddDestination}>
           <FaPlus />
-          Add Source
+          <span style={{ fontWeight: "600", fontSize: "14px" }}>Add Source</span>
         </S.AddDestinationButton>
       </S.TopBar>
 

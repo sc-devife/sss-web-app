@@ -33,7 +33,7 @@ const DestinationsMangement = () => {
       <S.TopBar>
         <S.AddDestinationButton onClick={handleAddDestination}>
           <FaPlus />
-          Add Destination
+          <span style={{ fontWeight: "600", fontSize: "14px" }}>Add Destination</span>
         </S.AddDestinationButton>
       </S.TopBar>
 
