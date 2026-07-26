@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens — HSL triplets (no hsl() wrapper) so Tailwind's <alpha-value>
+   opacity modifiers work. Dark values are tuned overrides, not an invert. */
+:root {
+  --background: 210 20% 98%;
+  --foreground: 222 22% 12%;
+  --muted: 210 16% 93%;
+  --muted-foreground: 215 12% 40%;
+  --border: 210 14% 88%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 22% 12%;
+
+  --primary: 187 65% 30%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 27 75% 46%;
+  --accent-foreground: 0 0% 100%;
+
+  --success: 142 46% 34%;
+  --warning: 38 72% 42%;
+  --danger: 355 65% 45%;
+
+  --font-sans: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.dark {
+  --background: 222 24% 8%;
+  --foreground: 210 20% 92%;
+  --muted: 222 18% 15%;
+  --muted-foreground: 215 12% 65%;
+  --border: 222 16% 22%;
+  --card: 222 20% 11%;
+  --card-foreground: 210 20% 92%;
+
+  --primary: 187 55% 46%;
+  --primary-foreground: 222 24% 8%;
+  --accent: 27 70% 55%;
+  --accent-foreground: 222 24% 8%;
+
+  --success: 142 40% 50%;
+  --warning: 38 65% 55%;
+  --danger: 355 60% 60%;
+}
+
+body {
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  font-family: var(--font-sans);
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
