@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { Suspense, useState, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Heading, Body } from "@/components/ui/Typography";
 import { TextInput } from "@/components/ui/TextInput";
 import { Button } from "@/components/ui/Button";
 import { isValidEmail, validationMessages } from "@/lib/validators";
-import { login } from "@/lib/api";
 
-export default function LoginPage() {
+function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState<string | undefined>();
@@ -27,8 +29,18 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      await login(email, password);
-      window.location.href = "/dashboard";
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.message ?? "Invalid credentials");
+      }
+      const destination = searchParams.get("from") ?? "/dashboard";
+      router.push(destination);
+      router.refresh();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -37,39 +49,47 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted px-4">
-      <Card className="w-full max-w-sm">
-        <Heading as="h1" className="mb-1">
-          Sign in
-        </Heading>
-        <Body muted className="mb-6">
-          Travel Planner CRM
-        </Body>
+    <Card className="w-full max-w-sm">
+      <Heading as="h1" className="mb-1">
+        Sign in
+      </Heading>
+      <Body muted className="mb-6">
+        Travel Planner CRM
+      </Body>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <TextInput
-            label="Email"
-            name="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            error={emailError}
-            autoComplete="username"
-          />
-          <TextInput
-            label="Password"
-            name="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-          />
-          {formError && <Body className="text-danger">{formError}</Body>}
-          <Button type="submit" disabled={loading} className="mt-2">
-            {loading ? "Signing in…" : "Sign in"}
-          </Button>
-        </form>
-      </Card>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <TextInput
+          label="Email"
+          name="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          error={emailError}
+          autoComplete="username"
+        />
+        <TextInput
+          label="Password"
+          name="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="current-password"
+        />
+        {formError && <Body className="text-danger">{formError}</Body>}
+        <Button type="submit" disabled={loading} className="mt-2">
+          {loading ? "Signing in…" : "Sign in"}
+        </Button>
+      </form>
+    </Card>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <div className="flex h-full items-center justify-center bg-muted px-4">
+      <Suspense>
+        <LoginForm />
+      </Suspense>
     </div>
   );
 }

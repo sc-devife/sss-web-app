@@ -2,11 +2,11 @@ import type { ReactNode } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 
-// Auth guard (redirect unauthenticated visitors to /login) lands with the
-// real session-handling work — this scaffold only provides the shell.
+// Route protection itself lives in middleware.ts (redirects to /login when
+// the session cookie is missing) — this layout is just the authenticated shell.
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full">
       <Sidebar />
       <div className="flex flex-1 flex-col min-w-0">
         <Header />
