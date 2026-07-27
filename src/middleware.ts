@@ -6,7 +6,7 @@ import { SESSION_COOKIE } from "@/lib/session";
 // security boundary is the backend, which verifies the JWT signature and
 // session on every request regardless). This is a UX guard, not the
 // authorization check.
-const PUBLIC_PATHS = ["/", "/login", "/forgot-password"];
+const PUBLIC_PATHS = ["/", "/login", "/forgot-password", "/reset-password", "/signup"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
