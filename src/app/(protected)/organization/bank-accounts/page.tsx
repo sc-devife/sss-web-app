@@ -1,7 +1,17 @@
-import { ComingSoon } from "@/components/ui/ComingSoon";
-import { findRouteWithGroup } from "@/lib/nav-config";
+import { Heading, Body } from "@/components/ui/Typography";
+import { BankAccountsPanel } from "@/components/organization/BankAccountsPanel";
+import { getMyOrganization } from "@/lib/organization";
+import { getBankAccounts } from "@/lib/bank-accounts";
 
-export default function Page() {
-  const { route, groupTitle } = findRouteWithGroup("/organization/bank-accounts")!;
-  return <ComingSoon title={route.title} section={groupTitle} icon={route.icon} />;
+export default async function BankAccountsPage() {
+  const organization = await getMyOrganization();
+  const accounts = await getBankAccounts(organization.seqp);
+
+  return (
+    <div className="flex flex-col gap-5 max-w-2xl">
+      <Heading as="h2">Bank Accounts</Heading>
+      <Body muted>Accounts shown to staff when recording payment milestones for {organization.display_name}.</Body>
+      <BankAccountsPanel orgId={organization.seqp} accounts={accounts} />
+    </div>
+  );
 }

@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from "react";
+import { useId, type InputHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
 interface TextInputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -7,7 +7,10 @@ interface TextInputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export function TextInput({ label, error, id, className, ...props }: TextInputProps) {
-  const inputId = id ?? props.name;
+  const generatedId = useId();
+  // Falls back to an auto-generated id so the label is always associated
+  // with its input, even when a caller forgets to pass id/name.
+  const inputId = id ?? props.name ?? generatedId;
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor={inputId} className="text-sm font-medium text-foreground">

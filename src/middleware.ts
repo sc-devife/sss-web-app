@@ -6,7 +6,7 @@ import { SESSION_COOKIE } from "@/lib/session";
 // security boundary is the backend, which verifies the JWT signature and
 // session on every request regardless). This is a UX guard, not the
 // authorization check.
-const PUBLIC_PATHS = ["/login"];
+const PUBLIC_PATHS = ["/", "/login", "/forgot-password"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -19,9 +19,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (hasSession && isPublicPath) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
+  // Deliberately no "cookie present -> bounce away from /login" rule here.
+  // backendJson() redirects to /login on a 401 from a stale/expired cookie,
+  // but a Server Component render can't clear that cookie (cookies() is
+  // read-only outside Server Actions/Route Handlers) — so if this middleware
+  // ever redirected an authenticated-looking-but-stale visitor straight back
+  // to a protected page, it would ping-pong with backendJson forever. Letting
+  // /login render even with a cookie present breaks that loop; the login
+  // page itself is harmless to see again.
 
   return NextResponse.next();
 }
