@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { dashboardRoute, routeGroups } from "@/lib/nav-config";
+import { dashboardRoute, visibleGroupsForRoles } from "@/lib/nav-config";
 import { cn } from "@/lib/cn";
 
 function NavLink({ path, title, Icon }: { path: string; title: string; Icon: React.ComponentType<{ className?: string }> }) {
@@ -22,14 +22,16 @@ function NavLink({ path, title, Icon }: { path: string; title: string; Icon: Rea
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ roles }: { roles: string[] }) {
+  const groups = visibleGroupsForRoles(roles);
+
   return (
     <aside className="hidden md:flex w-60 shrink-0 flex-col gap-6 border-r border-border bg-card px-3 py-5 overflow-y-auto">
       <div className="px-2 text-base font-semibold text-foreground">Travel CRM</div>
 
       <NavLink path={dashboardRoute.path} title={dashboardRoute.title} Icon={dashboardRoute.icon} />
 
-      {routeGroups.map((group) => (
+      {groups.map((group) => (
         <div key={group.id} className="flex flex-col gap-1">
           <div className="px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{group.title}</div>
           {group.routes.map((route) => (

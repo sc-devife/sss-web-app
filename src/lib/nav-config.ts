@@ -1,37 +1,28 @@
 import type { IconType } from "react-icons";
 import { RxDashboard } from "react-icons/rx";
-import { LiaCogSolid, LiaUserSolid } from "react-icons/lia";
+import { LiaUserSolid } from "react-icons/lia";
 import {
-  PiBuildings,
-  PiSuitcaseRolling,
-  PiUsersThree,
-  PiMapPin,
+  PiUserPlus,
   PiAirplaneTilt,
-  PiReceipt,
-  PiMegaphone,
-  PiCurrencyDollar,
+  PiMapPin,
+  PiSuitcaseRolling,
+  PiBuildingOffice,
+  PiUsersThree,
+  PiShieldCheck,
   PiCreditCard,
   PiFileText,
-  PiClock,
-  PiCheckCircle,
-  PiMapTrifold,
-  PiFlagCheckered,
+  PiGearSix,
+  PiGlobe,
+  PiStackSimple,
+  PiHandshake,
 } from "react-icons/pi";
-import {
-  TbShoppingBagSearch,
-  TbBus,
-  TbHotelService,
-  TbKayak,
-  TbCalendarCheck,
-  TbMessageQuestion,
-  TbFileInvoice,
-  TbForms,
-  TbSpeakerphone,
-} from "react-icons/tb";
+import { TbHotelService, TbKayak, TbBus, TbRoute, TbPlug } from "react-icons/tb";
 
 // Nav is a plain data structure — the sidebar renders from it, and each
 // `path` maps 1:1 onto an `app/(protected)/<path>/page.tsx` route. Adding a
 // module later means adding an entry here, not restructuring the sidebar.
+// `visibleToRoles` omitted = visible to every role; present = only those
+// role names see the group/item at all (not just greyed out).
 export interface AppRoute {
   path: string;
   title: string;
@@ -43,6 +34,7 @@ export interface RouteGroup {
   title: string;
   icon: IconType;
   routes: AppRoute[];
+  visibleToRoles?: string[];
 }
 
 export const dashboardRoute: AppRoute = {
@@ -53,68 +45,50 @@ export const dashboardRoute: AppRoute = {
 
 export const routeGroups: RouteGroup[] = [
   {
+    id: "sales",
+    title: "Sales",
+    icon: PiHandshake,
+    routes: [
+      { path: "/leads", title: "Leads", icon: PiUserPlus },
+      { path: "/trips", title: "Trips", icon: PiAirplaneTilt },
+    ],
+  },
+  {
+    id: "library",
+    title: "Library",
+    icon: PiStackSimple,
+    routes: [
+      { path: "/library/hotels", title: "Hotels", icon: TbHotelService },
+      { path: "/library/destinations", title: "Destinations", icon: PiMapPin },
+      { path: "/library/activities", title: "Activities", icon: TbKayak },
+      { path: "/library/transport", title: "Transport", icon: TbBus },
+      { path: "/library/service-providers", title: "Service Providers", icon: PiSuitcaseRolling },
+    ],
+  },
+  {
     id: "organization",
     title: "Organization",
-    icon: PiBuildings,
+    icon: PiBuildingOffice,
+    visibleToRoles: ["SUPER_ADMIN", "ADMIN"],
     routes: [
-      { path: "/destinations", title: "Destinations", icon: PiMapPin },
-      { path: "/trip-sources", title: "Trip Sources", icon: TbShoppingBagSearch },
-      { path: "/team-members", title: "Team Members", icon: PiUsersThree },
-      { path: "/settings", title: "Settings", icon: LiaCogSolid },
+      { path: "/organization/profile", title: "Org Profile", icon: PiBuildingOffice },
+      { path: "/organization/users", title: "Users", icon: PiUsersThree },
+      { path: "/organization/roles", title: "Roles", icon: PiShieldCheck },
+      { path: "/organization/bank-accounts", title: "Bank Accounts", icon: PiCreditCard },
+      { path: "/organization/assignment-rules", title: "Assignment Rules", icon: TbRoute },
+      { path: "/organization/integrations", title: "Integrations", icon: TbPlug },
+      { path: "/organization/templates", title: "Quote/Invoice Templates", icon: PiFileText },
     ],
   },
   {
-    id: "services",
-    title: "Services",
-    icon: PiSuitcaseRolling,
+    id: "platform",
+    title: "Platform",
+    icon: PiGlobe,
+    visibleToRoles: ["SUPER_ADMIN"],
     routes: [
-      { path: "/services/transport", title: "Transport", icon: TbBus },
-      { path: "/services/hotels", title: "Hotels", icon: TbHotelService },
-      { path: "/services/travel-activities", title: "Travel Activities", icon: TbKayak },
+      { path: "/platform/organizations", title: "Organizations", icon: PiBuildingOffice },
+      { path: "/platform/settings", title: "Platform Settings", icon: PiGearSix },
     ],
-  },
-  {
-    id: "trips",
-    title: "Trips",
-    icon: PiAirplaneTilt,
-    routes: [
-      { path: "/trips/in-progress", title: "In Progress", icon: PiClock },
-      { path: "/trips/converted", title: "Converted", icon: PiCheckCircle },
-      { path: "/trips/on-trip", title: "On Trip", icon: PiMapTrifold },
-      { path: "/trips/last-trip", title: "Last Trip", icon: PiFlagCheckered },
-    ],
-  },
-  {
-    id: "requests",
-    title: "Requests",
-    icon: TbMessageQuestion,
-    routes: [
-      { path: "/requests/trip-plans", title: "Trip Plan Requests", icon: TbCalendarCheck },
-      { path: "/requests/quotations", title: "Quotation Requests", icon: TbFileInvoice },
-      { path: "/requests/custom-enquiries", title: "Custom Enquiries", icon: TbForms },
-    ],
-  },
-  {
-    id: "bookings",
-    title: "Bookings",
-    icon: TbCalendarCheck,
-    routes: [{ path: "/bookings", title: "All Bookings", icon: TbCalendarCheck }],
-  },
-  {
-    id: "finance",
-    title: "Finance",
-    icon: PiCurrencyDollar,
-    routes: [
-      { path: "/finance/quotations", title: "Quotations", icon: PiFileText },
-      { path: "/finance/invoices", title: "Invoices", icon: PiReceipt },
-      { path: "/finance/payments", title: "Payments", icon: PiCreditCard },
-    ],
-  },
-  {
-    id: "marketing",
-    title: "Marketing",
-    icon: PiMegaphone,
-    routes: [{ path: "/marketing/lead-sources", title: "Lead Sources", icon: TbSpeakerphone }],
   },
 ];
 
@@ -131,7 +105,7 @@ export const findRouteByPath = (pathname: string) =>
     .sort((a, b) => b.path.length - a.path.length)
     .find((route) => pathname === route.path || pathname.startsWith(`${route.path}/`));
 
-/** Route plus its owning group title, for stub pages that need both (e.g. "Hotels" / "Services"). */
+/** Route plus its owning group title, for stub pages that need both (e.g. "Hotels" / "Library"). */
 export const findRouteWithGroup = (path: string): { route: AppRoute; groupTitle: string } | undefined => {
   if (path === dashboardRoute.path) return { route: dashboardRoute, groupTitle: "Overview" };
   if (path === profileRoute.path) return { route: profileRoute, groupTitle: "Account" };
@@ -140,4 +114,12 @@ export const findRouteWithGroup = (path: string): { route: AppRoute; groupTitle:
     if (route) return { route, groupTitle: group.title };
   }
   return undefined;
+};
+
+/** Groups visible to a user holding any of these role names (case-insensitive). */
+export const visibleGroupsForRoles = (roleNames: string[]): RouteGroup[] => {
+  const normalized = new Set(roleNames.map((r) => r.toUpperCase()));
+  return routeGroups.filter(
+    (group) => !group.visibleToRoles || group.visibleToRoles.some((r) => normalized.has(r)),
+  );
 };
