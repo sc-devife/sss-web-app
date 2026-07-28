@@ -14,9 +14,10 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const { orgId, accountId } = await request.json();
+  const { orgId, accountId, action } = await request.json();
+  const path = action === "reactivate" ? "reactivate" : "deactivate";
 
-  const res = await backendFetch(`/api/bank-accounts/${orgId}/${accountId}/deactivate`, { method: "PATCH" });
+  const res = await backendFetch(`/api/bank-accounts/${orgId}/${accountId}/${path}`, { method: "PATCH" });
 
   const body = await res.json().catch(() => null);
   return NextResponse.json(body, { status: res.status });

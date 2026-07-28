@@ -9,6 +9,7 @@ import { Body, Caption } from "@/components/ui/Typography";
 import type { Quote } from "@/lib/quotes";
 import type { TaxProfile } from "@/lib/tax-profiles";
 import type { SupportedCurrency } from "@/lib/currencies";
+import type { QuoteTemplate } from "@/lib/quote-templates";
 
 const emptyForm = { validUntil: "" };
 
@@ -32,6 +33,7 @@ export function QuotesPanel({
   const [quotes, setQuotes] = useState<Quote[] | null>(null);
   const [taxProfiles, setTaxProfiles] = useState<TaxProfile[]>([]);
   const [currencies, setCurrencies] = useState<SupportedCurrency[]>([]);
+  const [templates, setTemplates] = useState<QuoteTemplate[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
@@ -46,6 +48,7 @@ export function QuotesPanel({
     load();
     fetch("/api/tax-profiles").then((r) => r.json()).then((all: TaxProfile[]) => setTaxProfiles(all.filter((t) => t.status === "active"))).catch(() => setTaxProfiles([]));
     fetch("/api/currencies").then((r) => r.json()).then(setCurrencies).catch(() => setCurrencies([]));
+    fetch("/api/quote-templates").then((r) => r.json()).then(setTemplates).catch(() => setTemplates([]));
     fetch(`/api/deals?tripId=${tripId}`).then((r) => setDealExists(r.ok)).catch(() => setDealExists(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itineraryUid, tripId]);
@@ -114,6 +117,20 @@ export function QuotesPanel({
     }
   }
 
+  async function handleSetTemplate(uid: string, templateId: string) {
+    setBusy(true);
+    try {
+      await fetch(`/api/quotes/${uid}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateId: templateId || null }),
+      });
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function openCompute(uid: string) {
     setComputingUid(uid);
     setComputeForm(emptyComputeForm);
@@ -162,7 +179,7 @@ export function QuotesPanel({
         <div className="flex flex-col gap-2">
           {quotes.map((q) => (
             <div key={q.uid} className="flex flex-col gap-2 rounded border border-border px-3 py-2 text-sm">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <span>
                   <Badge tone={q.status === "accepted" ? "success" : q.status === "superseded" ? "neutral" : "neutral"}>
                     v{q.version} · {q.status}
@@ -170,7 +187,7 @@ export function QuotesPanel({
                   {q.totalUsd != null ? `$${q.totalUsd.toFixed(2)} USD` : "Not priced yet"}
                   {q.validUntil && <span className="text-muted-foreground"> · valid until {q.validUntil}</span>}
                 </span>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                   <button type="button" onClick={() => openCompute(q.uid)} disabled={busy} className="text-primary hover:underline">Compute pricing</button>
                   <a href={`/quotes/${q.uid}/preview`} target="_blank" rel="noreferrer" className="text-primary hover:underline">Preview</a>
                   {!dealExists && !["accepted", "superseded", "rejected"].includes(q.status) && (
@@ -180,6 +197,15 @@ export function QuotesPanel({
                   <button type="button" onClick={() => handleDelete(q.uid)} disabled={busy} className="text-danger hover:underline">Delete</button>
                 </div>
               </div>
+
+              <Select
+                label="Template (overrides the org default for this quote)"
+                options={templates.map((t) => ({ value: t.id, label: t.name }))}
+                value={q.templateId ?? ""}
+                onChange={(e) => handleSetTemplate(q.uid, e.target.value)}
+                placeholder="Org default"
+                className="max-w-xs"
+              />
 
               {computingUid === q.uid && (
                 <div className="flex flex-col gap-3 rounded border border-border p-3">

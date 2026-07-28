@@ -13,7 +13,7 @@ export interface Quote {
   totalUsd: number | null;
   discountType: string;
   discountValue: number | null;
-  templateId: string | null;
+  templateId: string | null; // per-quote template override — falls back to the org default when null
   validUntil: string | null;
   createdAt: string;
   updatedAt: string;

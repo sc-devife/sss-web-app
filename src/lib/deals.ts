@@ -15,3 +15,7 @@ export async function getDealForTrip(tripId: number): Promise<Deal | null> {
     return null;
   }
 }
+
+export async function getDealByUid(uid: string): Promise<Deal> {
+  return backendJson<Deal>(`/api/deals/${uid}`);
+}

@@ -87,7 +87,12 @@ export function DealPanel({ deal }: { deal: Deal }) {
     <Card className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <Caption>Deal &amp; payment milestones</Caption>
-        <Badge tone="success">{deal.status}</Badge>
+        <div className="flex items-center gap-3">
+          <a href={`/deals/${deal.uid}/invoice-preview`} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline">
+            Invoice preview
+          </a>
+          <Badge tone="success">{deal.status}</Badge>
+        </div>
       </div>
 
       {milestones === null && <Body muted>Loading…</Body>}

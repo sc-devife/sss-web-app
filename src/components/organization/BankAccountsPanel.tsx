@@ -60,11 +60,11 @@ export function BankAccountsPanel({ orgId, accounts }: { orgId: number; accounts
     }
   }
 
-  async function handleDeactivate(accountId: number) {
+  async function handleSetStatus(accountId: number, action: "deactivate" | "reactivate") {
     await fetch("/api/bank-accounts", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orgId, accountId }),
+      body: JSON.stringify({ orgId, accountId, action }),
     });
     router.refresh();
   }
@@ -82,9 +82,13 @@ export function BankAccountsPanel({ orgId, accounts }: { orgId: number; accounts
               </Body>
               <Caption>{account.accountNumber} · {account.branchCity}, {account.country} · {account.currency}</Caption>
             </div>
-            {account.status === "active" && (
-              <Button variant="danger" size="sm" onClick={() => handleDeactivate(account.id)}>
+            {account.status === "active" ? (
+              <Button variant="danger" size="sm" onClick={() => handleSetStatus(account.id, "deactivate")}>
                 Deactivate
+              </Button>
+            ) : (
+              <Button variant="secondary" size="sm" onClick={() => handleSetStatus(account.id, "reactivate")}>
+                Reactivate
               </Button>
             )}
           </Card>

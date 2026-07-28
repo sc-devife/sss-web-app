@@ -18,7 +18,9 @@ export default async function QuotePreviewPage({ params }: { params: { uid: stri
   ]);
 
   const template =
-    templates.find((t) => t.id === organization.quote_template_id) ?? templates[0];
+    templates.find((t) => t.id === quote.templateId) ??
+    templates.find((t) => t.id === organization.quote_template_id) ??
+    templates[0];
 
   const itemsByDay = items.reduce<Record<number, typeof items>>((acc, item) => {
     (acc[item.dayNumber] ??= []).push(item);
