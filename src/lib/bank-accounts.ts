@@ -15,6 +15,7 @@ export interface BankAccount {
   accountNumber: string;
   accountName: string;
   currency: string;
+  status: "active" | "inactive";
 }
 
 export async function getBankAccounts(orgId: number): Promise<BankAccount[]> {

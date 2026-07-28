@@ -8,11 +8,13 @@ import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
 import { ItinerariesSection } from "@/components/trips/ItinerariesSection";
+import { DealPanel } from "@/components/trips/DealPanel";
 import type { Trip } from "@/lib/trips";
 import type { Itinerary } from "@/lib/itineraries";
 import type { Hotel } from "@/lib/hotels";
 import type { Activity } from "@/lib/activities";
 import type { Transport } from "@/lib/transports";
+import type { Deal } from "@/lib/deals";
 import { TRIP_STATUS_ORDER, TRIP_STATUS_CANCELLED } from "@/lib/trip-status";
 
 interface AuditLogEntry {
@@ -42,6 +44,8 @@ export function TripDetailPanel({
   const [cancelling, setCancelling] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [auditLog, setAuditLog] = useState<AuditLogEntry[] | null>(null);
+  const [deal, setDeal] = useState<Deal | null>(null);
+  const [dealVersion, setDealVersion] = useState(0);
 
   useEffect(() => {
     fetch(`/api/trips/${trip.seqp}/audit-log`)
@@ -49,6 +53,13 @@ export function TripDetailPanel({
       .then(setAuditLog)
       .catch(() => setAuditLog([]));
   }, [trip.seqp]);
+
+  useEffect(() => {
+    fetch(`/api/deals?tripId=${trip.seqp}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setDeal)
+      .catch(() => setDeal(null));
+  }, [trip.seqp, dealVersion]);
 
   const isCancelled = trip.status === TRIP_STATUS_CANCELLED;
   const currentIndex = TRIP_STATUS_ORDER.indexOf(trip.status as (typeof TRIP_STATUS_ORDER)[number]);
@@ -162,12 +173,15 @@ export function TripDetailPanel({
         )}
       </Card>
 
+      {deal && <DealPanel deal={deal} />}
+
       <ItinerariesSection
         tripId={trip.seqp}
         initialItineraries={initialItineraries}
         hotels={hotels}
         activities={activities}
         transports={transports}
+        onDealChanged={() => setDealVersion((v) => v + 1)}
       />
     </div>
   );

@@ -15,6 +15,8 @@ export interface Lead {
   sourceRefId: string | null;
   destinationId: string | null;
   isPriority: boolean | null;
+  originCity: string | null;
+  travelType: string | null;
   assignedToUserId: number | null;
   assignmentReason: string | null;
   notes: string | null;

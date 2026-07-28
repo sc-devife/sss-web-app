@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
 import type { BankAccount } from "@/lib/bank-accounts";
 
@@ -59,9 +60,9 @@ export function BankAccountsPanel({ orgId, accounts }: { orgId: number; accounts
     }
   }
 
-  async function handleDelete(accountId: number) {
+  async function handleDeactivate(accountId: number) {
     await fetch("/api/bank-accounts", {
-      method: "DELETE",
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ orgId, accountId }),
     });
@@ -75,12 +76,17 @@ export function BankAccountsPanel({ orgId, accounts }: { orgId: number; accounts
         {accounts.map((account) => (
           <Card key={account.id} className="flex items-center justify-between">
             <div>
-              <Body className="font-medium">{account.bankName} · {account.accountName}</Body>
+              <Body className="font-medium">
+                {account.bankName} · {account.accountName}{" "}
+                <Badge tone={account.status === "active" ? "success" : "neutral"}>{account.status}</Badge>
+              </Body>
               <Caption>{account.accountNumber} · {account.branchCity}, {account.country} · {account.currency}</Caption>
             </div>
-            <Button variant="danger" size="sm" onClick={() => handleDelete(account.id)}>
-              Remove
-            </Button>
+            {account.status === "active" && (
+              <Button variant="danger" size="sm" onClick={() => handleDeactivate(account.id)}>
+                Deactivate
+              </Button>
+            )}
           </Card>
         ))}
       </div>

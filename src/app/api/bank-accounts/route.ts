@@ -13,11 +13,10 @@ export async function POST(request: Request) {
   return NextResponse.json(body, { status: res.status });
 }
 
-export async function DELETE(request: Request) {
+export async function PATCH(request: Request) {
   const { orgId, accountId } = await request.json();
 
-  const res = await backendFetch(`/api/bank-accounts/${orgId}/${accountId}`, { method: "DELETE" });
-  if (res.status === 204) return new NextResponse(null, { status: 204 });
+  const res = await backendFetch(`/api/bank-accounts/${orgId}/${accountId}/deactivate`, { method: "PATCH" });
 
   const body = await res.json().catch(() => null);
   return NextResponse.json(body, { status: res.status });

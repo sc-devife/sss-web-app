@@ -9,6 +9,11 @@ export interface AppUser {
   last_name: string;
   contact_number: string | null;
   roles: { role: { name: string; label: string } }[];
+  isSpecialist: boolean | null;
+  specialistDestinations: number[] | null;
+  maxConcurrentAssignments: number | null;
+  eligibleForPriorityLeads: boolean | null;
+  acceptingLeads: boolean | null;
 }
 
 export interface AppRole {

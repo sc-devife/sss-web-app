@@ -22,16 +22,20 @@ const ITEM_TYPES = [
 
 export function ItineraryCard({
   itinerary,
+  tripId,
   hotels,
   activities,
   transports,
   onChanged,
+  onDealChanged,
 }: {
   itinerary: Itinerary;
+  tripId: number;
   hotels: Hotel[];
   activities: Activity[];
   transports: Transport[];
   onChanged: () => void;
+  onDealChanged?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [items, setItems] = useState<ItineraryItem[] | null>(null);
@@ -213,7 +217,7 @@ export function ItineraryCard({
             {error && <p className="mt-1 text-sm text-danger">{error}</p>}
           </div>
 
-          <QuotesPanel itineraryUid={itinerary.uid} />
+          <QuotesPanel itineraryUid={itinerary.uid} tripId={tripId} onDealChanged={onDealChanged} />
         </div>
       )}
     </Card>

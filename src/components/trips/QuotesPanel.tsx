@@ -20,7 +20,15 @@ const emptyComputeForm = {
   fxRateSnapshot: "",
 };
 
-export function QuotesPanel({ itineraryUid }: { itineraryUid: string }) {
+export function QuotesPanel({
+  itineraryUid,
+  tripId,
+  onDealChanged,
+}: {
+  itineraryUid: string;
+  tripId: number;
+  onDealChanged?: () => void;
+}) {
   const [quotes, setQuotes] = useState<Quote[] | null>(null);
   const [taxProfiles, setTaxProfiles] = useState<TaxProfile[]>([]);
   const [currencies, setCurrencies] = useState<SupportedCurrency[]>([]);
@@ -28,6 +36,7 @@ export function QuotesPanel({ itineraryUid }: { itineraryUid: string }) {
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  const [dealExists, setDealExists] = useState(false);
 
   const [computingUid, setComputingUid] = useState<string | null>(null);
   const [computeForm, setComputeForm] = useState(emptyComputeForm);
@@ -37,8 +46,9 @@ export function QuotesPanel({ itineraryUid }: { itineraryUid: string }) {
     load();
     fetch("/api/tax-profiles").then((r) => r.json()).then((all: TaxProfile[]) => setTaxProfiles(all.filter((t) => t.status === "active"))).catch(() => setTaxProfiles([]));
     fetch("/api/currencies").then((r) => r.json()).then(setCurrencies).catch(() => setCurrencies([]));
+    fetch(`/api/deals?tripId=${tripId}`).then((r) => setDealExists(r.ok)).catch(() => setDealExists(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itineraryUid]);
+  }, [itineraryUid, tripId]);
 
   async function load() {
     const res = await fetch(`/api/quotes?itineraryUid=${itineraryUid}`);
@@ -82,6 +92,23 @@ export function QuotesPanel({ itineraryUid }: { itineraryUid: string }) {
     try {
       await fetch(`/api/quotes/${uid}`, { method: "DELETE" });
       await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleAccept(uid: string) {
+    setBusy(true);
+    setError(undefined);
+    try {
+      const res = await fetch(`/api/deals/accept-quote/${uid}`, { method: "POST" });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.message ?? "Failed to accept quote");
+      setDealExists(true);
+      onDealChanged?.();
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to accept quote");
     } finally {
       setBusy(false);
     }
@@ -146,6 +173,9 @@ export function QuotesPanel({ itineraryUid }: { itineraryUid: string }) {
                 <div className="flex gap-2">
                   <button type="button" onClick={() => openCompute(q.uid)} disabled={busy} className="text-primary hover:underline">Compute pricing</button>
                   <a href={`/quotes/${q.uid}/preview`} target="_blank" rel="noreferrer" className="text-primary hover:underline">Preview</a>
+                  {!dealExists && !["accepted", "superseded", "rejected"].includes(q.status) && (
+                    <button type="button" onClick={() => handleAccept(q.uid)} disabled={busy} className="text-success hover:underline">Accept quote</button>
+                  )}
                   <button type="button" onClick={() => handleRevise(q.uid)} disabled={busy} className="text-primary hover:underline">Revise</button>
                   <button type="button" onClick={() => handleDelete(q.uid)} disabled={busy} className="text-danger hover:underline">Delete</button>
                 </div>

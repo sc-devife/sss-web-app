@@ -91,6 +91,8 @@ export function LeadDetailModal({
           <div><Caption>Travel date</Caption><Body>{lead.travelDate ?? "—"}</Body></div>
           <div><Caption>Duration</Caption><Body>{lead.durationDays ? `${lead.durationDays} days` : "—"}</Body></div>
           <div><Caption>Budget</Caption><Body>{lead.budget ?? "—"}</Body></div>
+          <div><Caption>Origin city</Caption><Body>{lead.originCity || "—"}</Body></div>
+          <div><Caption>Travel type</Caption><Body>{lead.travelType || "—"}</Body></div>
           <div><Caption>Assigned to</Caption><Body>{assignedUser?.name ?? "Unassigned"}</Body></div>
         </div>
 
@@ -119,6 +121,9 @@ export function LeadDetailModal({
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => setReasonPrompt("disqualify")}>Disqualify</Button>
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => setReasonPrompt("mark-lost")}>Mark lost</Button>
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => setReasonPrompt("mark-duplicate")}>Mark duplicate</Button>
+              <Button size="sm" variant="secondary" disabled={busy} onClick={() => runAction(`/api/leads/${lead.seqp}/actions/toggle-priority`)}>
+                {lead.isPriority ? "Unmark priority" : "Mark priority"}
+              </Button>
             </div>
 
             {reasonPrompt && (

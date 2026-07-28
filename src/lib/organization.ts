@@ -12,6 +12,7 @@ export interface Organization {
   status: "ACTIVE" | "SUSPENDED";
   quote_template_id: string | null;
   invoice_template_id: string | null;
+  auto_assign_enabled: boolean;
   created_at: string;
   updated_at: string;
 }

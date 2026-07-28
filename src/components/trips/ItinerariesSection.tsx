@@ -17,12 +17,14 @@ export function ItinerariesSection({
   hotels,
   activities,
   transports,
+  onDealChanged,
 }: {
   tripId: number;
   initialItineraries: Itinerary[];
   hotels: Hotel[];
   activities: Activity[];
   transports: Transport[];
+  onDealChanged?: () => void;
 }) {
   const [itineraries, setItineraries] = useState(initialItineraries);
   const [name, setName] = useState("");
@@ -74,10 +76,12 @@ export function ItinerariesSection({
         <ItineraryCard
           key={itinerary.uid}
           itinerary={itinerary}
+          tripId={tripId}
           hotels={hotels}
           activities={activities}
           transports={transports}
           onChanged={refresh}
+          onDealChanged={onDealChanged}
         />
       ))}
     </div>

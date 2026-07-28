@@ -23,6 +23,9 @@ const emptyForm = {
   travelDate: "",
   durationDays: "",
   budget: "",
+  originCity: "",
+  travelType: "",
+  isPriority: false,
   notes: "",
 };
 
@@ -71,6 +74,9 @@ export function LeadsPanel({
         travelDate: form.travelDate || null,
         durationDays: form.durationDays ? Number(form.durationDays) : null,
         budget: form.budget ? Number(form.budget) : null,
+        originCity: form.originCity || null,
+        travelType: form.travelType || null,
+        isPriority: form.isPriority || null,
         notes: form.notes || null,
       };
       const res = await fetch("/api/leads", {
@@ -172,7 +178,32 @@ export function LeadsPanel({
             <TextInput label="Duration (days)" type="number" min={1} value={form.durationDays} onChange={(e) => update("durationDays", e.target.value)} />
             <TextInput label="Travel date" type="date" value={form.travelDate} onChange={(e) => update("travelDate", e.target.value)} />
             <TextInput label="Budget" type="number" min={0} value={form.budget} onChange={(e) => update("budget", e.target.value)} />
+            <TextInput label="Origin city" value={form.originCity} onChange={(e) => update("originCity", e.target.value)} placeholder="e.g. Mumbai" />
+            <Select
+              label="Travel type"
+              options={[
+                { value: "honeymoon", label: "Honeymoon" },
+                { value: "family", label: "Family" },
+                { value: "friends", label: "Friends" },
+                { value: "solo", label: "Solo" },
+                { value: "business", label: "Business" },
+                { value: "other", label: "Other" },
+              ]}
+              value={form.travelType}
+              onChange={(e) => update("travelType", e.target.value)}
+              placeholder="Not specified"
+            />
           </div>
+
+          <label className="flex items-center gap-2 text-sm text-foreground">
+            <input
+              type="checkbox"
+              className="h-3.5 w-3.5 accent-primary"
+              checked={form.isPriority}
+              onChange={(e) => update("isPriority", e.target.checked)}
+            />
+            Mark as priority lead
+          </label>
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="lead-notes" className="text-sm font-medium text-foreground">Notes</label>
