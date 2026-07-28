@@ -9,10 +9,22 @@ import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
 import type { Lead, AuditLogEntry } from "@/lib/leads";
 import type { AppUser } from "@/lib/users";
+import type { Destination } from "@/lib/destinations";
+import { ConvertToTripModal } from "@/components/leads/ConvertToTripModal";
 
 const TERMINAL_STATUSES = ["Unqualified", "Lost", "Duplicate", "Converted"];
 
-export function LeadDetailModal({ lead, users, onClose }: { lead: Lead; users: AppUser[]; onClose: () => void }) {
+export function LeadDetailModal({
+  lead,
+  users,
+  destinations,
+  onClose,
+}: {
+  lead: Lead;
+  users: AppUser[];
+  destinations: Destination[];
+  onClose: () => void;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -21,6 +33,7 @@ export function LeadDetailModal({ lead, users, onClose }: { lead: Lead; users: A
   const [assigneeId, setAssigneeId] = useState("");
   const [auditLog, setAuditLog] = useState<AuditLogEntry[] | null>(null);
   const [loadingAudit, setLoadingAudit] = useState(false);
+  const [convertOpen, setConvertOpen] = useState(false);
 
   useEffect(() => {
     setLoadingAudit(true);
@@ -100,6 +113,9 @@ export function LeadDetailModal({ lead, users, onClose }: { lead: Lead; users: A
               {(lead.status === "New" || lead.status === "Contacted") && (
                 <Button size="sm" disabled={busy} onClick={() => runAction(`/api/leads/${lead.seqp}/actions/qualify`)}>Mark qualified</Button>
               )}
+              {lead.status === "Qualified" && (
+                <Button size="sm" disabled={busy} onClick={() => setConvertOpen(true)}>Convert to trip</Button>
+              )}
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => setReasonPrompt("disqualify")}>Disqualify</Button>
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => setReasonPrompt("mark-lost")}>Mark lost</Button>
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => setReasonPrompt("mark-duplicate")}>Mark duplicate</Button>
@@ -164,6 +180,10 @@ export function LeadDetailModal({ lead, users, onClose }: { lead: Lead; users: A
 
         <Button variant="ghost" onClick={onClose}>Close</Button>
       </div>
+
+      {convertOpen && (
+        <ConvertToTripModal lead={lead} destinations={destinations} onClose={() => setConvertOpen(false)} />
+      )}
     </Modal>
   );
 }

@@ -195,7 +195,7 @@ export function LeadsPanel({
       </Modal>
 
       {selectedLead && (
-        <LeadDetailModal lead={selectedLead} users={users} onClose={() => setSelectedLead(null)} />
+        <LeadDetailModal lead={selectedLead} users={users} destinations={destinations} onClose={() => setSelectedLead(null)} />
       )}
     </div>
   );
