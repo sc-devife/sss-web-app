@@ -13,6 +13,7 @@ import type { Hotel } from "@/lib/hotels";
 import type { Activity } from "@/lib/activities";
 import type { Transport } from "@/lib/transports";
 import { QuotesPanel } from "@/components/trips/QuotesPanel";
+import { ItineraryContentSection } from "@/components/trips/ItineraryContentSection";
 
 const ITEM_TYPES = [
   { value: "hotel", label: "Hotel" },
@@ -216,6 +217,8 @@ export function ItineraryCard({
             </form>
             {error && <p className="mt-1 text-sm text-danger">{error}</p>}
           </div>
+
+          <ItineraryContentSection itineraryUid={itinerary.uid} />
 
           <QuotesPanel itineraryUid={itinerary.uid} tripId={tripId} onDealChanged={onDealChanged} />
         </div>

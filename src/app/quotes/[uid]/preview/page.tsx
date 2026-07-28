@@ -1,6 +1,7 @@
 import { getQuoteByUid } from "@/lib/quotes";
 import { getItineraryByUid } from "@/lib/itineraries";
 import { getItemsForItinerary } from "@/lib/itinerary-items";
+import { getItineraryContentItems } from "@/lib/itinerary-content-items";
 import { getTripById } from "@/lib/trips";
 import { getMyOrganization } from "@/lib/organization";
 import { getQuoteTemplates } from "@/lib/quote-templates";
@@ -10,12 +11,17 @@ import { PrintButton } from "@/components/quotes/PrintButton";
 export default async function QuotePreviewPage({ params }: { params: { uid: string } }) {
   const quote = await getQuoteByUid(params.uid);
   const itinerary = await getItineraryByUid(quote.itineraryUid);
-  const [items, trip, organization, templates] = await Promise.all([
+  const [items, contentItems, trip, organization, templates] = await Promise.all([
     getItemsForItinerary(itinerary.uid),
+    getItineraryContentItems(itinerary.uid),
     getTripById(itinerary.tripId),
     getMyOrganization(),
     getQuoteTemplates(),
   ]);
+
+  const inclusions = contentItems.filter((c) => c.type === "INCLUSION");
+  const exclusions = contentItems.filter((c) => c.type === "EXCLUSION");
+  const terms = contentItems.filter((c) => c.type === "TERMS");
 
   const template =
     templates.find((t) => t.id === quote.templateId) ??
@@ -118,6 +124,57 @@ export default async function QuotePreviewPage({ params }: { params: { uid: stri
             </div>
           )}
         </div>
+
+        {(inclusions.length > 0 || exclusions.length > 0) && (
+          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
+            {inclusions.length > 0 && (
+              <div>
+                <p className="mb-1 text-sm font-semibold uppercase tracking-wide" style={{ color: template.accentColor }}>
+                  Inclusions
+                </p>
+                <div className="flex flex-col gap-2 text-sm">
+                  {inclusions.map((i) => (
+                    <div key={i.uid}>
+                      <p className="font-medium">{i.name}</p>
+                      {i.contentHtml && <div className="prose-content text-gray-600" dangerouslySetInnerHTML={{ __html: i.contentHtml }} />}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {exclusions.length > 0 && (
+              <div>
+                <p className="mb-1 text-sm font-semibold uppercase tracking-wide" style={{ color: template.accentColor }}>
+                  Exclusions
+                </p>
+                <div className="flex flex-col gap-2 text-sm">
+                  {exclusions.map((i) => (
+                    <div key={i.uid}>
+                      <p className="font-medium">{i.name}</p>
+                      {i.contentHtml && <div className="prose-content text-gray-600" dangerouslySetInnerHTML={{ __html: i.contentHtml }} />}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {terms.length > 0 && (
+          <div className="mt-8">
+            <p className="mb-1 text-sm font-semibold uppercase tracking-wide" style={{ color: template.accentColor }}>
+              Terms &amp; Conditions
+            </p>
+            <div className="flex flex-col gap-3 text-sm">
+              {terms.map((t) => (
+                <div key={t.uid}>
+                  <p className="font-medium">{t.name}</p>
+                  {t.contentHtml && <div className="prose-content text-gray-600" dangerouslySetInnerHTML={{ __html: t.contentHtml }} />}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <p className="mt-8 text-xs text-gray-400">
           This quote is valid until {quote.validUntil ?? "the date agreed with your travel consultant"}. Prices are subject to availability at the time of booking.

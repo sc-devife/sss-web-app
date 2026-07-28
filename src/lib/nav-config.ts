@@ -15,6 +15,7 @@ import {
   PiGlobe,
   PiStackSimple,
   PiHandshake,
+  PiScroll,
 } from "react-icons/pi";
 import { TbHotelService, TbKayak, TbBus, TbRoute, TbPlug } from "react-icons/tb";
 
@@ -63,6 +64,7 @@ export const routeGroups: RouteGroup[] = [
       { path: "/library/activities", title: "Activities", icon: TbKayak },
       { path: "/library/transport", title: "Transport", icon: TbBus },
       { path: "/library/service-providers", title: "Service Providers", icon: PiSuitcaseRolling },
+      { path: "/library/terms-inclusions", title: "Terms, Inclusions & Exclusions", icon: PiScroll },
     ],
   },
   {

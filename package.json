@@ -9,6 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tiptap/extension-underline": "^2.27.2",
+    "@tiptap/pm": "^2.27.2",
+    "@tiptap/react": "^2.27.2",
+    "@tiptap/starter-kit": "^2.27.2",
     "clsx": "^2.1.1",
     "country-state-city": "^3.2.1",
     "currency-codes": "^2.2.0",
