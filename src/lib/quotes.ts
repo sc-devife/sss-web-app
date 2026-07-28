@@ -22,3 +22,7 @@ export interface Quote {
 export async function getQuotesForItinerary(itineraryUid: string): Promise<Quote[]> {
   return backendJson<Quote[]>(`/api/quotes?itineraryUid=${itineraryUid}`);
 }
+
+export async function getQuoteByUid(uid: string): Promise<Quote> {
+  return backendJson<Quote>(`/api/quotes/${uid}`);
+}

@@ -10,6 +10,8 @@ export interface Organization {
   default_currency_code: string | null;
   logo_file: string | null;
   status: "ACTIVE" | "SUSPENDED";
+  quote_template_id: string | null;
+  invoice_template_id: string | null;
   created_at: string;
   updated_at: string;
 }

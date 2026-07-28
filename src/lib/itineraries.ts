@@ -13,3 +13,7 @@ export interface Itinerary {
 export async function getItinerariesForTrip(tripId: number): Promise<Itinerary[]> {
   return backendJson<Itinerary[]>(`/api/itineraries?tripId=${tripId}`);
 }
+
+export async function getItineraryByUid(uid: string): Promise<Itinerary> {
+  return backendJson<Itinerary>(`/api/itineraries/${uid}`);
+}
