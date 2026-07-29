@@ -108,7 +108,6 @@ function LoginForm() {
         "/dashboard";
 
       router.push(destination);
-      router.refresh();
     } catch (err) {
       setFormError(
         err instanceof Error
