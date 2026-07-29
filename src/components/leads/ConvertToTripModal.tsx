@@ -22,9 +22,13 @@ export function ConvertToTripModal({
   const router = useRouter();
   const [travellers, setTravellers] = useState<Traveller[]>([]);
   const [travellerIds, setTravellerIds] = useState<string[]>([]);
-  const [destinationIds, setDestinationIds] = useState<string[]>(
-    lead.destinationId ? [lead.destinationId] : []
-  );
+  const [destinationIds, setDestinationIds] = useState<string[]>(() => {
+    // lead.destinationId is the EscapePoint's uid; the trip-conversion API
+    // wants numeric seqp values (matching the travellerIds pattern below),
+    // so resolve the lead's pre-selected destination to its seqp up front.
+    const preselected = destinations.find((d) => d.uid === lead.destinationId);
+    return preselected ? [String(preselected.seqp)] : [];
+  });
   const [startDate, setStartDate] = useState(lead.travelDate ?? "");
   const [numberOfDays, setNumberOfDays] = useState(lead.durationDays ? String(lead.durationDays) : "");
   const [addingTraveller, setAddingTraveller] = useState(false);
@@ -85,7 +89,7 @@ export function ConvertToTripModal({
         body: JSON.stringify({
           leadId: lead.seqp,
           travellerIds: travellerIds.map(Number),
-          destinationIds,
+          destinationIds: destinationIds.map(Number),
           startDate,
           numberOfDays: Number(numberOfDays),
         }),
@@ -105,7 +109,7 @@ export function ConvertToTripModal({
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <MultiSelect
           label="Destinations"
-          options={destinations.map((d) => ({ value: d.uid, label: d.name }))}
+          options={destinations.map((d) => ({ value: String(d.seqp), label: d.name }))}
           value={destinationIds}
           onChange={setDestinationIds}
         />

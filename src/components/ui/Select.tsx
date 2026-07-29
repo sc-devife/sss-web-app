@@ -20,6 +20,7 @@ export function Select({ label, options, error, placeholder, id, className, ...p
     <div className="flex flex-col gap-1.5">
       <label htmlFor={selectId} className="text-sm font-medium text-foreground">
         {label}
+        {props.required && <span className="text-danger"> *</span>}
       </label>
       <select
         id={selectId}

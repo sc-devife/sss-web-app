@@ -59,8 +59,19 @@ export function LeadsPanel({
     setModalOpen(true);
   }
 
+  function validate(): string | undefined {
+    if (!form.name.trim()) return "Name is required";
+    if (!form.email.trim() && !form.phone.trim()) return "Provide at least an email or phone number";
+    return undefined;
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     setSaving(true);
     setError(undefined);
     try {
@@ -76,7 +87,7 @@ export function LeadsPanel({
         budget: form.budget ? Number(form.budget) : null,
         originCity: form.originCity || null,
         travelType: form.travelType || null,
-        isPriority: form.isPriority || null,
+        isPriority: form.isPriority,
         notes: form.notes || null,
       };
       const res = await fetch("/api/leads", {
@@ -161,8 +172,11 @@ export function LeadsPanel({
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Add lead">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <TextInput label="Name" value={form.name} onChange={(e) => update("name", e.target.value)} required />
-          <TextInput label="Email" type="email" value={form.email} onChange={(e) => update("email", e.target.value)} />
-          <TextInput label="Phone" value={form.phone} onChange={(e) => update("phone", e.target.value)} />
+          <div className="grid grid-cols-2 gap-4">
+            <TextInput label="Email" type="email" value={form.email} onChange={(e) => update("email", e.target.value)} />
+            <TextInput label="Phone" value={form.phone} onChange={(e) => update("phone", e.target.value)} />
+          </div>
+          <p className="-mt-2 text-xs text-muted-foreground">Email or phone is required (at least one).</p>
 
           <TextInput label="Destination (free text)" value={form.destination} onChange={(e) => update("destination", e.target.value)} placeholder="e.g. Bali" />
           <Select
