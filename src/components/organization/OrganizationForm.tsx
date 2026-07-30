@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { TextInput } from "@/components/ui/TextInput";
+import { FileUpload } from "@/components/ui/FileUpload";
 import { Button } from "@/components/ui/Button";
+import { Caption } from "@/components/ui/Typography";
 import type { Organization } from "@/lib/organization";
 
 export function OrganizationForm({ organization }: { organization: Organization }) {
@@ -11,8 +13,7 @@ export function OrganizationForm({ organization }: { organization: Organization 
   const [displayName, setDisplayName] = useState(organization.display_name ?? "");
   const [registeredName, setRegisteredName] = useState(organization.registered_name ?? "");
   const [supportPhone, setSupportPhone] = useState(organization.support_ph_num ?? "");
-  const [countryCode, setCountryCode] = useState(organization.country_code ?? "");
-  const [currencyCode, setCurrencyCode] = useState(organization.default_currency_code ?? "");
+  const [logoFile, setLogoFile] = useState<string[]>(organization.logo_file ? [organization.logo_file] : []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [saved, setSaved] = useState(false);
@@ -31,8 +32,7 @@ export function OrganizationForm({ organization }: { organization: Organization 
           display_name: displayName,
           registered_name: registeredName,
           support_ph_num: supportPhone,
-          country_code: countryCode,
-          default_currency_code: currencyCode,
+          logo_file: logoFile[0] ?? null,
         }),
       });
       if (!res.ok) {
@@ -50,25 +50,17 @@ export function OrganizationForm({ organization }: { organization: Organization 
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-lg">
+      <div>
+        <Caption>Org Id</Caption>
+        <p className="text-sm text-foreground">{organization.org_code ?? "—"}</p>
+      </div>
+
+      <FileUpload label="Logo" value={logoFile} onChange={setLogoFile} multiple={false} />
+
       <TextInput label="Display name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
       <TextInput label="Legal / registered name" value={registeredName} onChange={(e) => setRegisteredName(e.target.value)} />
       <TextInput label="Support phone number" value={supportPhone} onChange={(e) => setSupportPhone(e.target.value)} />
-      <div className="grid grid-cols-2 gap-4">
-        <TextInput
-          label="Country code"
-          value={countryCode}
-          onChange={(e) => setCountryCode(e.target.value.toUpperCase())}
-          placeholder="e.g. IN"
-          maxLength={2}
-        />
-        <TextInput
-          label="Default currency"
-          value={currencyCode}
-          onChange={(e) => setCurrencyCode(e.target.value.toUpperCase())}
-          placeholder="e.g. USD"
-          maxLength={3}
-        />
-      </div>
+
       {error && <p className="text-sm text-danger">{error}</p>}
       {saved && <p className="text-sm text-success">Saved.</p>}
       <Button type="submit" disabled={saving} className="self-start">

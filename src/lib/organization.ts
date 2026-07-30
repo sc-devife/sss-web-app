@@ -5,6 +5,7 @@ export interface Organization {
   uid: string;
   registered_name: string;
   display_name: string;
+  org_code: string | null;
   support_ph_num: string | null;
   country_code: string | null;
   default_currency_code: string | null;

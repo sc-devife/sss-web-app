@@ -73,13 +73,14 @@ export const routeGroups: RouteGroup[] = [
     icon: PiBuildingOffice,
     visibleToRoles: ["SUPER_ADMIN", "ADMIN"],
     routes: [
-      { path: "/organization/profile", title: "Org Profile", icon: PiBuildingOffice },
+      { path: "/organization/profile", title: "Profile", icon: PiBuildingOffice },
       { path: "/organization/users", title: "Users", icon: PiUsersThree },
       { path: "/organization/roles", title: "Roles", icon: PiShieldCheck },
       { path: "/organization/bank-accounts", title: "Bank Accounts", icon: PiCreditCard },
       { path: "/organization/assignment-rules", title: "Assignment Rules", icon: TbRoute },
       { path: "/organization/integrations", title: "Integrations", icon: TbPlug },
       { path: "/organization/templates", title: "Quote/Invoice Templates", icon: PiFileText },
+      { path: "/organization/settings", title: "Settings", icon: PiGearSix },
     ],
   },
   {
