@@ -56,7 +56,23 @@ function RoleEditor({ user, roles, onClose }: { user: AppUser; roles: AppRole[];
 }
 
 export function UsersList({ users, roles }: { users: AppUser[]; roles: AppRole[] }) {
+  const router = useRouter();
   const [editingUid, setEditingUid] = useState<string | null>(null);
+  const [updatingUid, setUpdatingUid] = useState<string | null>(null);
+
+  async function toggleBlocked(user: AppUser) {
+    setUpdatingUid(user.uid);
+    try {
+      await fetch(`/api/users/${user.uid}/block-status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blocked: !user.blocked }),
+      });
+      router.refresh();
+    } finally {
+      setUpdatingUid(null);
+    }
+  }
 
   if (users.length === 0) {
     return <Body muted>No users in your organization yet — invite someone to get started.</Body>;
@@ -72,6 +88,7 @@ export function UsersList({ users, roles }: { users: AppUser[]; roles: AppRole[]
               <Caption>{user.email}</Caption>
             </div>
             <div className="flex items-center gap-2">
+              {user.blocked && <Badge tone="danger">Blocked</Badge>}
               {user.roles.length === 0 ? (
                 <Badge tone="warning">No role</Badge>
               ) : (
@@ -79,6 +96,14 @@ export function UsersList({ users, roles }: { users: AppUser[]; roles: AppRole[]
               )}
               <Button size="sm" variant="secondary" onClick={() => setEditingUid(editingUid === user.uid ? null : user.uid)}>
                 Edit roles
+              </Button>
+              <Button
+                size="sm"
+                variant={user.blocked ? "secondary" : "danger"}
+                disabled={updatingUid === user.uid}
+                onClick={() => toggleBlocked(user)}
+              >
+                {user.blocked ? "Unblock" : "Block"}
               </Button>
             </div>
           </div>

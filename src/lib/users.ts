@@ -14,6 +14,15 @@ export interface AppUser {
   maxConcurrentAssignments: number | null;
   eligibleForPriorityLeads: boolean | null;
   acceptingLeads: boolean | null;
+  blocked: boolean | null;
+}
+
+export interface PendingInvitation {
+  seqp: number;
+  uid: string;
+  email: string;
+  expires_set: string;
+  roles: string[] | null;
 }
 
 export interface AppRole {
@@ -29,4 +38,8 @@ export async function getOrgUsers(): Promise<AppUser[]> {
 
 export async function getAssignableRoles(): Promise<AppRole[]> {
   return backendJson<AppRole[]>("/roles");
+}
+
+export async function getPendingInvitations(): Promise<PendingInvitation[]> {
+  return backendJson<PendingInvitation[]>("/newuser/invite/pending");
 }
