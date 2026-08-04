@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
+import { AuthHydrator } from "@/features/auth/AuthHydrator";
 import { getCurrentUser, roleNames } from "@/lib/current-user";
 
 // Route protection itself lives in middleware.ts (redirects to /login when
@@ -13,12 +14,15 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
   const roles = roleNames(user);
 
   return (
-    <div className="flex h-full">
-      <Sidebar roles={roles} />
-      <div className="flex flex-1 flex-col min-w-0">
-        <Header />
-        <main className="flex-1 overflow-y-auto p-5">{children}</main>
+    <>
+      <AuthHydrator user={user} roles={roles} />
+      <div className="flex h-full">
+        <Sidebar roles={roles} />
+        <div className="flex flex-1 flex-col min-w-0">
+          <Header />
+          <main className="flex-1 overflow-y-auto p-4">{children}</main>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -1,30 +1,42 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { SESSION_COOKIE } from "@/lib/session";
+import { serverApi } from "@/lib/axios/serverClient";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/sss";
+// Statuses the Fetch API spec forbids attaching a body to — constructing a
+// Response with a non-null body at one of these would throw.
+const NULL_BODY_STATUSES = new Set([204, 205, 304]);
 
+// Every existing route.ts caller treats this as a Fetch API Response
+// (res.status / res.ok / res.json()) — that contract is preserved exactly
+// so none of the ~85 files that call backendFetch/backendJson need to
+// change. Only the transport underneath (axios via serverApi, not the
+// global fetch) is new.
 export async function backendFetch(
   path: string,
   init: RequestInit = {}
 ): Promise<Response> {
-  const token = cookies().get(SESSION_COOKIE)?.value;
-
   const headers = new Headers(init.headers);
-
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
 
   if (init.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
-  return fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store",
+  const headerObj: Record<string, string> = {};
+  headers.forEach((value, key) => {
+    headerObj[key] = value;
+  });
+
+  const res = await serverApi.request<string>({
+    url: path,
+    method: init.method ?? "GET",
+    data: init.body as string | undefined,
+    headers: headerObj,
+  });
+
+  const body = NULL_BODY_STATUSES.has(res.status) ? null : res.data || null;
+
+  return new Response(body, {
+    status: res.status,
+    headers: { "Content-Type": "application/json" },
   });
 }
 

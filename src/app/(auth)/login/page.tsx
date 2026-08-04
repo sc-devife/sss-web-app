@@ -30,6 +30,9 @@ import {
   validationMessages,
   isValidPassword,
 } from "@/lib/validators";
+import { clientApi } from "@/lib/axios/clientClient";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { setStoredUserData, type StoredUserData } from "@/lib/user-data-storage";
 
 function LoginForm() {
   const router = useRouter();
@@ -81,27 +84,8 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
-
-      if (!res.ok) {
-        const body = await res
-          .json()
-          .catch(() => null);
-
-        throw new Error(
-          body?.message ??
-          "Invalid credentials",
-        );
-      }
+      const res = await clientApi.post<StoredUserData>("/login", { email, password });
+      setStoredUserData({ userId: res.data.userId, name: res.data.name, role: res.data.role });
 
       const destination =
         searchParams.get("from") ??
@@ -109,11 +93,7 @@ function LoginForm() {
 
       router.push(destination);
     } catch (err) {
-      setFormError(
-        err instanceof Error
-          ? err.message
-          : "Login failed",
-      );
+      setFormError(extractErrorMessage(err, "Invalid credentials"));
     } finally {
       setLoading(false);
     }

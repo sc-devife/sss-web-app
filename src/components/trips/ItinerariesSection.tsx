@@ -1,58 +1,61 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
-import { Caption } from "@/components/ui/Typography";
-import type { Itinerary } from "@/lib/itineraries";
+import { Caption, Body } from "@/components/ui/Typography";
+import { LoadingState } from "@/components/ui/Spinner";
 import type { Hotel } from "@/lib/hotels";
 import type { Activity } from "@/lib/activities";
 import type { Transport } from "@/lib/transports";
 import { ItineraryCard } from "@/components/trips/ItineraryCard";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchItinerariesForTrip, createItinerary } from "@/features/itineraries/itinerariesThunks";
+import { selectItineraries, selectItinerariesStatus, selectItinerariesError } from "@/features/itineraries/itinerariesSelectors";
 
 export function ItinerariesSection({
   tripId,
-  initialItineraries,
   hotels,
   activities,
   transports,
   onDealChanged,
 }: {
   tripId: number;
-  initialItineraries: Itinerary[];
   hotels: Hotel[];
   activities: Activity[];
   transports: Transport[];
   onDealChanged?: () => void;
 }) {
-  const [itineraries, setItineraries] = useState(initialItineraries);
+  const dispatch = useAppDispatch();
+  const itineraries = useAppSelector(selectItineraries);
+  const status = useAppSelector(selectItinerariesStatus);
+  const error = useAppSelector(selectItinerariesError);
+
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | undefined>();
+  const [formError, setFormError] = useState<string | undefined>();
 
-  async function refresh() {
-    const res = await fetch(`/api/itineraries?tripId=${tripId}`);
-    setItineraries(await res.json());
+  useEffect(() => {
+    dispatch(fetchItinerariesForTrip(tripId));
+  }, [dispatch, tripId]);
+
+  function refresh() {
+    dispatch(fetchItinerariesForTrip(tripId));
   }
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
-    setError(undefined);
+    setFormError(undefined);
     try {
-      const res = await fetch("/api/itineraries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tripId, name }),
-      });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(body?.message ?? "Failed to create itinerary");
+      await dispatch(createItinerary({ tripId, name })).unwrap();
+      refresh();
       setName("");
-      await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create itinerary");
+      setFormError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to create itinerary"));
     } finally {
       setSaving(false);
     }
@@ -67,23 +70,31 @@ export function ItinerariesSection({
           <TextInput label="New itinerary name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Option A — Beach & City" className="flex-1" />
           <Button type="submit" size="sm" disabled={saving}>{saving ? "Adding…" : "Add itinerary"}</Button>
         </form>
-        {error && <p className="mt-2 text-sm text-danger">{error}</p>}
+        {formError && <p className="mt-2 text-sm text-danger">{formError}</p>}
       </Card>
 
-      {itineraries.length === 0 && <Caption>No itineraries yet — add one to start planning.</Caption>}
+      {status === "loading" && itineraries.length === 0 ? (
+        <LoadingState label="Loading itineraries…" />
+      ) : status === "failed" ? (
+        <Body className="text-danger">{error}</Body>
+      ) : (
+        <>
+          {itineraries.length === 0 && <Caption>No itineraries yet — add one to start planning.</Caption>}
 
-      {itineraries.map((itinerary) => (
-        <ItineraryCard
-          key={itinerary.uid}
-          itinerary={itinerary}
-          tripId={tripId}
-          hotels={hotels}
-          activities={activities}
-          transports={transports}
-          onChanged={refresh}
-          onDealChanged={onDealChanged}
-        />
-      ))}
+          {itineraries.map((itinerary) => (
+            <ItineraryCard
+              key={itinerary.uid}
+              itinerary={itinerary}
+              tripId={tripId}
+              hotels={hotels}
+              activities={activities}
+              transports={transports}
+              onChanged={refresh}
+              onDealChanged={onDealChanged}
+            />
+          ))}
+        </>
+      )}
     </div>
   );
 }

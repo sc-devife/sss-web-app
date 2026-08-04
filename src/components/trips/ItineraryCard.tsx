@@ -7,6 +7,7 @@ import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
+import { LoadingState } from "@/components/ui/Spinner";
 import type { Itinerary } from "@/lib/itineraries";
 import type { ItineraryItem } from "@/lib/itinerary-items";
 import type { Hotel } from "@/lib/hotels";
@@ -14,6 +15,16 @@ import type { Activity } from "@/lib/activities";
 import type { Transport } from "@/lib/transports";
 import { QuotesPanel } from "@/components/trips/QuotesPanel";
 import { ItineraryContentSection } from "@/components/trips/ItineraryContentSection";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  fetchItineraryItems,
+  createItineraryItem,
+  deleteItineraryItem,
+  reorderItineraryItems,
+} from "@/features/itineraryItems/itineraryItemsThunks";
+import { selectItineraryItems, selectItineraryItemsStatus } from "@/features/itineraryItems/itineraryItemsSelectors";
+import { deleteItinerary, newItineraryVersion } from "@/features/itineraries/itinerariesThunks";
 
 const ITEM_TYPES = [
   { value: "hotel", label: "Hotel" },
@@ -38,8 +49,11 @@ export function ItineraryCard({
   onChanged: () => void;
   onDealChanged?: () => void;
 }) {
+  const dispatch = useAppDispatch();
+  const items = useAppSelector((s) => selectItineraryItems(s, itinerary.uid));
+  const itemsStatus = useAppSelector((s) => selectItineraryItemsStatus(s, itinerary.uid));
+
   const [expanded, setExpanded] = useState(false);
-  const [items, setItems] = useState<ItineraryItem[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
@@ -47,19 +61,19 @@ export function ItineraryCard({
   const [itemType, setItemType] = useState("hotel");
   const [referenceId, setReferenceId] = useState("");
   const [notes, setNotes] = useState("");
+  const [deletingItemUid, setDeletingItemUid] = useState<string | null>(null);
 
   const isSuperseded = itinerary.status === "superseded";
 
   useEffect(() => {
-    if (expanded && items === null) {
-      loadItems();
+    if (expanded && itemsStatus === "idle") {
+      dispatch(fetchItineraryItems(itinerary.uid));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expanded]);
 
-  async function loadItems() {
-    const res = await fetch(`/api/itinerary-items?itineraryUid=${itinerary.uid}`);
-    setItems(await res.json());
+  function loadItems() {
+    dispatch(fetchItineraryItems(itinerary.uid));
   }
 
   const referenceOptions =
@@ -78,36 +92,36 @@ export function ItineraryCard({
     setBusy(true);
     setError(undefined);
     try {
-      const res = await fetch("/api/itinerary-items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      await dispatch(
+        createItineraryItem({
           itineraryUid: itinerary.uid,
           dayNumber: Number(dayNumber),
-          itemType,
+          itemType: itemType as "hotel" | "activity" | "transport",
           referenceId,
           notes: notes || undefined,
         }),
-      });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(body?.message ?? "Failed to add item");
+      ).unwrap();
+      loadItems();
       setReferenceId("");
       setNotes("");
-      await loadItems();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add item");
+      setError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to add item"));
     } finally {
       setBusy(false);
     }
   }
 
   async function handleDeleteItem(uid: string) {
-    await fetch(`/api/itinerary-items/${uid}`, { method: "DELETE" });
-    await loadItems();
+    setDeletingItemUid(uid);
+    try {
+      await dispatch(deleteItineraryItem({ uid, itineraryUid: itinerary.uid }));
+      loadItems();
+    } finally {
+      setDeletingItemUid(null);
+    }
   }
 
   async function handleMove(item: ItineraryItem, direction: -1 | 1) {
-    if (!items) return;
     const sameDay = items.filter((i) => i.dayNumber === item.dayNumber).sort((a, b) => a.sortOrder - b.sortOrder);
     const index = sameDay.findIndex((i) => i.uid === item.uid);
     const swapWith = sameDay[index + direction];
@@ -118,18 +132,14 @@ export function ItineraryCard({
       .sort((a, b) => a.dayNumber - b.dayNumber || a.sortOrder - b.sortOrder)
       .map((i) => (i.uid === item.uid ? swapWith.uid : i.uid === swapWith.uid ? item.uid : i.uid));
 
-    await fetch("/api/itinerary-items/reorder", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itineraryUid: itinerary.uid, orderedItemUids }),
-    });
-    await loadItems();
+    await dispatch(reorderItineraryItems({ itineraryUid: itinerary.uid, orderedItemUids }));
+    loadItems();
   }
 
   async function handleNewVersion() {
     setBusy(true);
     try {
-      await fetch(`/api/itineraries/${itinerary.uid}/new-version`, { method: "POST" });
+      await dispatch(newItineraryVersion(itinerary.uid));
       onChanged();
     } finally {
       setBusy(false);
@@ -139,14 +149,14 @@ export function ItineraryCard({
   async function handleDelete() {
     setBusy(true);
     try {
-      await fetch(`/api/itineraries/${itinerary.uid}`, { method: "DELETE" });
+      await dispatch(deleteItinerary(itinerary.uid));
       onChanged();
     } finally {
       setBusy(false);
     }
   }
 
-  const itemsByDay = (items ?? []).reduce<Record<number, ItineraryItem[]>>((acc, item) => {
+  const itemsByDay = items.reduce<Record<number, ItineraryItem[]>>((acc, item) => {
     (acc[item.dayNumber] ??= []).push(item);
     return acc;
   }, {});
@@ -170,8 +180,8 @@ export function ItineraryCard({
         <div className="flex flex-col gap-4 border-t border-border pt-3">
           <div>
             <Caption>Day-by-day</Caption>
-            {items === null && <Body muted>Loading…</Body>}
-            {items !== null && Object.keys(itemsByDay).length === 0 && <Body muted>No items yet.</Body>}
+            {itemsStatus === "loading" && items.length === 0 && <LoadingState />}
+            {itemsStatus !== "loading" && Object.keys(itemsByDay).length === 0 && <Body muted>No items yet.</Body>}
             {Object.entries(itemsByDay)
               .sort(([a], [b]) => Number(a) - Number(b))
               .map(([day, dayItems]) => (
@@ -188,7 +198,7 @@ export function ItineraryCard({
                         <div className="flex gap-1">
                           <button type="button" onClick={() => handleMove(item, -1)} disabled={i === 0} className="px-1 text-muted-foreground hover:text-foreground disabled:opacity-30">↑</button>
                           <button type="button" onClick={() => handleMove(item, 1)} disabled={i === dayItems.length - 1} className="px-1 text-muted-foreground hover:text-foreground disabled:opacity-30">↓</button>
-                          <button type="button" onClick={() => handleDeleteItem(item.uid)} className="px-1 text-danger hover:underline">Remove</button>
+                          <button type="button" onClick={() => handleDeleteItem(item.uid)} disabled={deletingItemUid === item.uid} className="px-1 text-danger hover:underline disabled:opacity-50">Remove</button>
                         </div>
                       </div>
                     ))}

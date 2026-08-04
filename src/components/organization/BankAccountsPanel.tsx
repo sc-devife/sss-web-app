@@ -1,13 +1,17 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
-import type { BankAccount } from "@/lib/bank-accounts";
+import { LoadingState } from "@/components/ui/Spinner";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchBankAccounts, createBankAccount, setBankAccountStatus } from "@/features/bankAccounts/bankAccountsThunks";
+import { selectBankAccounts, selectBankAccountsStatus, selectBankAccountsError } from "@/features/bankAccounts/bankAccountsSelectors";
+import { FaPlus } from "react-icons/fa";
 
 const emptyForm = {
   accountName: "",
@@ -25,12 +29,21 @@ const emptyForm = {
   currency: "",
 };
 
-export function BankAccountsPanel({ orgId, accounts }: { orgId: number; accounts: BankAccount[] }) {
-  const router = useRouter();
+export function BankAccountsPanel({ orgId }: { orgId: number }) {
+  const dispatch = useAppDispatch();
+  const accounts = useAppSelector(selectBankAccounts);
+  const status = useAppSelector(selectBankAccountsStatus);
+  const error = useAppSelector(selectBankAccountsError);
+
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | undefined>();
+  const [formError, setFormError] = useState<string | undefined>();
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    dispatch(fetchBankAccounts(orgId));
+  }, [dispatch, orgId]);
 
   function update<K extends keyof typeof emptyForm>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -39,65 +52,35 @@ export function BankAccountsPanel({ orgId, accounts }: { orgId: number; accounts
   async function handleAdd(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(undefined);
+    setFormError(undefined);
     try {
-      const res = await fetch("/api/bank-accounts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId, ...form }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Failed to add account");
-      }
+      await dispatch(createBankAccount({ orgId, payload: form })).unwrap();
+      dispatch(fetchBankAccounts(orgId));
       setForm(emptyForm);
       setShowForm(false);
-      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add account");
+      setFormError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to add account"));
     } finally {
       setSaving(false);
     }
   }
 
   async function handleSetStatus(accountId: number, action: "deactivate" | "reactivate") {
-    await fetch("/api/bank-accounts", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orgId, accountId, action }),
-    });
-    router.refresh();
+    setUpdatingId(accountId);
+    try {
+      await dispatch(setBankAccountStatus({ orgId, accountId, action }));
+      dispatch(fetchBankAccounts(orgId));
+    } finally {
+      setUpdatingId(null);
+    }
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3">
-        {accounts.length === 0 && !showForm && <Body muted>No bank accounts added yet.</Body>}
-        {accounts.map((account) => (
-          <Card key={account.id} className="flex items-center justify-between">
-            <div>
-              <Body className="font-medium">
-                {account.bankName} · {account.accountName}{" "}
-                <Badge tone={account.status === "active" ? "success" : "neutral"}>{account.status}</Badge>
-              </Body>
-              <Caption>{account.accountNumber} · {account.branchCity}, {account.country} · {account.currency}</Caption>
-            </div>
-            {account.status === "active" ? (
-              <Button variant="danger" size="sm" onClick={() => handleSetStatus(account.id, "deactivate")}>
-                Deactivate
-              </Button>
-            ) : (
-              <Button variant="secondary" size="sm" onClick={() => handleSetStatus(account.id, "reactivate")}>
-                Reactivate
-              </Button>
-            )}
-          </Card>
-        ))}
-      </div>
 
       {!showForm && (
-        <Button variant="secondary" className="self-start" onClick={() => setShowForm(true)}>
-          Add bank account
+        <Button className="self-end" onClick={() => setShowForm(true)}>
+          <FaPlus /> Add bank account
         </Button>
       )}
 
@@ -118,7 +101,7 @@ export function BankAccountsPanel({ orgId, accounts }: { orgId: number; accounts
             <TextInput label="Currency" value={form.currency} onChange={(e) => update("currency", e.target.value.toUpperCase())} required maxLength={3} />
             <TextInput label="Branch address" value={form.branchAddress} onChange={(e) => update("branchAddress", e.target.value)} className="col-span-2" />
 
-            {error && <p className="col-span-2 text-sm text-danger">{error}</p>}
+            {formError && <p className="col-span-2 text-sm text-danger">{formError}</p>}
 
             <div className="col-span-2 flex gap-2">
               <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save account"}</Button>
@@ -126,6 +109,36 @@ export function BankAccountsPanel({ orgId, accounts }: { orgId: number; accounts
             </div>
           </form>
         </Card>
+      )}
+
+      {status === "loading" && accounts.length === 0 ? (
+        <LoadingState label="Loading bank accounts…" />
+      ) : status === "failed" ? (
+        <Body className="text-danger">{error}</Body>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {accounts.length === 0 && !showForm && <Body muted>No bank accounts added yet.</Body>}
+          {accounts.map((account) => (
+            <Card key={account.id} className="flex items-center justify-between">
+              <div>
+                <Body className="font-medium">
+                  {account.bankName} · {account.accountName}{" "}
+                  <Badge tone={account.status === "active" ? "success" : "neutral"}>{account.status}</Badge>
+                </Body>
+                <Caption>{account.accountNumber} · {account.branchCity}, {account.country} · {account.currency}</Caption>
+              </div>
+              {account.status === "active" ? (
+                <Button variant="danger" size="sm" disabled={updatingId === account.id} onClick={() => handleSetStatus(account.id, "deactivate")}>
+                  Deactivate
+                </Button>
+              ) : (
+                <Button variant="secondary" size="sm" disabled={updatingId === account.id} onClick={() => handleSetStatus(account.id, "reactivate")}>
+                  Reactivate
+                </Button>
+              )}
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );

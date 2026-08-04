@@ -1,21 +1,41 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, type FormEvent } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Body, Caption } from "@/components/ui/Typography";
-import type { PriorityCalendarEntry } from "@/lib/priority-calendar";
+import { LoadingState } from "@/components/ui/Spinner";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  fetchPriorityCalendarEntries,
+  createPriorityCalendarEntry,
+  deletePriorityCalendarEntry,
+} from "@/features/assignmentRules/assignmentRulesThunks";
+import {
+  selectPriorityCalendarEntries,
+  selectPriorityCalendarStatus,
+  selectPriorityCalendarError,
+} from "@/features/assignmentRules/assignmentRulesSelectors";
 
 const emptyForm = { label: "", startDate: "", endDate: "" };
 
-export function PriorityCalendarPanel({ initialEntries }: { initialEntries: PriorityCalendarEntry[] }) {
-  const router = useRouter();
+export function PriorityCalendarPanel() {
+  const dispatch = useAppDispatch();
+  const entries = useAppSelector(selectPriorityCalendarEntries);
+  const status = useAppSelector(selectPriorityCalendarStatus);
+  const error = useAppSelector(selectPriorityCalendarError);
+
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | undefined>();
+  const [formError, setFormError] = useState<string | undefined>();
+  const [deletingUid, setDeletingUid] = useState<string | null>(null);
+
+  useEffect(() => {
+    dispatch(fetchPriorityCalendarEntries());
+  }, [dispatch]);
 
   function update<K extends keyof typeof emptyForm>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -24,47 +44,52 @@ export function PriorityCalendarPanel({ initialEntries }: { initialEntries: Prio
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(undefined);
+    setFormError(undefined);
     try {
-      const res = await fetch("/api/priority-calendar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Failed to add season");
-      }
+      await dispatch(createPriorityCalendarEntry(form)).unwrap();
+      dispatch(fetchPriorityCalendarEntries());
       setForm(emptyForm);
       setShowForm(false);
-      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add season");
+      setFormError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to add season"));
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(uid: string) {
-    await fetch(`/api/priority-calendar/${uid}`, { method: "DELETE" });
-    router.refresh();
+    setDeletingUid(uid);
+    try {
+      await dispatch(deletePriorityCalendarEntry(uid));
+      dispatch(fetchPriorityCalendarEntries());
+    } finally {
+      setDeletingUid(null);
+    }
   }
 
   return (
     <div className="flex flex-col gap-3">
       <Caption>Honeymoon and family leads traveling within one of these windows are auto-flagged as priority.</Caption>
 
-      {initialEntries.length === 0 && !showForm && <Body muted>No vacation seasons configured yet.</Body>}
+      {status === "loading" && entries.length === 0 ? (
+        <LoadingState label="Loading priority calendar…" />
+      ) : status === "failed" ? (
+        <Body className="text-danger">{error}</Body>
+      ) : (
+        <>
+          {entries.length === 0 && !showForm && <Body muted>No vacation seasons configured yet.</Body>}
 
-      {initialEntries.map((entry) => (
-        <Card key={entry.uid} className="flex items-center justify-between">
-          <div>
-            <Body className="font-medium">{entry.label}</Body>
-            <Caption>{entry.startDate} – {entry.endDate}</Caption>
-          </div>
-          <Button variant="danger" size="sm" onClick={() => handleDelete(entry.uid)}>Remove</Button>
-        </Card>
-      ))}
+          {entries.map((entry) => (
+            <Card key={entry.uid} className="flex items-center justify-between">
+              <div>
+                <Body className="font-medium">{entry.label}</Body>
+                <Caption>{entry.startDate} – {entry.endDate}</Caption>
+              </div>
+              <Button variant="danger" size="sm" disabled={deletingUid === entry.uid} onClick={() => handleDelete(entry.uid)}>Remove</Button>
+            </Card>
+          ))}
+        </>
+      )}
 
       {!showForm && (
         <Button variant="secondary" className="self-start" onClick={() => setShowForm(true)}>Add vacation season</Button>
@@ -76,7 +101,7 @@ export function PriorityCalendarPanel({ initialEntries }: { initialEntries: Prio
             <TextInput label="Label" value={form.label} onChange={(e) => update("label", e.target.value)} required placeholder="e.g. Diwali 2026" />
             <TextInput label="Start date" type="date" value={form.startDate} onChange={(e) => update("startDate", e.target.value)} required />
             <TextInput label="End date" type="date" value={form.endDate} onChange={(e) => update("endDate", e.target.value)} required />
-            {error && <p className="col-span-3 text-sm text-danger">{error}</p>}
+            {formError && <p className="col-span-3 text-sm text-danger">{formError}</p>}
             <div className="col-span-3 flex gap-2">
               <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save season"}</Button>
               <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>

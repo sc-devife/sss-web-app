@@ -1,11 +1,12 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Body } from "@/components/ui/Typography";
 import { Badge } from "@/components/ui/Badge";
+import { clientApi } from "@/lib/axios/clientClient";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 
 interface RowResult {
   rowNumber: number;
@@ -28,8 +29,21 @@ interface CommitResponse {
 
 // One generic upload -> validate -> show row errors -> confirm -> commit flow
 // (Section 10), reused by every Library screen — only entityType and label change.
-export function BulkImportModal({ entityType, label, onClose }: { entityType: string; label: string; onClose: () => void }) {
-  const router = useRouter();
+// onImported lets each panel re-dispatch its own fetch thunk after a commit —
+// this modal doesn't know which Redux slice owns entityType's data, so it
+// can't refetch on its own (router.refresh() no longer does anything useful
+// now that these panels load their primary data via Redux, not server props).
+export function BulkImportModal({
+  entityType,
+  label,
+  onClose,
+  onImported,
+}: {
+  entityType: string;
+  label: string;
+  onClose: () => void;
+  onImported?: () => void;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
@@ -44,12 +58,10 @@ export function BulkImportModal({ entityType, label, onClose }: { entityType: st
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch(`/api/bulk-import/${entityType}/preview`, { method: "POST", body: formData });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(body?.message ?? "Failed to preview the file");
-      setPreview(body);
+      const res = await clientApi.postForm<PreviewResponse>(`/bulk-import/${entityType}/preview`, formData);
+      setPreview(res.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to preview the file");
+      setError(extractErrorMessage(err, "Failed to preview the file"));
     } finally {
       setLoading(false);
     }
@@ -62,13 +74,11 @@ export function BulkImportModal({ entityType, label, onClose }: { entityType: st
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch(`/api/bulk-import/${entityType}/commit`, { method: "POST", body: formData });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(body?.message ?? "Failed to import the file");
-      setResult(body);
-      router.refresh();
+      const res = await clientApi.postForm<CommitResponse>(`/bulk-import/${entityType}/commit`, formData);
+      setResult(res.data);
+      onImported?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to import the file");
+      setError(extractErrorMessage(err, "Failed to import the file"));
     } finally {
       setLoading(false);
     }

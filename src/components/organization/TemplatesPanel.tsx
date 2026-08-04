@@ -1,43 +1,58 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
-import type { QuoteTemplate } from "@/lib/quote-templates";
+import { LoadingState } from "@/components/ui/Spinner";
 import type { Organization } from "@/lib/organization";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchQuoteTemplates, setDefaultQuoteTemplate } from "@/features/quoteTemplates/quoteTemplatesThunks";
+import { selectQuoteTemplates, selectQuoteTemplatesStatus, selectQuoteTemplatesError } from "@/features/quoteTemplates/quoteTemplatesSelectors";
 
-export function TemplatesPanel({ templates, organization }: { templates: QuoteTemplate[]; organization: Organization }) {
+export function TemplatesPanel({ organization }: { organization: Organization }) {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const templates = useAppSelector(selectQuoteTemplates);
+  const status = useAppSelector(selectQuoteTemplatesStatus);
+  const error = useAppSelector(selectQuoteTemplatesError);
+
   const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | undefined>();
+  const [formError, setFormError] = useState<string | undefined>();
+
+  useEffect(() => {
+    dispatch(fetchQuoteTemplates());
+  }, [dispatch]);
 
   async function handleSelect(templateId: string) {
     setBusy(templateId);
-    setError(undefined);
+    setFormError(undefined);
     try {
-      const res = await fetch("/api/organizations", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid: organization.uid, quote_template_id: templateId }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Failed to set default template");
-      }
+      await dispatch(setDefaultQuoteTemplate({ organizationUid: organization.uid, templateId })).unwrap();
+      // Organization isn't Redux-managed yet — router.refresh() re-runs the
+      // Server Component to pick up the new quote_template_id.
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to set default template");
+      setFormError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to set default template"));
     } finally {
       setBusy(null);
     }
   }
 
+  if (status === "loading" && templates.length === 0) {
+    return <LoadingState label="Loading templates…" />;
+  }
+
+  if (status === "failed") {
+    return <Body className="text-danger">{error}</Body>;
+  }
+
   return (
     <div className="flex flex-col gap-3">
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {formError && <p className="text-sm text-danger">{formError}</p>}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {templates.map((template) => {
           const isDefault = organization.quote_template_id === template.id;

@@ -9,7 +9,18 @@ import { MultiSelect } from "@/components/ui/MultiSelect";
 import type { Lead } from "@/lib/leads";
 import type { Traveller } from "@/lib/travellers";
 import type { Destination } from "@/lib/destinations";
+import { clientApi } from "@/lib/axios/clientClient";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { convertLeadToTrip } from "@/features/leads/leadsThunks";
+import { selectConvertStatus, selectConvertError } from "@/features/leads/leadsSelectors";
 
+// Traveller fetch/create here deliberately stays a direct clientApi call
+// rather than a thunk — Travellers is its own module (per the migration
+// inventory) and gets its own slice in a later stage; this modal only needs
+// a quick picker/inline-create, not full CRUD state management. The actual
+// lead-to-trip conversion below IS genuinely "Leads" data (it mutates the
+// lead's status), so that one goes through Redux.
 export function ConvertToTripModal({
   lead,
   destinations,
@@ -20,6 +31,10 @@ export function ConvertToTripModal({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const convertStatus = useAppSelector(selectConvertStatus);
+  const convertError = useAppSelector(selectConvertError);
+
   const [travellers, setTravellers] = useState<Traveller[]>([]);
   const [travellerIds, setTravellerIds] = useState<string[]>([]);
   const [destinationIds, setDestinationIds] = useState<string[]>(() => {
@@ -33,76 +48,66 @@ export function ConvertToTripModal({
   const [numberOfDays, setNumberOfDays] = useState(lead.durationDays ? String(lead.durationDays) : "");
   const [addingTraveller, setAddingTraveller] = useState(false);
   const [newTraveller, setNewTraveller] = useState({ firstName: "", lastName: "", email: "", phone: "" });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | undefined>();
+  const [savingTraveller, setSavingTraveller] = useState(false);
+  const [formError, setFormError] = useState<string | undefined>();
 
   useEffect(() => {
-    fetch("/api/travellers")
-      .then((r) => r.json())
-      .then(setTravellers)
+    clientApi
+      .get<Traveller[]>("/travellers")
+      .then((res) => setTravellers(res.data))
       .catch(() => setTravellers([]));
   }, []);
 
   async function handleAddTraveller() {
     if (!newTraveller.firstName.trim()) return;
-    setSaving(true);
-    setError(undefined);
+    setSavingTraveller(true);
+    setFormError(undefined);
     try {
-      const res = await fetch("/api/travellers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newTraveller),
-      });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(body?.message ?? "Failed to add traveller");
-      setTravellers((t) => [...t, body]);
-      setTravellerIds((ids) => [...ids, String(body.seqp)]);
+      const res = await clientApi.post<Traveller>("/travellers", newTraveller);
+      setTravellers((t) => [...t, res.data]);
+      setTravellerIds((ids) => [...ids, String(res.data.seqp)]);
       setNewTraveller({ firstName: "", lastName: "", email: "", phone: "" });
       setAddingTraveller(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add traveller");
+      setFormError(extractErrorMessage(err, "Failed to add traveller"));
     } finally {
-      setSaving(false);
+      setSavingTraveller(false);
     }
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (travellerIds.length === 0) {
-      setError("Add at least one traveller");
+      setFormError("Add at least one traveller");
       return;
     }
     if (destinationIds.length === 0) {
-      setError("Select at least one destination");
+      setFormError("Select at least one destination");
       return;
     }
     if (!startDate || !numberOfDays) {
-      setError("Start date and duration are required");
+      setFormError("Start date and duration are required");
       return;
     }
-    setSaving(true);
-    setError(undefined);
+    setFormError(undefined);
     try {
-      const res = await fetch(`/api/leads/${lead.seqp}/actions/convert`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const result = await dispatch(
+        convertLeadToTrip({
           leadId: lead.seqp,
           travellerIds: travellerIds.map(Number),
           destinationIds: destinationIds.map(Number),
           startDate,
           numberOfDays: Number(numberOfDays),
         }),
-      });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(body?.message ?? "Failed to convert lead");
-      router.push(`/trips/${body.seqp}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to convert lead");
-    } finally {
-      setSaving(false);
+      ).unwrap();
+      router.push(`/trips/${result.seqp}`);
+    } catch {
+      // convertError already set in the slice, rendered below.
     }
   }
+
+  const busy = savingTraveller || convertStatus === "loading";
+  const displayError = formError ?? convertError;
 
   return (
     <Modal open onClose={onClose} title="Convert to trip" className="max-w-xl">
@@ -139,16 +144,16 @@ export function ConvertToTripModal({
               <TextInput label="Phone" value={newTraveller.phone} onChange={(e) => setNewTraveller((t) => ({ ...t, phone: e.target.value }))} />
             </div>
             <div className="flex gap-2">
-              <Button type="button" size="sm" disabled={saving} onClick={handleAddTraveller}>Add traveller</Button>
+              <Button type="button" size="sm" disabled={busy} onClick={handleAddTraveller}>Add traveller</Button>
               <Button type="button" size="sm" variant="ghost" onClick={() => setAddingTraveller(false)}>Cancel</Button>
             </div>
           </div>
         )}
 
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {displayError && <p className="text-sm text-danger">{displayError}</p>}
 
         <div className="flex gap-2">
-          <Button type="submit" disabled={saving}>{saving ? "Converting…" : "Convert to trip"}</Button>
+          <Button type="submit" disabled={busy}>{convertStatus === "loading" ? "Converting…" : "Convert to trip"}</Button>
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
         </div>
       </form>

@@ -7,6 +7,12 @@ export interface IntegrationConnection {
   status: string;
   autoCreateLeads: boolean | null;
   lastSyncedAt: string | null;
+  // Meta (facebook/instagram) only — null for other channels.
+  platform: string | null;
+  pageId: string | null;
+  igAccountId: string | null;
+  pageName: string | null;
+  tokenLastVerifiedAt: string | null;
 }
 
 export async function getIntegrations(): Promise<IntegrationConnection[]> {

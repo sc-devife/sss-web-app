@@ -1,14 +1,25 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { PiPencilSimple, PiTrash } from "react-icons/pi";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import { Alert } from "@/components/ui/Alert";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Body, Caption } from "@/components/ui/Typography";
-import type { Address } from "@/lib/addresses";
+import { LoadingState } from "@/components/ui/Spinner";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchAddresses, createAddress, updateAddress, deleteAddress } from "@/features/addresses/addressesThunks";
+import { selectAddresses, selectAddressesStatus, selectAddressesError } from "@/features/addresses/addressesSelectors";
+import type { Address } from "@/features/addresses/types";
 import { FaEnvelope, FaPhoneAlt } from "react-icons/fa";
+import {
+  PiMapPin,
+  PiPlusBold,
+  PiBuildings,
+} from "react-icons/pi";
 
 const emptyForm = {
   label: "",
@@ -51,17 +62,27 @@ function AddressFormFields({ form, update }: { form: FormState; update: <K exten
   );
 }
 
-export function ContactAddressPanel({ orgId, addresses }: { orgId: number; addresses: Address[] }) {
-  const router = useRouter();
+export function ContactAddressPanel({ orgId }: { orgId: number }) {
+  const dispatch = useAppDispatch();
+  const addresses = useAppSelector(selectAddresses);
+  const status = useAppSelector(selectAddressesStatus);
+  const error = useAppSelector(selectAddressesError);
+
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | undefined>();
+  const [formError, setFormError] = useState<string | undefined>();
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<FormState>(emptyForm);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | undefined>();
+
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    dispatch(fetchAddresses(orgId));
+  }, [dispatch, orgId]);
 
   function update<K extends keyof FormState>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -74,22 +95,14 @@ export function ContactAddressPanel({ orgId, addresses }: { orgId: number; addre
   async function handleAdd(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(undefined);
+    setFormError(undefined);
     try {
-      const res = await fetch("/api/addresses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId, ...form }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Failed to add address");
-      }
+      await dispatch(createAddress({ orgId, payload: form })).unwrap();
+      dispatch(fetchAddresses(orgId));
       setForm(emptyForm);
       setShowForm(false);
-      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add address");
+      setFormError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to add address"));
     } finally {
       setSaving(false);
     }
@@ -107,120 +120,307 @@ export function ContactAddressPanel({ orgId, addresses }: { orgId: number; addre
     setEditSaving(true);
     setEditError(undefined);
     try {
-      const res = await fetch("/api/addresses", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId, addressId, ...editForm }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Failed to update address");
-      }
+      await dispatch(updateAddress({ orgId, addressId, payload: editForm })).unwrap();
+      dispatch(fetchAddresses(orgId));
       setEditingId(null);
-      router.refresh();
     } catch (err) {
-      setEditError(err instanceof Error ? err.message : "Failed to update address");
+      setEditError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to update address"));
     } finally {
       setEditSaving(false);
     }
   }
 
   async function handleDelete(addressId: number) {
-    await fetch("/api/addresses", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orgId, addressId }),
-    });
-    router.refresh();
+    setDeletingId(addressId);
+    try {
+      await dispatch(deleteAddress({ orgId, addressId })).unwrap();
+      dispatch(fetchAddresses(orgId));
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3">
-        {addresses.length === 0 && !showForm && <Body muted>No addresses added yet.</Body>}
-        {addresses.map((address) =>
-          editingId === address.id ? (
-            <Card key={address.id}>
-              <form onSubmit={(e) => handleUpdate(e, address.id)} className="grid grid-cols-2 gap-4">
-                <AddressFormFields form={editForm} update={updateEdit} />
+    <div className="space-y-4">
 
-                {editError && <p className="col-span-2 text-sm text-danger">{editError}</p>}
+      {/* Header */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-end">
 
-                <div className="col-span-2 flex gap-2">
-                  <Button type="submit" disabled={editSaving}>{editSaving ? "Saving…" : "Save changes"}</Button>
-                  <Button type="button" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
-                </div>
-              </form>
-            </Card>
-          ) : (
-            <Card key={address.id} className="flex items-center justify-between">
-              <div>
-                <Body className="font-medium">{address.label}</Body>
-                <Caption>
-                  {address.streetFirst}, {address.city}, {address.state}, {address.country} — {address.zipCode}
-                </Caption>
-                {(address.contactNumber || address.contactEmail) && (
-                  <div className="mt-1 flex flex-col gap-1">
-                    {address.contactNumber && (
-                      <Caption className="flex items-center gap-2">
-                        <FaPhoneAlt className="h-4 w-4" />
-                        <span>{address.contactNumber}</span>
-                      </Caption>
-                    )}
-                    {address.contactEmail && (
-                      <Caption className="flex items-center gap-2">
-                        <FaEnvelope className="h-4 w-4" />
-                        <span>{address.contactEmail}</span>
-                      </Caption>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  aria-label="Edit address"
-                  onClick={() => startEdit(address)}
-                  className="px-2"
-                >
-                  <PiPencilSimple className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  aria-label="Delete address"
-                  onClick={() => handleDelete(address.id)}
-                  className="px-2 text-danger hover:bg-danger/10"
-                >
-                  <PiTrash className="h-4 w-4" />
-                </Button>
-              </div>
-            </Card>
-          ),
+
+        {!showForm && editingId === null && (
+          <Button
+            onClick={() => setShowForm(true)}
+            className="self-start md:self-auto"
+          >
+            <PiPlusBold className="mr-2 h-4 w-4" />
+            Add Address
+          </Button>
         )}
       </div>
 
-      {!showForm && editingId === null && (
-        <Button variant="secondary" className="self-start" onClick={() => setShowForm(true)}>
-          Add New Address
-        </Button>
+      {status === "loading" && addresses.length === 0 ? (
+        <LoadingState label="Loading addresses…" />
+      ) : status === "failed" && addresses.length === 0 ? (
+        <Body className="text-danger">{error}</Body>
+      ) : (
+        <>
+          {/* Empty State */}
+
+          {addresses.length === 0 && !showForm && (
+            <EmptyState
+              icon={PiMapPin}
+              title="No addresses added"
+              description="Add your headquarters or office address. This information can be used in invoices, documents and customer communication."
+              action={{ label: "Add First Address", onClick: () => setShowForm(true) }}
+            />
+          )}
+
+          {/* Address Cards */}
+
+          {addresses.length > 0 && (
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+
+              {addresses.map((address) =>
+
+                editingId === address.id ? (
+
+                  <Card
+                    key={address.id}
+                    className="rounded-2xl border-primary/20"
+                  >
+
+                    <form
+                      onSubmit={(e) => handleUpdate(e, address.id)}
+                      className="space-y-4"
+                    >
+
+                      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+
+                        <AddressFormFields
+                          form={editForm}
+                          update={updateEdit}
+                        />
+
+                      </div>
+
+                      {editError && <Alert tone="danger">{editError}</Alert>}
+
+                      <div className="flex flex-wrap justify-end gap-3 border-t pt-5">
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          disabled={editSaving}
+                          onClick={() => setEditingId(null)}
+                        >
+                          Cancel
+                        </Button>
+
+                        <Button
+                          type="submit"
+                          disabled={editSaving}
+                        >
+                          {editSaving ? "Saving..." : "Save Changes"}
+                        </Button>
+
+                      </div>
+
+                    </form>
+
+                  </Card>
+
+                ) : (
+
+                  <Card key={address.id} variant="elevated">
+
+                    <div className="flex h-full flex-col justify-between">
+
+                      <div>
+
+                        <div className="flex items-start justify-between">
+
+                          <div>
+
+                            <div className="flex items-center gap-3">
+
+                              <div className="rounded-xl bg-primary/10 p-2">
+
+                                <PiBuildings className="h-5 w-5 text-primary" />
+
+                              </div>
+
+                              <Body className="text-lg font-semibold">
+                                {address.label}
+                              </Body>
+
+                            </div>
+
+                          </div>
+
+                          <div className="flex gap-2">
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={deletingId === address.id}
+                              onClick={() => startEdit(address)}
+                            >
+                              <PiPencilSimple className="mr-0.5 h-4 w-4" />
+                              Edit
+                            </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-danger hover:bg-danger/10"
+                              disabled={deletingId === address.id}
+                              onClick={() => handleDelete(address.id)}
+                            >
+                              <PiTrash className="mr-0.5 h-4 w-4" />
+                              {deletingId === address.id ? "Deleting..." : "Delete"}
+                            </Button>
+
+                          </div>
+
+                        </div>
+
+                        <div className="mt-4 space-y-2">
+
+                          <div className="flex gap-3">
+
+                            <PiMapPin className="mt-0.5 h-5 w-5 text-primary" />
+
+                            <div>
+
+                              <Caption>{address.streetFirst}</Caption>
+
+                              <Caption>
+                                {address.city}, {address.state}
+                              </Caption>
+
+                              <Caption>
+                                {address.country} - {address.zipCode}
+                              </Caption>
+
+                            </div>
+
+                          </div>
+
+                        </div>
+
+                        {(address.contactNumber || address.contactEmail) && (
+
+                          <div className="mt-4 space-y-3 border-t pt-4">
+
+                            {address.contactNumber && (
+
+                              <div className="flex items-center gap-3">
+
+                                <FaPhoneAlt className="text-primary" />
+
+                                <span className="text-sm">
+                                  {address.contactNumber}
+                                </span>
+
+                              </div>
+
+                            )}
+
+                            {address.contactEmail && (
+
+                              <div className="flex items-center gap-3">
+
+                                <FaEnvelope className="text-primary" />
+
+                                <span className="text-sm">
+                                  {address.contactEmail}
+                                </span>
+
+                              </div>
+
+                            )}
+
+                          </div>
+
+                        )}
+
+                      </div>
+
+                    </div>
+
+                  </Card>
+
+                )
+
+              )}
+
+            </div>
+
+          )}
+        </>
       )}
+
+      {/* Add Address */}
 
       {showForm && (
-        <Card>
-          <form onSubmit={handleAdd} className="grid grid-cols-2 gap-4">
-            <AddressFormFields form={form} update={update} />
 
-            {error && <p className="col-span-2 text-sm text-danger">{error}</p>}
+        <Card className="rounded-2xl">
 
-            <div className="col-span-2 flex gap-2">
-              <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save address"}</Button>
-              <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
+          <div className="mb-6">
+
+            <h4 className="text-lg font-semibold">
+              Add New Address
+            </h4>
+
+            <Caption className="mt-1 text-muted-foreground">
+              Enter your office or branch details.
+            </Caption>
+
+          </div>
+
+          <form
+            onSubmit={handleAdd}
+            className="space-y-6"
+          >
+
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+
+              <AddressFormFields
+                form={form}
+                update={update}
+              />
+
             </div>
+
+            {formError && <Alert tone="danger">{formError}</Alert>}
+
+            <div className="flex flex-wrap justify-end gap-3 border-t pt-6">
+
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={saving}
+                onClick={() => setShowForm(false)}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                type="submit"
+                disabled={saving}
+              >
+                {saving ? "Saving..." : "Save Address"}
+              </Button>
+
+            </div>
+
           </form>
+
         </Card>
+
       )}
+
     </div>
   );
 }

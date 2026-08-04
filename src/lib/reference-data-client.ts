@@ -4,27 +4,28 @@
 // world dataset (17MB) into client JS. These fetch the same option lists
 // from the small server-side API routes instead.
 import type { ReferenceOption } from "@/lib/reference-data";
+import { clientApi } from "@/lib/axios/clientClient";
 
 export async function fetchCountryOptions(): Promise<ReferenceOption[]> {
-  const res = await fetch("/api/reference-data/countries");
-  return res.json();
+  const res = await clientApi.get<ReferenceOption[]>("/reference-data/countries");
+  return res.data;
 }
 
 export async function fetchRegionOptions(countryCode: string): Promise<ReferenceOption[]> {
   if (!countryCode) return [];
-  const res = await fetch(`/api/reference-data/regions?country=${encodeURIComponent(countryCode)}`);
-  return res.json();
+  const res = await clientApi.get<ReferenceOption[]>("/reference-data/regions", { params: { country: countryCode } });
+  return res.data;
 }
 
 export async function fetchCityOptions(countryCode: string, regionCode: string): Promise<ReferenceOption[]> {
   if (!countryCode || !regionCode) return [];
-  const res = await fetch(
-    `/api/reference-data/cities?country=${encodeURIComponent(countryCode)}&region=${encodeURIComponent(regionCode)}`
-  );
-  return res.json();
+  const res = await clientApi.get<ReferenceOption[]>("/reference-data/cities", {
+    params: { country: countryCode, region: regionCode },
+  });
+  return res.data;
 }
 
 export async function fetchCurrencyOptions(): Promise<ReferenceOption[]> {
-  const res = await fetch("/api/reference-data/currencies");
-  return res.json();
+  const res = await clientApi.get<ReferenceOption[]>("/reference-data/currencies");
+  return res.data;
 }

@@ -8,7 +8,7 @@ import {
   PiSuitcaseRolling,
   PiBuildingOffice,
   PiUsersThree,
-  PiShieldCheck,
+  //PiShieldCheck,
   PiCreditCard,
   PiFileText,
   PiGearSix,
@@ -51,6 +51,7 @@ export const routeGroups: RouteGroup[] = [
     icon: PiHandshake,
     routes: [
       { path: "/leads", title: "Leads", icon: PiUserPlus },
+      { path: "/leads/sources", title: "Lead Sources", icon: TbPlug },
       { path: "/trips", title: "Trips", icon: PiAirplaneTilt },
     ],
   },
@@ -75,7 +76,7 @@ export const routeGroups: RouteGroup[] = [
     routes: [
       { path: "/organization/profile", title: "Profile", icon: PiBuildingOffice },
       { path: "/organization/users", title: "Users", icon: PiUsersThree },
-      { path: "/organization/roles", title: "Roles", icon: PiShieldCheck },
+      //{ path: "/organization/roles", title: "Roles", icon: PiShieldCheck },
       { path: "/organization/bank-accounts", title: "Bank Accounts", icon: PiCreditCard },
       { path: "/organization/assignment-rules", title: "Assignment Rules", icon: TbRoute },
       { path: "/organization/integrations", title: "Integrations", icon: TbPlug },

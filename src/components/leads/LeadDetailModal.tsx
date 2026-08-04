@@ -1,16 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
-import type { Lead, AuditLogEntry } from "@/lib/leads";
+import { LoadingState } from "@/components/ui/Spinner";
+import type { Lead } from "@/lib/leads";
 import type { AppUser } from "@/lib/users";
 import type { Destination } from "@/lib/destinations";
 import { ConvertToTripModal } from "@/components/leads/ConvertToTripModal";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchLeads, contactLead, qualifyLead, toggleLeadPriority, applyLeadReasonAction, assignLead, fetchLeadAuditLog } from "@/features/leads/leadsThunks";
+import { clearAuditLog } from "@/features/leads/leadsSlice";
+import type { LeadReasonAction } from "@/features/leads/types";
+import { selectLeadActionStatus, selectLeadActionError, selectLeadAuditLog, selectLeadAuditLogStatus } from "@/features/leads/leadsSelectors";
 
 const TERMINAL_STATUSES = ["Unqualified", "Lost", "Duplicate", "Converted"];
 
@@ -25,53 +30,78 @@ export function LeadDetailModal({
   destinations: Destination[];
   onClose: () => void;
 }) {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | undefined>();
-  const [reasonPrompt, setReasonPrompt] = useState<"disqualify" | "mark-lost" | "mark-duplicate" | null>(null);
+  const dispatch = useAppDispatch();
+  const busy = useAppSelector(selectLeadActionStatus) === "loading";
+  const error = useAppSelector(selectLeadActionError);
+  const auditLog = useAppSelector(selectLeadAuditLog);
+  const loadingAudit = useAppSelector(selectLeadAuditLogStatus) === "loading";
+
+  const [reasonPrompt, setReasonPrompt] = useState<LeadReasonAction | null>(null);
   const [reason, setReason] = useState("");
   const [assigneeId, setAssigneeId] = useState("");
-  const [auditLog, setAuditLog] = useState<AuditLogEntry[] | null>(null);
-  const [loadingAudit, setLoadingAudit] = useState(false);
   const [convertOpen, setConvertOpen] = useState(false);
 
   useEffect(() => {
-    setLoadingAudit(true);
-    fetch(`/api/leads/${lead.seqp}/audit-log`)
-      .then((r) => r.json())
-      .then(setAuditLog)
-      .catch(() => setAuditLog([]))
-      .finally(() => setLoadingAudit(false));
-  }, [lead.seqp]);
+    dispatch(fetchLeadAuditLog(lead.seqp));
+    return () => {
+      dispatch(clearAuditLog());
+    };
+  }, [dispatch, lead.seqp]);
 
   const assignedUser = users.find((u) => u.seqp === lead.assignedToUserId);
   const isTerminal = TERMINAL_STATUSES.includes(lead.status);
 
-  async function runAction(path: string, body?: object) {
-    setBusy(true);
-    setError(undefined);
+  async function afterAction() {
+    setReasonPrompt(null);
+    setReason("");
+    await dispatch(fetchLeads());
+    onClose();
+  }
+
+  async function handleContact() {
     try {
-      const res = await fetch(path, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.message ?? "Action failed");
-      setReasonPrompt(null);
-      setReason("");
-      router.refresh();
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Action failed");
-    } finally {
-      setBusy(false);
+      await dispatch(contactLead(lead.seqp)).unwrap();
+      await afterAction();
+    } catch {
+      // actionError already set in the slice, rendered below.
+    }
+  }
+
+  async function handleQualify() {
+    try {
+      await dispatch(qualifyLead(lead.seqp)).unwrap();
+      await afterAction();
+    } catch {
+      // actionError already set in the slice.
+    }
+  }
+
+  async function handleTogglePriority() {
+    try {
+      await dispatch(toggleLeadPriority(lead.seqp)).unwrap();
+      await afterAction();
+    } catch {
+      // actionError already set in the slice.
+    }
+  }
+
+  async function handleReasonAction(action: LeadReasonAction) {
+    try {
+      await dispatch(applyLeadReasonAction({ leadId: lead.seqp, action, reason })).unwrap();
+      await afterAction();
+    } catch {
+      // actionError already set in the slice.
     }
   }
 
   async function handleAssign() {
     if (!assigneeId) return;
-    await runAction(`/api/leads/${lead.seqp}/assign`, { userId: Number(assigneeId), reason: reason || undefined });
+    try {
+      await dispatch(assignLead({ leadId: lead.seqp, userId: Number(assigneeId), reason: reason || undefined })).unwrap();
+      await afterAction();
+    } catch {
+      // actionError already set in the slice.
+    }
   }
 
   return (
@@ -110,10 +140,10 @@ export function LeadDetailModal({
             <Caption>Actions</Caption>
             <div className="flex flex-wrap gap-2">
               {lead.status === "New" && (
-                <Button size="sm" disabled={busy} onClick={() => runAction(`/api/leads/${lead.seqp}/actions/contact`)}>Mark contacted</Button>
+                <Button size="sm" disabled={busy} onClick={handleContact}>Mark contacted</Button>
               )}
               {(lead.status === "New" || lead.status === "Contacted") && (
-                <Button size="sm" disabled={busy} onClick={() => runAction(`/api/leads/${lead.seqp}/actions/qualify`)}>Mark qualified</Button>
+                <Button size="sm" disabled={busy} onClick={handleQualify}>Mark qualified</Button>
               )}
               {lead.status === "Qualified" && (
                 <Button size="sm" disabled={busy} onClick={() => setConvertOpen(true)}>Convert to trip</Button>
@@ -121,7 +151,7 @@ export function LeadDetailModal({
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => setReasonPrompt("disqualify")}>Disqualify</Button>
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => setReasonPrompt("mark-lost")}>Mark lost</Button>
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => setReasonPrompt("mark-duplicate")}>Mark duplicate</Button>
-              <Button size="sm" variant="secondary" disabled={busy} onClick={() => runAction(`/api/leads/${lead.seqp}/actions/toggle-priority`)}>
+              <Button size="sm" variant="secondary" disabled={busy} onClick={handleTogglePriority}>
                 {lead.isPriority ? "Unmark priority" : "Mark priority"}
               </Button>
             </div>
@@ -141,7 +171,7 @@ export function LeadDetailModal({
                     size="sm"
                     variant="danger"
                     disabled={busy}
-                    onClick={() => runAction(`/api/leads/${lead.seqp}/actions/${reasonPrompt}`, { reason })}
+                    onClick={() => handleReasonAction(reasonPrompt)}
                   >
                     Confirm
                   </Button>
@@ -169,7 +199,7 @@ export function LeadDetailModal({
 
         <div className="flex flex-col gap-2 border-t border-border pt-4">
           <Caption>History</Caption>
-          {loadingAudit && <Body muted>Loading…</Body>}
+          {loadingAudit && <LoadingState />}
           {!loadingAudit && auditLog && auditLog.length === 0 && <Body muted>No history yet.</Body>}
           {!loadingAudit && auditLog && auditLog.length > 0 && (
             <div className="flex max-h-48 flex-col gap-2 overflow-y-auto">

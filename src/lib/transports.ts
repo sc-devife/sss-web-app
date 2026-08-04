@@ -7,6 +7,9 @@ export interface Transport {
   capacity: number | null;
   provider: { uid: string; name: string } | null;
   basePrice: number | null;
+  pickupLocation: string | null;
+  dropLocation: string | null;
+  destination: { uid: string; name: string } | null;
   status: string | null;
 }
 

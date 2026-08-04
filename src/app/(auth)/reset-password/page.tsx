@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/Card";
 import { Heading, Body } from "@/components/ui/Typography";
 import { Button } from "@/components/ui/Button";
 import { isValidPassword, validationMessages } from "@/lib/validators";
+import { clientApi } from "@/lib/axios/clientClient";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -39,19 +41,11 @@ function ResetPasswordForm() {
     setPasswordError(undefined);
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, token, newPassword }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "This reset link is invalid or has expired");
-      }
+      await clientApi.post("/auth/reset-password", { email, token, newPassword });
       setDone(true);
       setTimeout(() => router.push("/login"), 2000);
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Failed to reset password");
+      setFormError(extractErrorMessage(err, "This reset link is invalid or has expired"));
     } finally {
       setLoading(false);
     }

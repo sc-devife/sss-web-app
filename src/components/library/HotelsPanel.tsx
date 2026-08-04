@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
@@ -11,9 +10,16 @@ import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { FileUpload } from "@/components/ui/FileUpload";
 import { BulkImportModal } from "@/components/library/BulkImportModal";
+import { Body } from "@/components/ui/Typography";
+import { LoadingState } from "@/components/ui/Spinner";
 import type { Hotel } from "@/lib/hotels";
 import type { LibraryLocation } from "@/lib/locations";
 import type { Destination } from "@/lib/destinations";
+import { clientApi } from "@/lib/axios/clientClient";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchHotels, createHotel, updateHotel, deleteHotel } from "@/features/hotels/hotelsThunks";
+import { selectHotels, selectHotelsStatus, selectHotelsError } from "@/features/hotels/hotelsSelectors";
 
 const AMENITY_OPTIONS = [
   { value: "wifi", label: "Wi-Fi" },
@@ -43,15 +49,17 @@ type FormState = typeof emptyForm;
 const emptyNewLocation = { city: "", state: "", country: "", displayName: "" };
 
 export function HotelsPanel({
-  initialHotels,
   locations,
   destinations,
 }: {
-  initialHotels: Hotel[];
   locations: LibraryLocation[];
   destinations: Destination[];
 }) {
-  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const hotels = useAppSelector(selectHotels);
+  const status = useAppSelector(selectHotelsStatus);
+  const error = useAppSelector(selectHotelsError);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [editing, setEditing] = useState<Hotel | null>(null);
@@ -59,7 +67,12 @@ export function HotelsPanel({
   const [addingLocation, setAddingLocation] = useState(false);
   const [newLocation, setNewLocation] = useState(emptyNewLocation);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | undefined>();
+  const [deletingUid, setDeletingUid] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | undefined>();
+
+  useEffect(() => {
+    dispatch(fetchHotels());
+  }, [dispatch]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -70,7 +83,7 @@ export function HotelsPanel({
     setForm(emptyForm);
     setAddingLocation(false);
     setNewLocation(emptyNewLocation);
-    setError(undefined);
+    setFormError(undefined);
     setModalOpen(true);
   }
 
@@ -89,14 +102,14 @@ export function HotelsPanel({
     });
     setAddingLocation(false);
     setNewLocation(emptyNewLocation);
-    setError(undefined);
+    setFormError(undefined);
     setModalOpen(true);
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(undefined);
+    setFormError(undefined);
     try {
       let locationId = form.locationId;
 
@@ -104,14 +117,11 @@ export function HotelsPanel({
         if (!newLocation.city.trim() || !newLocation.displayName.trim()) {
           throw new Error("City and display name are required for a new location");
         }
-        const locRes = await fetch("/api/library/locations", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(newLocation),
-        });
-        const locBody = await locRes.json().catch(() => null);
-        if (!locRes.ok) throw new Error(locBody?.message ?? "Failed to create location");
-        locationId = locBody.uid;
+        // Locations are their own future module — kept as a direct clientApi
+        // call rather than a thunk, same precedent as ConvertToTripModal's
+        // inline traveller creation.
+        const locRes = await clientApi.post<{ uid: string }>("/library/locations", newLocation);
+        locationId = locRes.data.uid;
       }
 
       if (!locationId) {
@@ -130,29 +140,28 @@ export function HotelsPanel({
         status: form.status,
       };
 
-      const url = editing ? `/api/library/hotels/${editing.uid}` : "/api/library/hotels";
-      const method = editing ? "PUT" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Failed to save hotel");
+      if (editing) {
+        await dispatch(updateHotel({ uid: editing.uid, payload })).unwrap();
+      } else {
+        await dispatch(createHotel(payload)).unwrap();
       }
+      dispatch(fetchHotels());
       setModalOpen(false);
-      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save hotel");
+      setFormError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to save hotel"));
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(hotel: Hotel) {
-    await fetch(`/api/library/hotels/${hotel.uid}`, { method: "DELETE" });
-    router.refresh();
+    setDeletingUid(hotel.uid);
+    try {
+      await dispatch(deleteHotel(hotel.uid));
+      dispatch(fetchHotels());
+    } finally {
+      setDeletingUid(null);
+    }
   }
 
   const columns: DataTableColumn<Hotel>[] = [
@@ -191,28 +200,39 @@ export function HotelsPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-2">
+      <div className="flex gap-2 justify-end">
         <Button className="self-start" onClick={openCreate}>Add hotel</Button>
         <Button variant="secondary" className="self-start" onClick={() => setBulkImportOpen(true)}>Bulk import</Button>
       </div>
 
       {bulkImportOpen && (
-        <BulkImportModal entityType="hotels" label="hotels" onClose={() => setBulkImportOpen(false)} />
+        <BulkImportModal
+          entityType="hotels"
+          label="hotels"
+          onClose={() => setBulkImportOpen(false)}
+          onImported={() => dispatch(fetchHotels())}
+        />
       )}
 
-      <DataTable
-        columns={columns}
-        rows={initialHotels}
-        rowKey={(h) => h.uid}
-        searchPlaceholder="Search hotels…"
-        emptyMessage="No hotels yet — add your first one."
-        actions={(h) => (
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" size="sm" onClick={() => openEdit(h)}>Edit</Button>
-            <Button variant="danger" size="sm" onClick={() => handleDelete(h)}>Archive</Button>
-          </div>
-        )}
-      />
+      {status === "loading" && hotels.length === 0 ? (
+        <LoadingState label="Loading hotels…" />
+      ) : status === "failed" ? (
+        <Body className="text-danger">{error}</Body>
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={hotels}
+          rowKey={(h) => h.uid}
+          searchPlaceholder="Search hotels…"
+          emptyMessage="No hotels yet — add your first one."
+          actions={(h) => (
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" size="sm" onClick={() => openEdit(h)}>Edit</Button>
+              <Button variant="danger" size="sm" disabled={deletingUid === h.uid} onClick={() => handleDelete(h)}>Archive</Button>
+            </div>
+          )}
+        />
+      )}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit hotel" : "Add hotel"}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -291,7 +311,7 @@ export function HotelsPanel({
             onChange={(e) => update("status", e.target.value)}
           />
 
-          {error && <p className="text-sm text-danger">{error}</p>}
+          {formError && <p className="text-sm text-danger">{formError}</p>}
 
           <div className="flex gap-2">
             <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save hotel"}</Button>

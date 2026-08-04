@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import { IoCloudUploadOutline, IoClose } from "react-icons/io5";
 import { cn } from "@/lib/cn";
 import { resolveFileUrl } from "@/lib/files";
+import { clientApi } from "@/lib/axios/clientClient";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 
 interface FileUploadProps {
   label: string;
@@ -31,14 +33,16 @@ export function FileUpload({ label, value, onChange, multiple = true, error, cla
       for (const file of Array.from(files)) {
         const formData = new FormData();
         formData.append("file", file);
-        const res = await fetch("/api/files/upload", { method: "POST", body: formData });
-        const body = await res.json().catch(() => null);
-        if (!res.ok) throw new Error(body?.message ?? `Failed to upload ${file.name}`);
-        uploaded.push(body.url);
+        try {
+          const res = await clientApi.postForm<{ url: string }>("/files/upload", formData);
+          uploaded.push(res.data.url);
+        } catch (err) {
+          throw new Error(extractErrorMessage(err, `Failed to upload ${file.name}`));
+        }
       }
       onChange(multiple ? [...value, ...uploaded] : uploaded);
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Upload failed");
+      setUploadError(extractErrorMessage(err, "Upload failed"));
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";

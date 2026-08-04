@@ -1,24 +1,23 @@
 import { NextResponse } from "next/server";
-import { getSessionToken } from "@/lib/session";
+import { serverApi } from "@/lib/axios/serverClient";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/sss";
+function parseJson(text: string | undefined | null) {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
 
-// Bypasses backendFetch — same reason as /api/files/upload: it would force a
-// JSON Content-Type header, stripping the multipart boundary fetch adds for
-// FormData bodies.
+// Uses postForm (not backendFetch) for the same reason as /api/files/upload:
+// FormData needs axios's own multipart boundary handling, which a forced
+// JSON Content-Type would break.
 export async function POST(request: Request, { params }: { params: { entityType: string } }) {
   const formData = await request.formData();
-  const token = getSessionToken();
 
-  const headers = new Headers();
-  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const res = await serverApi.postForm<string>(`/api/bulk-import/${params.entityType}/preview`, formData);
 
-  const res = await fetch(`${API_BASE_URL}/api/bulk-import/${params.entityType}/preview`, {
-    method: "POST",
-    headers,
-    body: formData,
-  });
-
-  const body = await res.json().catch(() => null);
+  const body = parseJson(res.data);
   return NextResponse.json(body, { status: res.status });
 }

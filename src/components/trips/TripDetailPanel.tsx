@@ -1,65 +1,71 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
-import { Body, Caption } from "@/components/ui/Typography";
+import { Heading, Body, Caption } from "@/components/ui/Typography";
+import { LoadingState } from "@/components/ui/Spinner";
 import { ItinerariesSection } from "@/components/trips/ItinerariesSection";
 import { DealPanel } from "@/components/trips/DealPanel";
-import type { Trip } from "@/lib/trips";
-import type { Itinerary } from "@/lib/itineraries";
 import type { Hotel } from "@/lib/hotels";
 import type { Activity } from "@/lib/activities";
 import type { Transport } from "@/lib/transports";
-import type { Deal } from "@/lib/deals";
 import { TRIP_STATUS_ORDER, TRIP_STATUS_CANCELLED } from "@/lib/trip-status";
-
-interface AuditLogEntry {
-  action: string;
-  previousValue: string | null;
-  newValue: string | null;
-  createdAt: string;
-}
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchTripById, fetchTripAuditLog, advanceTripStatus, cancelTrip } from "@/features/trips/tripsThunks";
+import {
+  selectCurrentTrip,
+  selectCurrentTripStatus,
+  selectCurrentTripError,
+  selectTripAuditLog,
+} from "@/features/trips/tripsSelectors";
+import { fetchDealForTrip } from "@/features/deals/dealsThunks";
+import { selectDeal } from "@/features/deals/dealsSelectors";
 
 export function TripDetailPanel({
-  trip,
-  initialItineraries,
+  tripId,
   hotels,
   activities,
   transports,
 }: {
-  trip: Trip;
-  initialItineraries: Itinerary[];
+  tripId: number;
   hotels: Hotel[];
   activities: Activity[];
   transports: Transport[];
 }) {
-  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const trip = useAppSelector(selectCurrentTrip);
+  const tripStatus = useAppSelector(selectCurrentTripStatus);
+  const tripError = useAppSelector(selectCurrentTripError);
+  const auditLog = useAppSelector(selectTripAuditLog);
+  const deal = useAppSelector(selectDeal);
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [targetStatus, setTargetStatus] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
-  const [auditLog, setAuditLog] = useState<AuditLogEntry[] | null>(null);
-  const [deal, setDeal] = useState<Deal | null>(null);
-  const [dealVersion, setDealVersion] = useState(0);
 
   useEffect(() => {
-    fetch(`/api/trips/${trip.seqp}/audit-log`)
-      .then((r) => r.json())
-      .then(setAuditLog)
-      .catch(() => setAuditLog([]));
-  }, [trip.seqp]);
+    dispatch(fetchTripById(tripId));
+    dispatch(fetchTripAuditLog(tripId));
+    dispatch(fetchDealForTrip(tripId));
+  }, [dispatch, tripId]);
 
-  useEffect(() => {
-    fetch(`/api/deals?tripId=${trip.seqp}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setDeal)
-      .catch(() => setDeal(null));
-  }, [trip.seqp, dealVersion]);
+  function refreshDeal() {
+    dispatch(fetchDealForTrip(tripId));
+  }
+
+  if (tripStatus === "loading" && !trip) {
+    return <LoadingState label="Loading trip…" />;
+  }
+
+  if (tripStatus === "failed" || !trip) {
+    return <Body className="text-danger">{tripError ?? "Failed to load trip"}</Body>;
+  }
 
   const isCancelled = trip.status === TRIP_STATUS_CANCELLED;
   const currentIndex = TRIP_STATUS_ORDER.indexOf(trip.status as (typeof TRIP_STATUS_ORDER)[number]);
@@ -72,17 +78,12 @@ export function TripDetailPanel({
     setBusy(true);
     setError(undefined);
     try {
-      const res = await fetch(`/api/trips/${trip.seqp}/advance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetStatus }),
-      });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(body?.message ?? "Failed to advance status");
+      await dispatch(advanceTripStatus({ tripId, targetStatus })).unwrap();
+      dispatch(fetchTripById(tripId));
+      dispatch(fetchTripAuditLog(tripId));
       setTargetStatus("");
-      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to advance status");
+      setError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to advance status"));
     } finally {
       setBusy(false);
     }
@@ -92,17 +93,12 @@ export function TripDetailPanel({
     setBusy(true);
     setError(undefined);
     try {
-      const res = await fetch(`/api/trips/${trip.seqp}/cancel`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: cancelReason }),
-      });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(body?.message ?? "Failed to cancel trip");
+      await dispatch(cancelTrip({ tripId, reason: cancelReason })).unwrap();
+      dispatch(fetchTripById(tripId));
+      dispatch(fetchTripAuditLog(tripId));
       setCancelling(false);
-      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to cancel trip");
+      setError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to cancel trip"));
     } finally {
       setBusy(false);
     }
@@ -110,6 +106,9 @@ export function TripDetailPanel({
 
   return (
     <div className="flex flex-col gap-5">
+      <Heading as="h2">{trip.lead?.name ?? `Trip #${trip.seqp}`}</Heading>
+      <Body muted>{trip.destinations.map((d) => d.name).join(", ") || "No destinations set"}</Body>
+
       <Card className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={isCancelled ? "danger" : trip.status === "Completed" ? "success" : "neutral"}>{trip.status}</Badge>
@@ -177,11 +176,10 @@ export function TripDetailPanel({
 
       <ItinerariesSection
         tripId={trip.seqp}
-        initialItineraries={initialItineraries}
         hotels={hotels}
         activities={activities}
         transports={transports}
-        onDealChanged={() => setDealVersion((v) => v + 1)}
+        onDealChanged={refreshDeal}
       />
     </div>
   );

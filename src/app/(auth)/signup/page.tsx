@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/Card";
 import { Heading, Body } from "@/components/ui/Typography";
 import { Button } from "@/components/ui/Button";
 import { isValidSignupPassword, isValidUserId, isValidPhone, validationMessages } from "@/lib/validators";
+import { clientApi } from "@/lib/axios/clientClient";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 
 function fieldClass(hasError: boolean) {
   return `relative ${hasError ? "rounded-[10px] ring-1 ring-red-500" : ""}`;
@@ -29,6 +31,8 @@ function SignupForm() {
   const [mobileNumber, setMobileNumber] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | undefined>();
@@ -44,6 +48,8 @@ function SignupForm() {
     if (!isValidUserId(userId)) nextErrors.userId = validationMessages.userId;
     if (!isValidPhone(mobileNumber)) nextErrors.mobileNumber = validationMessages.phone;
     if (!isValidSignupPassword(password)) nextErrors.password = validationMessages.signupPassword;
+    if (!confirmPassword) nextErrors.confirmPassword = "Please confirm your password";
+    else if (password !== confirmPassword) nextErrors.confirmPassword = "Passwords do not match";
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
@@ -52,26 +58,18 @@ function SignupForm() {
     setErrors({});
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          invitationToken,
-          first_name: firstName,
-          last_name: lastName,
-          userId,
-          email,
-          mobileNumber,
-          password,
-        }),
+      await clientApi.post("/auth/signup", {
+        invitationToken,
+        first_name: firstName,
+        last_name: lastName,
+        userId,
+        email,
+        mobileNumber,
+        password,
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Failed to complete signup");
-      }
       router.push("/login?signedUp=1");
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Failed to complete signup");
+      setFormError(extractErrorMessage(err, "Failed to complete signup"));
     } finally {
       setLoading(false);
     }
@@ -163,6 +161,23 @@ function SignupForm() {
         ) : (
           <Body className="mt-1 text-sm text-[#6f6f6f]">At least 8 characters, with upper, lower, a number, and one of . @ $ ! % * # ? &amp;</Body>
         )}
+      </div>
+
+      <div className="w-full">
+        <label htmlFor="confirmPassword" className="mb-2 block text-[16px] text-[#171717]">Confirm password</label>
+        <div className={fieldClass(!!errors.confirmPassword)}>
+          <IoLockClosedOutline aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[24px] text-[#c8c8c8]" />
+          <input id="confirmPassword" name="confirmPassword" type={showConfirmPassword ? "text" : "password"} value={confirmPassword}
+            onChange={(e) => { setConfirmPassword(e.target.value); setErrors((p) => ({ ...p, confirmPassword: "" })); }}
+            autoComplete="new-password" disabled={loading} placeholder="Re-enter your password"
+            className={`${inputClass} pr-14`} />
+          <button type="button" onClick={() => setShowConfirmPassword((p) => !p)} disabled={loading}
+            aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+            className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-[21px] text-[#6f6f6f] transition hover:text-black disabled:cursor-not-allowed disabled:opacity-50">
+            {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+          </button>
+        </div>
+        {errors.confirmPassword && <Body className="mt-1 text-sm text-red-500">{errors.confirmPassword}</Body>}
       </div>
 
       {formError && <Body className="text-sm text-red-500 text-center">{formError}</Body>}

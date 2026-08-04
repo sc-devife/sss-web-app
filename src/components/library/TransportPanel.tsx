@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
@@ -9,42 +8,185 @@ import { Modal } from "@/components/ui/Modal";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { BulkImportModal } from "@/components/library/BulkImportModal";
+import { Body } from "@/components/ui/Typography";
+import { LoadingState } from "@/components/ui/Spinner";
 import type { Transport } from "@/lib/transports";
 import type { ServiceProvider } from "@/lib/service-providers";
+import type { Destination } from "@/lib/destinations";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchTransports, createTransport, updateTransport, deleteTransport } from "@/features/transports/transportsThunks";
+import { selectTransports, selectTransportsStatus, selectTransportsError } from "@/features/transports/transportsSelectors";
 
 const MODE_OPTIONS = [
-  { value: "car", label: "Car" },
-  { value: "coach", label: "Coach" },
   { value: "flight", label: "Flight" },
   { value: "train", label: "Train" },
+  { value: "bus", label: "Bus" },
+  { value: "coach", label: "Coach" },
+  { value: "car", label: "Car" },
+  { value: "taxi", label: "Taxi / Cab" },
+  { value: "van", label: "Van" },
   { value: "boat", label: "Boat" },
+  { value: "ferry", label: "Ferry" },
+  { value: "cruise", label: "Cruise" },
+  { value: "helicopter", label: "Helicopter" },
+  { value: "motorcycle", label: "Motorcycle" },
+  { value: "bicycle", label: "Bicycle" },
+  { value: "walking", label: "Walking" },
+  { value: "cable_car", label: "Cable Car / Gondola" },
+  { value: "funicular", label: "Funicular" },
+  { value: "camel", label: "Camel" },
+  { value: "horse", label: "Horse" },
+  { value: "atv", label: "ATV / Jeep Safari" },
+  { value: "other", label: "Other" },
 ];
 
+const VEHICLE_TYPE_OPTIONS: Record<string, { value: string; label: string }[]> = {
+  flight: [
+    { value: "economy", label: "Economy" },
+    { value: "premium_economy", label: "Premium Economy" },
+    { value: "business", label: "Business" },
+    { value: "first", label: "First Class" },
+  ],
+
+  train: [
+    { value: "chair_car", label: "Chair Car" },
+    { value: "sleeper", label: "Sleeper" },
+    { value: "ac_3_tier", label: "AC 3 Tier" },
+    { value: "ac_2_tier", label: "AC 2 Tier" },
+    { value: "first_class", label: "First Class" },
+  ],
+
+  bus: [
+    { value: "mini_bus", label: "Mini Bus" },
+    { value: "coach", label: "Coach" },
+    { value: "sleeper_bus", label: "Sleeper Bus" },
+    { value: "volvo", label: "Volvo Bus" },
+  ],
+
+  coach: [
+    { value: "standard_coach", label: "Standard Coach" },
+    { value: "luxury_coach", label: "Luxury Coach" },
+  ],
+
+  car: [
+    { value: "hatchback", label: "Hatchback" },
+    { value: "sedan", label: "Sedan" },
+    { value: "suv", label: "SUV" },
+    { value: "luxury", label: "Luxury Car" },
+  ],
+
+  taxi: [
+    { value: "sedan", label: "Sedan" },
+    { value: "suv", label: "SUV" },
+    { value: "premium", label: "Premium Cab" },
+  ],
+
+  van: [
+    { value: "minivan", label: "Minivan" },
+    { value: "tempo_traveller", label: "Tempo Traveller" },
+    { value: "passenger_van", label: "Passenger Van" },
+  ],
+
+  boat: [
+    { value: "speed_boat", label: "Speed Boat" },
+    { value: "houseboat", label: "Houseboat" },
+    { value: "yacht", label: "Yacht" },
+  ],
+
+  ferry: [
+    { value: "passenger_ferry", label: "Passenger Ferry" },
+    { value: "vehicle_ferry", label: "Vehicle Ferry" },
+  ],
+
+  cruise: [
+    { value: "river_cruise", label: "River Cruise" },
+    { value: "ocean_cruise", label: "Ocean Cruise" },
+  ],
+
+  helicopter: [
+    { value: "shared", label: "Shared Helicopter" },
+    { value: "private", label: "Private Charter" },
+  ],
+
+  motorcycle: [
+    { value: "motorcycle", label: "Motorcycle" },
+    { value: "scooter", label: "Scooter" },
+  ],
+
+  bicycle: [
+    { value: "standard", label: "Standard Bicycle" },
+    { value: "mountain", label: "Mountain Bike" },
+    { value: "electric", label: "Electric Bike" },
+  ],
+
+  walking: [],
+
+  cable_car: [
+    { value: "gondola", label: "Gondola" },
+    { value: "cable_car", label: "Cable Car" },
+  ],
+
+  funicular: [
+    { value: "funicular", label: "Funicular" },
+  ],
+
+  camel: [
+    { value: "camel", label: "Camel" },
+  ],
+
+  horse: [
+    { value: "horse", label: "Horse" },
+  ],
+
+  atv: [
+    { value: "atv", label: "ATV" },
+    { value: "jeep", label: "4x4 Jeep" },
+  ],
+
+  other: [],
+};
+
+
 const emptyForm = {
-  modeCode: "car",
+  modeCode: "",
   vehicleTypeCode: "",
   capacity: "",
   providerId: "",
   basePrice: "",
+  pickupLocation: "",
+  dropLocation: "",
+  destinationId: "",
   status: "active",
 };
 
 type FormState = typeof emptyForm;
 
 export function TransportPanel({
-  initialTransports,
   providers,
+  destinations,
 }: {
-  initialTransports: Transport[];
   providers: ServiceProvider[];
+  destinations: Destination[];
 }) {
-  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const transports = useAppSelector(selectTransports);
+  const status = useAppSelector(selectTransportsStatus);
+  const error = useAppSelector(selectTransportsError);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [editing, setEditing] = useState<Transport | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | undefined>();
+  const [formError, setFormError] = useState<string | undefined>();
+  const [deletingUid, setDeletingUid] = useState<string | null>(null);
+
+  useEffect(() => {
+    dispatch(fetchTransports());
+  }, [dispatch]);
+
+  const vehicleTypeOptions = VEHICLE_TYPE_OPTIONS[form.modeCode] ?? [];
 
   const transportProviders = providers.filter((p) => p.typeCode === "transport");
 
@@ -55,7 +197,7 @@ export function TransportPanel({
   function openCreate() {
     setEditing(null);
     setForm(emptyForm);
-    setError(undefined);
+    setFormError(undefined);
     setModalOpen(true);
   }
 
@@ -67,16 +209,19 @@ export function TransportPanel({
       capacity: transport.capacity ? String(transport.capacity) : "",
       providerId: transport.provider?.uid ?? "",
       basePrice: transport.basePrice != null ? String(transport.basePrice) : "",
+      pickupLocation: transport.pickupLocation ?? "",
+      dropLocation: transport.dropLocation ?? "",
+      destinationId: transport.destination?.uid ?? "",
       status: transport.status ?? "active",
     });
-    setError(undefined);
+    setFormError(undefined);
     setModalOpen(true);
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(undefined);
+    setFormError(undefined);
     try {
       const payload = {
         modeCode: form.modeCode,
@@ -84,31 +229,33 @@ export function TransportPanel({
         capacity: form.capacity ? Number(form.capacity) : null,
         providerId: form.providerId || null,
         basePrice: form.basePrice ? Number(form.basePrice) : null,
+        pickupLocation: form.pickupLocation || null,
+        dropLocation: form.dropLocation || null,
+        destinationId: form.destinationId || null,
         status: form.status,
       };
-      const url = editing ? `/api/library/transports/${editing.uid}` : "/api/library/transports";
-      const method = editing ? "PUT" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Failed to save transport");
+      if (editing) {
+        await dispatch(updateTransport({ uid: editing.uid, payload })).unwrap();
+      } else {
+        await dispatch(createTransport(payload)).unwrap();
       }
+      dispatch(fetchTransports());
       setModalOpen(false);
-      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save transport");
+      setFormError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to save transport"));
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(transport: Transport) {
-    await fetch(`/api/library/transports/${transport.uid}`, { method: "DELETE" });
-    router.refresh();
+    setDeletingUid(transport.uid);
+    try {
+      await dispatch(deleteTransport(transport.uid));
+      dispatch(fetchTransports());
+    } finally {
+      setDeletingUid(null);
+    }
   }
 
   const columns: DataTableColumn<Transport>[] = [
@@ -151,35 +298,76 @@ export function TransportPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-2">
+      <div className="flex gap-2 justify-end">
         <Button className="self-start" onClick={openCreate}>Add transport</Button>
         <Button variant="secondary" className="self-start" onClick={() => setBulkImportOpen(true)}>Bulk import</Button>
       </div>
 
       {bulkImportOpen && (
-        <BulkImportModal entityType="transports" label="transport" onClose={() => setBulkImportOpen(false)} />
+        <BulkImportModal
+          entityType="transports"
+          label="transport"
+          onClose={() => setBulkImportOpen(false)}
+          onImported={() => dispatch(fetchTransports())}
+        />
       )}
 
-      <DataTable
-        columns={columns}
-        rows={initialTransports}
-        rowKey={(t) => t.uid}
-        searchPlaceholder="Search transport…"
-        emptyMessage="No transport options yet — add your first one."
-        actions={(t) => (
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" size="sm" onClick={() => openEdit(t)}>Edit</Button>
-            <Button variant="danger" size="sm" onClick={() => handleDelete(t)}>Archive</Button>
-          </div>
-        )}
-      />
+      {status === "loading" && transports.length === 0 ? (
+        <LoadingState label="Loading transport…" />
+      ) : status === "failed" ? (
+        <Body className="text-danger">{error}</Body>
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={transports}
+          rowKey={(t) => t.uid}
+          searchPlaceholder="Search transport…"
+          emptyMessage="No transport options yet — add your first one."
+          actions={(t) => (
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" size="sm" onClick={() => openEdit(t)}>Edit</Button>
+              <Button variant="danger" size="sm" disabled={deletingUid === t.uid} onClick={() => handleDelete(t)}>Archive</Button>
+            </div>
+          )}
+        />
+      )}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit transport" : "Add transport"}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Select label="Mode" options={MODE_OPTIONS} value={form.modeCode} onChange={(e) => update("modeCode", e.target.value)} />
 
-          <TextInput label="Vehicle type" value={form.vehicleTypeCode} onChange={(e) => update("vehicleTypeCode", e.target.value)} placeholder="e.g. Sedan, Minibus, Economy" />
+          <TextInput label="Pickup Location" value={form.pickupLocation} onChange={(e) => update("pickupLocation", e.target.value)} />
+          <TextInput label="Drop Location" value={form.dropLocation} onChange={(e) => update("dropLocation", e.target.value)} />
 
+          <Select
+            label="Trip Destination"
+            options={destinations.map((d) => ({ value: d.uid, label: d.name }))}
+            value={form.destinationId}
+            onChange={(e) => update("destinationId", e.target.value)}
+            placeholder={destinations.length ? "Select a destination" : "No destinations added yet"}
+          />
+
+          <Select
+            label="Mode"
+            options={MODE_OPTIONS}
+            value={form.modeCode}
+            onChange={(e) => {
+              update("modeCode", e.target.value);
+              update("vehicleTypeCode", "");
+            }}
+            placeholder="Select mode"
+          />
+          <Select
+            label="Vehicle type"
+            options={vehicleTypeOptions}
+            value={form.vehicleTypeCode}
+            onChange={(e) => update("vehicleTypeCode", e.target.value)}
+            placeholder={
+              vehicleTypeOptions.length
+                ? "Select vehicle type"
+                : "Not applicable"
+            }
+            disabled={!vehicleTypeOptions.length}
+          />
           <TextInput label="Capacity" type="number" min={1} value={form.capacity} onChange={(e) => update("capacity", e.target.value)} />
 
           <Select
@@ -202,7 +390,7 @@ export function TransportPanel({
             onChange={(e) => update("status", e.target.value)}
           />
 
-          {error && <p className="text-sm text-danger">{error}</p>}
+          {formError && <p className="text-sm text-danger">{formError}</p>}
 
           <div className="flex gap-2">
             <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save transport"}</Button>

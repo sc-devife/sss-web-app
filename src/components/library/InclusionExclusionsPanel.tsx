@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import dynamic from "next/dynamic";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -10,8 +9,22 @@ import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Body } from "@/components/ui/Typography";
+import { LoadingState } from "@/components/ui/Spinner";
 import type { InclusionExclusionItem, InclusionExclusionType } from "@/lib/inclusion-exclusions";
 import type { Destination } from "@/lib/destinations";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  fetchInclusionExclusions,
+  createInclusionExclusion,
+  updateInclusionExclusion,
+  deactivateInclusionExclusion,
+} from "@/features/inclusionExclusions/inclusionExclusionsThunks";
+import {
+  selectInclusionExclusions,
+  selectInclusionExclusionsStatus,
+  selectInclusionExclusionsError,
+} from "@/features/inclusionExclusions/inclusionExclusionsSelectors";
 
 // Dynamically imported (TipTap/ProseMirror add ~90KB) so pages that never
 // open the create/edit form don't pay for it on first load.
@@ -29,29 +42,36 @@ const TABS: { value: InclusionExclusionType; label: string }[] = [
 const emptyForm = { name: "", destinationId: "", contentHtml: "" };
 
 export function InclusionExclusionsPanel({
-  initialItems,
   destinations,
 }: {
-  initialItems: InclusionExclusionItem[];
   destinations: Destination[];
 }) {
-  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const items = useAppSelector(selectInclusionExclusions);
+  const status = useAppSelector(selectInclusionExclusionsStatus);
+  const error = useAppSelector(selectInclusionExclusionsError);
+
   const [activeTab, setActiveTab] = useState<InclusionExclusionType>("TERMS");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingUid, setEditingUid] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | undefined>();
+  const [formError, setFormError] = useState<string | undefined>();
+  const [deactivatingUid, setDeactivatingUid] = useState<string | null>(null);
+
+  useEffect(() => {
+    dispatch(fetchInclusionExclusions());
+  }, [dispatch]);
 
   const visibleItems = useMemo(
-    () => initialItems.filter((i) => i.type === activeTab),
-    [initialItems, activeTab],
+    () => items.filter((i) => i.type === activeTab),
+    [items, activeTab],
   );
 
   function openCreate() {
     setEditingUid(null);
     setForm(emptyForm);
-    setError(undefined);
+    setFormError(undefined);
     setModalOpen(true);
   }
 
@@ -62,14 +82,14 @@ export function InclusionExclusionsPanel({
       destinationId: item.destinationId ?? "",
       contentHtml: item.contentHtml ?? "",
     });
-    setError(undefined);
+    setFormError(undefined);
     setModalOpen(true);
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(undefined);
+    setFormError(undefined);
     try {
       const payload = {
         name: form.name,
@@ -77,28 +97,28 @@ export function InclusionExclusionsPanel({
         contentHtml: form.contentHtml,
         destinationId: form.destinationId || null,
       };
-      const url = editingUid ? `/api/library/inclusion-exclusions/${editingUid}` : "/api/library/inclusion-exclusions";
-      const res = await fetch(url, {
-        method: editingUid ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Failed to save");
+      if (editingUid) {
+        await dispatch(updateInclusionExclusion({ uid: editingUid, payload })).unwrap();
+      } else {
+        await dispatch(createInclusionExclusion(payload)).unwrap();
       }
+      dispatch(fetchInclusionExclusions());
       setModalOpen(false);
-      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+      setFormError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to save"));
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDeactivate(uid: string) {
-    await fetch(`/api/library/inclusion-exclusions/${uid}/deactivate`, { method: "PATCH" });
-    router.refresh();
+    setDeactivatingUid(uid);
+    try {
+      await dispatch(deactivateInclusionExclusion(uid));
+      dispatch(fetchInclusionExclusions());
+    } finally {
+      setDeactivatingUid(null);
+    }
   }
 
   return (
@@ -121,31 +141,37 @@ export function InclusionExclusionsPanel({
         <Button onClick={openCreate}>Add {TABS.find((t) => t.value === activeTab)?.label.replace(/s$/, "")}</Button>
       </div>
 
-      <div className="flex flex-col gap-3">
-        {visibleItems.length === 0 && <Body muted>Nothing here yet.</Body>}
-        {visibleItems.map((item) => (
-          <Card key={item.uid} className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Body className="font-medium">{item.name}</Body>
-                <Badge tone={item.destination ? "neutral" : "success"}>
-                  {item.destination ? item.destination.name : "Org-wide"}
-                </Badge>
-                {!item.isActive && <Badge tone="danger">Inactive</Badge>}
+      {status === "loading" && items.length === 0 ? (
+        <LoadingState />
+      ) : status === "failed" ? (
+        <Body className="text-danger">{error}</Body>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {visibleItems.length === 0 && <Body muted>Nothing here yet.</Body>}
+          {visibleItems.map((item) => (
+            <Card key={item.uid} className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Body className="font-medium">{item.name}</Body>
+                  <Badge tone={item.destination ? "neutral" : "success"}>
+                    {item.destination ? item.destination.name : "Org-wide"}
+                  </Badge>
+                  {!item.isActive && <Badge tone="danger">Inactive</Badge>}
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => openEdit(item)} className="text-sm text-primary hover:underline">Edit</button>
+                  {item.isActive && (
+                    <button type="button" onClick={() => handleDeactivate(item.uid)} disabled={deactivatingUid === item.uid} className="text-sm text-danger hover:underline disabled:opacity-50">Deactivate</button>
+                  )}
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => openEdit(item)} className="text-sm text-primary hover:underline">Edit</button>
-                {item.isActive && (
-                  <button type="button" onClick={() => handleDeactivate(item.uid)} className="text-sm text-danger hover:underline">Deactivate</button>
-                )}
-              </div>
-            </div>
-            {item.contentHtml && (
-              <div className="prose-content text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: item.contentHtml }} />
-            )}
-          </Card>
-        ))}
-      </div>
+              {item.contentHtml && (
+                <div className="prose-content text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: item.contentHtml }} />
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingUid ? "Edit item" : "Add item"} className="max-w-2xl">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -163,7 +189,7 @@ export function InclusionExclusionsPanel({
             onChange={(html) => setForm((f) => ({ ...f, contentHtml: html }))}
             placeholder="Type here…"
           />
-          {error && <p className="text-sm text-danger">{error}</p>}
+          {formError && <p className="text-sm text-danger">{formError}</p>}
           <div className="flex gap-2">
             <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
             <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button>

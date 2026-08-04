@@ -6,8 +6,27 @@ import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
 import { Body, Caption } from "@/components/ui/Typography";
+import { LoadingState } from "@/components/ui/Spinner";
 import type { ItineraryContentItem } from "@/lib/itinerary-content-items";
-import type { InclusionExclusionItem, InclusionExclusionType } from "@/lib/inclusion-exclusions";
+import type { InclusionExclusionType } from "@/lib/inclusion-exclusions";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  fetchItineraryContentItems,
+  attachItineraryContentItem,
+  createItineraryContentItem,
+  updateItineraryContentItem,
+  deleteItineraryContentItem,
+} from "@/features/itineraryContentItems/itineraryContentItemsThunks";
+import {
+  selectItineraryContentItems,
+  selectItineraryContentItemsStatus,
+} from "@/features/itineraryContentItems/itineraryContentItemsSelectors";
+import { fetchSelectableInclusionExclusions } from "@/features/inclusionExclusions/inclusionExclusionsThunks";
+import {
+  selectSelectableInclusionExclusions,
+  selectSelectableInclusionExclusionsStatus,
+} from "@/features/inclusionExclusions/inclusionExclusionsSelectors";
 
 // Dynamically imported (TipTap/ProseMirror add ~90KB) so the Trip detail page
 // doesn't pay for it unless a Terms/Inclusion/Exclusion form is actually opened.
@@ -35,8 +54,11 @@ function TypeBlock({
   items: ItineraryContentItem[];
   onChanged: () => void;
 }) {
+  const dispatch = useAppDispatch();
+  const selectable = useAppSelector((s) => selectSelectableInclusionExclusions(s, itineraryUid, type));
+  const selectableStatus = useAppSelector((s) => selectSelectableInclusionExclusionsStatus(s, itineraryUid, type));
+
   const [showLibraryPicker, setShowLibraryPicker] = useState(false);
-  const [selectable, setSelectable] = useState<InclusionExclusionItem[] | null>(null);
   const [pickedUid, setPickedUid] = useState("");
   const [showCustomForm, setShowCustomForm] = useState(false);
   const [customName, setCustomName] = useState("");
@@ -47,11 +69,10 @@ function TypeBlock({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
-  async function openLibraryPicker() {
+  function openLibraryPicker() {
     setShowLibraryPicker(true);
-    if (selectable === null) {
-      const res = await fetch(`/api/library/inclusion-exclusions/selectable?itineraryUid=${itineraryUid}&type=${type}`);
-      setSelectable(await res.json());
+    if (selectableStatus === "idle") {
+      dispatch(fetchSelectableInclusionExclusions({ itineraryUid, type }));
     }
   }
 
@@ -60,18 +81,12 @@ function TypeBlock({
     setBusy(true);
     setError(undefined);
     try {
-      const res = await fetch("/api/itinerary-content-items/attach", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itineraryUid, sourceItemUid: pickedUid }),
-      });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(body?.message ?? "Failed to attach");
+      await dispatch(attachItineraryContentItem({ itineraryUid, sourceItemUid: pickedUid })).unwrap();
       setPickedUid("");
       setShowLibraryPicker(false);
       onChanged();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to attach");
+      setError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to attach"));
     } finally {
       setBusy(false);
     }
@@ -85,19 +100,13 @@ function TypeBlock({
     setBusy(true);
     setError(undefined);
     try {
-      const res = await fetch("/api/itinerary-content-items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itineraryUid, type, name: customName, contentHtml: customHtml }),
-      });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(body?.message ?? "Failed to add");
+      await dispatch(createItineraryContentItem({ itineraryUid, type, name: customName, contentHtml: customHtml })).unwrap();
       setCustomName("");
       setCustomHtml("");
       setShowCustomForm(false);
       onChanged();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add");
+      setError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to add"));
     } finally {
       setBusy(false);
     }
@@ -113,16 +122,11 @@ function TypeBlock({
     setBusy(true);
     setError(undefined);
     try {
-      const res = await fetch(`/api/itinerary-content-items/${uid}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editName, contentHtml: editHtml }),
-      });
-      if (!res.ok) throw new Error("Failed to save");
+      await dispatch(updateItineraryContentItem({ uid, itineraryUid, name: editName, contentHtml: editHtml })).unwrap();
       setEditingUid(null);
       onChanged();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+      setError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to save"));
     } finally {
       setBusy(false);
     }
@@ -131,7 +135,7 @@ function TypeBlock({
   async function handleRemove(uid: string) {
     setBusy(true);
     try {
-      await fetch(`/api/itinerary-content-items/${uid}`, { method: "DELETE" });
+      await dispatch(deleteItineraryContentItem({ uid, itineraryUid }));
       onChanged();
     } finally {
       setBusy(false);
@@ -181,10 +185,10 @@ function TypeBlock({
           <Select
             label="Pick from library"
             className="flex-1"
-            options={(selectable ?? []).map((s) => ({ value: s.uid, label: s.destination ? `${s.name} (${s.destination.name})` : s.name }))}
+            options={selectable.map((s) => ({ value: s.uid, label: s.destination ? `${s.name} (${s.destination.name})` : s.name }))}
             value={pickedUid}
             onChange={(e) => setPickedUid(e.target.value)}
-            placeholder={selectable === null ? "Loading…" : "Select an item"}
+            placeholder={selectableStatus === "loading" ? "Loading…" : "Select an item"}
           />
           <Button size="sm" disabled={busy || !pickedUid} onClick={handleAttach}>Attach</Button>
         </div>
@@ -202,23 +206,23 @@ function TypeBlock({
 }
 
 export function ItineraryContentSection({ itineraryUid }: { itineraryUid: string }) {
-  const [items, setItems] = useState<ItineraryContentItem[] | null>(null);
+  const dispatch = useAppDispatch();
+  const items = useAppSelector((s) => selectItineraryContentItems(s, itineraryUid));
+  const status = useAppSelector((s) => selectItineraryContentItemsStatus(s, itineraryUid));
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itineraryUid]);
+    dispatch(fetchItineraryContentItems(itineraryUid));
+  }, [dispatch, itineraryUid]);
 
-  async function load() {
-    const res = await fetch(`/api/itinerary-content-items?itineraryUid=${itineraryUid}`);
-    setItems(await res.json());
+  function load() {
+    dispatch(fetchItineraryContentItems(itineraryUid));
   }
 
   return (
     <div className="flex flex-col gap-2 border-t border-border pt-3">
       <Caption>Terms, Inclusions &amp; Exclusions</Caption>
-      {items === null ? (
-        <Body muted>Loading…</Body>
+      {status === "loading" && items.length === 0 ? (
+        <LoadingState />
       ) : (
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
           {TYPES.map((t) => (

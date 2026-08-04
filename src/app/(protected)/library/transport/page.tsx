@@ -1,16 +1,14 @@
 import { Heading, Body } from "@/components/ui/Typography";
 import { TransportPanel } from "@/components/library/TransportPanel";
-import { getTransports } from "@/lib/transports";
 import { getServiceProviders } from "@/lib/service-providers";
+import { getDestinations } from "@/lib/destinations";
 
 export default async function Page() {
-  const [transports, providers] = await Promise.all([getTransports(), getServiceProviders()]);
+  const [providers, destinations] = await Promise.all([getServiceProviders(), getDestinations()]);
 
   return (
     <div className="flex flex-col gap-5">
-      <Heading as="h2">Transport</Heading>
-      <Body muted>Vehicles and transport options your organization can include in itineraries.</Body>
-      <TransportPanel initialTransports={transports} providers={providers} />
+      <TransportPanel providers={providers} destinations={destinations} />
     </div>
   );
 }

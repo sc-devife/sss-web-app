@@ -5,9 +5,13 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Body, Caption } from "@/components/ui/Typography";
 import type { Organization } from "@/lib/organization";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useAppDispatch } from "@/store/hooks";
+import { toggleAutoAssign } from "@/features/assignmentRules/assignmentRulesThunks";
 
 export function AutoAssignTogglePanel({ organization }: { organization: Organization }) {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
@@ -15,18 +19,12 @@ export function AutoAssignTogglePanel({ organization }: { organization: Organiza
     setBusy(true);
     setError(undefined);
     try {
-      const res = await fetch("/api/organizations", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid: organization.uid, auto_assign_enabled: next }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Failed to update setting");
-      }
+      await dispatch(toggleAutoAssign({ organizationUid: organization.uid, enabled: next })).unwrap();
+      // Organization isn't Redux-managed yet — router.refresh() re-runs the
+      // Server Component to pick up the new auto_assign_enabled value.
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update setting");
+      setError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to update setting"));
     } finally {
       setBusy(false);
     }

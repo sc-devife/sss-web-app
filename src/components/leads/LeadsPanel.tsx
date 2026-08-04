@@ -1,17 +1,29 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
+import { Body } from "@/components/ui/Typography";
+import { LoadingState } from "@/components/ui/Spinner";
 import type { Lead } from "@/lib/leads";
 import type { AppUser } from "@/lib/users";
 import type { Destination } from "@/lib/destinations";
 import { LeadDetailModal } from "@/components/leads/LeadDetailModal";
+import { FaPlus } from "react-icons/fa";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchLeads, createLead } from "@/features/leads/leadsThunks";
+import { resetCreateStatus } from "@/features/leads/leadsSlice";
+import {
+  selectLeads,
+  selectLeadsStatus,
+  selectLeadsError,
+  selectCreateLeadStatus,
+  selectCreateLeadError,
+} from "@/features/leads/leadsSelectors";
 
 const emptyForm = {
   name: "",
@@ -34,20 +46,27 @@ type FormState = typeof emptyForm;
 const TERMINAL_STATUSES = ["Unqualified", "Lost", "Duplicate", "Converted"];
 
 export function LeadsPanel({
-  initialLeads,
   users,
   destinations,
 }: {
-  initialLeads: Lead[];
   users: AppUser[];
   destinations: Destination[];
 }) {
-  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const leads = useAppSelector(selectLeads);
+  const status = useAppSelector(selectLeadsStatus);
+  const listError = useAppSelector(selectLeadsError);
+  const createStatus = useAppSelector(selectCreateLeadStatus);
+  const createError = useAppSelector(selectCreateLeadError);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | undefined>();
+  const [validationError, setValidationError] = useState<string | undefined>();
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+
+  useEffect(() => {
+    dispatch(fetchLeads());
+  }, [dispatch]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -55,7 +74,8 @@ export function LeadsPanel({
 
   function openCreate() {
     setForm(emptyForm);
-    setError(undefined);
+    setValidationError(undefined);
+    dispatch(resetCreateStatus());
     setModalOpen(true);
   }
 
@@ -67,44 +87,34 @@ export function LeadsPanel({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    const validationError = validate();
-    if (validationError) {
-      setError(validationError);
+    const err = validate();
+    if (err) {
+      setValidationError(err);
       return;
     }
-    setSaving(true);
-    setError(undefined);
+    setValidationError(undefined);
     try {
-      const payload = {
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-        destination: form.destination || null,
-        destinationId: form.destinationId || null,
-        numberOfPeople: form.numberOfPeople ? Number(form.numberOfPeople) : null,
-        travelDate: form.travelDate || null,
-        durationDays: form.durationDays ? Number(form.durationDays) : null,
-        budget: form.budget ? Number(form.budget) : null,
-        originCity: form.originCity || null,
-        travelType: form.travelType || null,
-        isPriority: form.isPriority,
-        notes: form.notes || null,
-      };
-      const res = await fetch("/api/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Failed to create lead");
-      }
+      await dispatch(
+        createLead({
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          destination: form.destination || null,
+          destinationId: form.destinationId || null,
+          numberOfPeople: form.numberOfPeople ? Number(form.numberOfPeople) : null,
+          travelDate: form.travelDate || null,
+          durationDays: form.durationDays ? Number(form.durationDays) : null,
+          budget: form.budget ? Number(form.budget) : null,
+          originCity: form.originCity || null,
+          travelType: form.travelType || null,
+          isPriority: form.isPriority,
+          notes: form.notes || null,
+        }),
+      ).unwrap();
       setModalOpen(false);
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create lead");
-    } finally {
-      setSaving(false);
+      dispatch(fetchLeads());
+    } catch {
+      // createError is already set in the slice; the modal reads it directly.
     }
   }
 
@@ -156,18 +166,26 @@ export function LeadsPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <Button className="self-start" onClick={openCreate}>Add lead</Button>
+      <div className="flex justify-end gap-2">
+        <Button className="self-start" onClick={openCreate}><FaPlus />Add lead</Button>
+      </div>
 
-      <DataTable
-        columns={columns}
-        rows={initialLeads}
-        rowKey={(l) => String(l.seqp)}
-        searchPlaceholder="Search leads…"
-        emptyMessage="No leads yet."
-        actions={(l) => (
-          <Button variant="secondary" size="sm" onClick={() => setSelectedLead(l)}>View</Button>
-        )}
-      />
+      {status === "loading" && leads.length === 0 ? (
+        <LoadingState label="Loading leads…" />
+      ) : status === "failed" ? (
+        <Body className="text-danger">{listError}</Body>
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={leads}
+          rowKey={(l) => String(l.seqp)}
+          searchPlaceholder="Search leads…"
+          emptyMessage="No leads yet."
+          actions={(l) => (
+            <Button variant="secondary" size="sm" onClick={() => setSelectedLead(l)}>View</Button>
+          )}
+        />
+      )}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Add lead">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -230,10 +248,10 @@ export function LeadsPanel({
             />
           </div>
 
-          {error && <p className="text-sm text-danger">{error}</p>}
+          {(validationError || createError) && <p className="text-sm text-danger">{validationError || createError}</p>}
 
           <div className="flex gap-2">
-            <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save lead"}</Button>
+            <Button type="submit" disabled={createStatus === "loading"}>{createStatus === "loading" ? "Saving…" : "Save lead"}</Button>
             <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button>
           </div>
         </form>

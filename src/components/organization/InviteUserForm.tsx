@@ -1,16 +1,19 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { PiUserPlus, PiCheckCircleFill } from "react-icons/pi";
 import { Modal } from "@/components/ui/Modal";
 import { TextInput } from "@/components/ui/TextInput";
+import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
-import { Body } from "@/components/ui/Typography";
 import { isValidEmail, validationMessages } from "@/lib/validators";
 import type { AppRole } from "@/lib/users";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useAppDispatch } from "@/store/hooks";
+import { inviteUser, fetchPendingInvitations } from "@/features/users/usersThunks";
 
 export function InviteUserForm({ roles }: { roles: AppRole[] }) {
-  const router = useRouter();
+  const dispatch = useAppDispatch();
   const [email, setEmail] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState(false);
@@ -48,57 +51,83 @@ export function InviteUserForm({ roles }: { roles: AppRole[] }) {
     setError(undefined);
     setSending(true);
     try {
-      const res = await fetch("/api/invitations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, roles: Array.from(selectedRoles) }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Failed to send invitation");
-      }
+      await dispatch(inviteUser({ email, roles: Array.from(selectedRoles) })).unwrap();
+      dispatch(fetchPendingInvitations());
       setSentTo(email);
       setOpen(false);
-      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send invitation");
+      setError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to send invitation"));
     } finally {
       setSending(false);
     }
   }
 
   return (
-    <div className="flex flex-col gap-2 items-start">
-      <Button onClick={openModal}>Send User Invitation</Button>
-      {sentTo && <Body className="text-success">Invitation sent to {sentTo}.</Body>}
+    <div className="flex flex-col gap-3">
+      <Button onClick={openModal}>
+        <PiUserPlus className="h-5 w-5" />
+        Invite New User
+      </Button>
+
+      {sentTo && (
+        <Alert tone="success" icon={PiCheckCircleFill}>
+          Invitation sent to <span className="font-semibold">{sentTo}</span>
+        </Alert>
+      )}
 
       <Modal open={open} onClose={() => setOpen(false)} title="Send User Invitation">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <TextInput
-            label="Email address"
+            label="Email Address"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            placeholder="user@example.com"
             autoFocus
           />
 
-          <div className="flex flex-col gap-2">
-            <Body className="font-medium">Role</Body>
-            <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-3">
+            <label className="text-sm font-medium text-foreground">Assign Roles</label>
+            <div className="grid grid-cols-2 gap-2">
               {roles.map((role) => (
-                <label key={role.seqp} className="flex items-center gap-1.5 text-sm">
-                  <input type="checkbox" checked={selectedRoles.has(role.name)} onChange={() => toggleRole(role.name)} />
-                  {role.label}
+                <label
+                  key={role.seqp}
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:border-primary hover:bg-primary/5"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedRoles.has(role.name)}
+                    onChange={() => toggleRole(role.name)}
+                    className="h-4 w-4 cursor-pointer rounded border-border text-primary focus:ring-primary"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-foreground">{role.label}</span>
+                    <span className="text-xs text-muted-foreground">{role.name}</span>
+                  </div>
                 </label>
               ))}
             </div>
           </div>
 
-          {error && <p className="text-sm text-danger">{error}</p>}
+          {error && <Alert tone="danger">{error}</Alert>}
 
-          <div className="flex gap-2">
-            <Button type="submit" disabled={sending}>{sending ? "Sending…" : "Send Invitation"}</Button>
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+          <div className="flex gap-2 pt-2">
+            <Button type="submit" disabled={sending} className="flex-1">
+              {sending ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                  Sending…
+                </>
+              ) : (
+                <>
+                  <PiCheckCircleFill className="h-4 w-4" />
+                  Send Invitation
+                </>
+              )}
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
           </div>
         </form>
       </Modal>

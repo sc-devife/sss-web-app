@@ -1,18 +1,32 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
+import { Body } from "@/components/ui/Typography";
+import { LoadingState } from "@/components/ui/Spinner";
 import type { Trip } from "@/lib/trips";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchTrips } from "@/features/trips/tripsThunks";
+import { selectTrips, selectTripsStatus, selectTripsError } from "@/features/trips/tripsSelectors";
 
 const TERMINAL_TONES: Record<string, "success" | "danger" | "neutral"> = {
   Completed: "success",
   Cancelled: "danger",
 };
 
-export function TripsPanel({ initialTrips }: { initialTrips: Trip[] }) {
+export function TripsPanel() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const trips = useAppSelector(selectTrips);
+  const status = useAppSelector(selectTripsStatus);
+  const error = useAppSelector(selectTripsError);
+
+  useEffect(() => {
+    dispatch(fetchTrips());
+  }, [dispatch]);
 
   const columns: DataTableColumn<Trip>[] = [
     {
@@ -46,10 +60,18 @@ export function TripsPanel({ initialTrips }: { initialTrips: Trip[] }) {
     },
   ];
 
+  if (status === "loading" && trips.length === 0) {
+    return <LoadingState label="Loading trips…" />;
+  }
+
+  if (status === "failed") {
+    return <Body className="text-danger">{error}</Body>;
+  }
+
   return (
     <DataTable
       columns={columns}
-      rows={initialTrips}
+      rows={trips}
       rowKey={(t) => String(t.seqp)}
       searchPlaceholder="Search trips…"
       emptyMessage="No trips yet — convert a qualified lead to get started."

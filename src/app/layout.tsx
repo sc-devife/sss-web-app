@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "react-toastify/dist/ReactToastify.css";
+import { ToastContainer } from "react-toastify";
+import { StoreProvider } from "@/store/StoreProvider";
 
 export const metadata: Metadata = {
   title: "Travel CRM",
@@ -10,7 +13,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body className="antialiased h-screen flex flex-col overflow-hidden">
-        <div className="flex-1 min-h-0">{children}</div>
+        <StoreProvider>
+          <div className="flex-1 min-h-0">{children}</div>
+          <ToastContainer position="top-right" theme="colored" />
+        </StoreProvider>
       </body>
     </html>
   );

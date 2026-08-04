@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
@@ -9,9 +8,24 @@ import { Modal } from "@/components/ui/Modal";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { BulkImportModal } from "@/components/library/BulkImportModal";
+import { Body } from "@/components/ui/Typography";
+import { LoadingState } from "@/components/ui/Spinner";
 import type { ServiceProvider } from "@/lib/service-providers";
 import type { ReferenceOption } from "@/lib/reference-data";
 import { fetchCountryOptions } from "@/lib/reference-data-client";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  fetchServiceProviders,
+  createServiceProvider,
+  updateServiceProvider,
+  deleteServiceProvider,
+} from "@/features/serviceProviders/serviceProvidersThunks";
+import {
+  selectServiceProviders,
+  selectServiceProvidersStatus,
+  selectServiceProvidersError,
+} from "@/features/serviceProviders/serviceProvidersSelectors";
 
 const TYPE_OPTIONS = [
   { value: "transport", label: "Transport" },
@@ -30,15 +44,24 @@ const emptyForm = {
 
 type FormState = typeof emptyForm;
 
-export function ServiceProvidersPanel({ initialProviders }: { initialProviders: ServiceProvider[] }) {
-  const router = useRouter();
+export function ServiceProvidersPanel() {
+  const dispatch = useAppDispatch();
+  const providers = useAppSelector(selectServiceProviders);
+  const status = useAppSelector(selectServiceProvidersStatus);
+  const error = useAppSelector(selectServiceProvidersError);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [editing, setEditing] = useState<ServiceProvider | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | undefined>();
+  const [formError, setFormError] = useState<string | undefined>();
+  const [deletingUid, setDeletingUid] = useState<string | null>(null);
   const [countryOptions, setCountryOptions] = useState<ReferenceOption[]>([]);
+
+  useEffect(() => {
+    dispatch(fetchServiceProviders());
+  }, [dispatch]);
 
   useEffect(() => {
     fetchCountryOptions().then(setCountryOptions);
@@ -51,7 +74,7 @@ export function ServiceProvidersPanel({ initialProviders }: { initialProviders: 
   function openCreate() {
     setEditing(null);
     setForm(emptyForm);
-    setError(undefined);
+    setFormError(undefined);
     setModalOpen(true);
   }
 
@@ -64,38 +87,37 @@ export function ServiceProvidersPanel({ initialProviders }: { initialProviders: 
       countryCode: provider.countryCode ?? "",
       status: provider.status ?? "active",
     });
-    setError(undefined);
+    setFormError(undefined);
     setModalOpen(true);
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(undefined);
+    setFormError(undefined);
     try {
-      const url = editing ? `/api/library/service-providers/${editing.uid}` : "/api/library/service-providers";
-      const method = editing ? "PUT" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Failed to save service provider");
+      if (editing) {
+        await dispatch(updateServiceProvider({ uid: editing.uid, payload: form })).unwrap();
+      } else {
+        await dispatch(createServiceProvider(form)).unwrap();
       }
+      dispatch(fetchServiceProviders());
       setModalOpen(false);
-      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save service provider");
+      setFormError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to save service provider"));
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(provider: ServiceProvider) {
-    await fetch(`/api/library/service-providers/${provider.uid}`, { method: "DELETE" });
-    router.refresh();
+    setDeletingUid(provider.uid);
+    try {
+      await dispatch(deleteServiceProvider(provider.uid));
+      dispatch(fetchServiceProviders());
+    } finally {
+      setDeletingUid(null);
+    }
   }
 
   const columns: DataTableColumn<ServiceProvider>[] = [
@@ -128,28 +150,39 @@ export function ServiceProvidersPanel({ initialProviders }: { initialProviders: 
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-2">
+      <div className="flex gap-2 justify-end">
         <Button className="self-start" onClick={openCreate}>Add service provider</Button>
         <Button variant="secondary" className="self-start" onClick={() => setBulkImportOpen(true)}>Bulk import</Button>
       </div>
 
       {bulkImportOpen && (
-        <BulkImportModal entityType="service-providers" label="service providers" onClose={() => setBulkImportOpen(false)} />
+        <BulkImportModal
+          entityType="service-providers"
+          label="service providers"
+          onClose={() => setBulkImportOpen(false)}
+          onImported={() => dispatch(fetchServiceProviders())}
+        />
       )}
 
-      <DataTable
-        columns={columns}
-        rows={initialProviders}
-        rowKey={(p) => p.uid}
-        searchPlaceholder="Search service providers…"
-        emptyMessage="No service providers yet — add your first one."
-        actions={(p) => (
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" size="sm" onClick={() => openEdit(p)}>Edit</Button>
-            <Button variant="danger" size="sm" onClick={() => handleDelete(p)}>Archive</Button>
-          </div>
-        )}
-      />
+      {status === "loading" && providers.length === 0 ? (
+        <LoadingState label="Loading service providers…" />
+      ) : status === "failed" ? (
+        <Body className="text-danger">{error}</Body>
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={providers}
+          rowKey={(p) => p.uid}
+          searchPlaceholder="Search service providers…"
+          emptyMessage="No service providers yet — add your first one."
+          actions={(p) => (
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" size="sm" onClick={() => openEdit(p)}>Edit</Button>
+              <Button variant="danger" size="sm" disabled={deletingUid === p.uid} onClick={() => handleDelete(p)}>Archive</Button>
+            </div>
+          )}
+        />
+      )}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit service provider" : "Add service provider"}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -177,7 +210,7 @@ export function ServiceProvidersPanel({ initialProviders }: { initialProviders: 
             onChange={(e) => update("status", e.target.value)}
           />
 
-          {error && <p className="text-sm text-danger">{error}</p>}
+          {formError && <p className="text-sm text-danger">{formError}</p>}
 
           <div className="flex gap-2">
             <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save service provider"}</Button>

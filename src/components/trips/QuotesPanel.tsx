@@ -6,10 +6,25 @@ import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
-import type { Quote } from "@/lib/quotes";
-import type { TaxProfile } from "@/lib/tax-profiles";
-import type { SupportedCurrency } from "@/lib/currencies";
-import type { QuoteTemplate } from "@/lib/quote-templates";
+import { LoadingState } from "@/components/ui/Spinner";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  fetchQuotesForItinerary,
+  fetchCurrencies,
+  createQuote,
+  reviseQuote,
+  deleteQuote,
+  setQuoteTemplate,
+  computeQuote,
+} from "@/features/quotes/quotesThunks";
+import { selectQuotesForItinerary, selectQuotesStatus, selectCurrencies } from "@/features/quotes/quotesSelectors";
+import { fetchTaxProfiles } from "@/features/taxProfiles/taxProfilesThunks";
+import { selectTaxProfiles } from "@/features/taxProfiles/taxProfilesSelectors";
+import { fetchQuoteTemplates } from "@/features/quoteTemplates/quoteTemplatesThunks";
+import { selectQuoteTemplates } from "@/features/quoteTemplates/quoteTemplatesSelectors";
+import { acceptQuote } from "@/features/deals/dealsThunks";
+import { selectDeal } from "@/features/deals/dealsSelectors";
 
 const emptyForm = { validUntil: "" };
 
@@ -30,32 +45,35 @@ export function QuotesPanel({
   tripId: number;
   onDealChanged?: () => void;
 }) {
-  const [quotes, setQuotes] = useState<Quote[] | null>(null);
-  const [taxProfiles, setTaxProfiles] = useState<TaxProfile[]>([]);
-  const [currencies, setCurrencies] = useState<SupportedCurrency[]>([]);
-  const [templates, setTemplates] = useState<QuoteTemplate[]>([]);
+  const dispatch = useAppDispatch();
+  const quotes = useAppSelector((s) => selectQuotesForItinerary(s, itineraryUid));
+  const quotesStatus = useAppSelector((s) => selectQuotesStatus(s, itineraryUid));
+  const currencies = useAppSelector(selectCurrencies);
+  const taxProfiles = useAppSelector(selectTaxProfiles);
+  const templates = useAppSelector(selectQuoteTemplates);
+  const deal = useAppSelector(selectDeal);
+
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  const [dealExists, setDealExists] = useState(false);
 
   const [computingUid, setComputingUid] = useState<string | null>(null);
   const [computeForm, setComputeForm] = useState(emptyComputeForm);
   const [computeWarnings, setComputeWarnings] = useState<string[] | null>(null);
 
   useEffect(() => {
-    load();
-    fetch("/api/tax-profiles").then((r) => r.json()).then((all: TaxProfile[]) => setTaxProfiles(all.filter((t) => t.status === "active"))).catch(() => setTaxProfiles([]));
-    fetch("/api/currencies").then((r) => r.json()).then(setCurrencies).catch(() => setCurrencies([]));
-    fetch("/api/quote-templates").then((r) => r.json()).then(setTemplates).catch(() => setTemplates([]));
-    fetch(`/api/deals?tripId=${tripId}`).then((r) => setDealExists(r.ok)).catch(() => setDealExists(false));
+    dispatch(fetchQuotesForItinerary(itineraryUid));
+    dispatch(fetchTaxProfiles());
+    dispatch(fetchCurrencies());
+    dispatch(fetchQuoteTemplates());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itineraryUid, tripId]);
+  }, [itineraryUid]);
 
-  async function load() {
-    const res = await fetch(`/api/quotes?itineraryUid=${itineraryUid}`);
-    setQuotes(await res.json());
+  const activeTaxProfiles = taxProfiles.filter((t) => t.status === "active");
+
+  function refresh() {
+    dispatch(fetchQuotesForItinerary(itineraryUid));
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -63,18 +81,12 @@ export function QuotesPanel({
     setBusy(true);
     setError(undefined);
     try {
-      const res = await fetch("/api/quotes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itineraryUid, validUntil: form.validUntil || null }),
-      });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(body?.message ?? "Failed to create quote");
+      await dispatch(createQuote({ itineraryUid, validUntil: form.validUntil || null })).unwrap();
+      refresh();
       setForm(emptyForm);
       setShowForm(false);
-      await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create quote");
+      setError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to create quote"));
     } finally {
       setBusy(false);
     }
@@ -83,8 +95,8 @@ export function QuotesPanel({
   async function handleRevise(uid: string) {
     setBusy(true);
     try {
-      await fetch(`/api/quotes/${uid}/revise`, { method: "POST" });
-      await load();
+      await dispatch(reviseQuote({ uid, itineraryUid }));
+      refresh();
     } finally {
       setBusy(false);
     }
@@ -93,8 +105,8 @@ export function QuotesPanel({
   async function handleDelete(uid: string) {
     setBusy(true);
     try {
-      await fetch(`/api/quotes/${uid}`, { method: "DELETE" });
-      await load();
+      await dispatch(deleteQuote({ uid, itineraryUid }));
+      refresh();
     } finally {
       setBusy(false);
     }
@@ -104,14 +116,11 @@ export function QuotesPanel({
     setBusy(true);
     setError(undefined);
     try {
-      const res = await fetch(`/api/deals/accept-quote/${uid}`, { method: "POST" });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(body?.message ?? "Failed to accept quote");
-      setDealExists(true);
+      await dispatch(acceptQuote({ quoteUid: uid, tripId })).unwrap();
       onDealChanged?.();
-      await load();
+      refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to accept quote");
+      setError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to accept quote"));
     } finally {
       setBusy(false);
     }
@@ -120,12 +129,8 @@ export function QuotesPanel({
   async function handleSetTemplate(uid: string, templateId: string) {
     setBusy(true);
     try {
-      await fetch(`/api/quotes/${uid}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId: templateId || null }),
-      });
-      await load();
+      await dispatch(setQuoteTemplate({ uid, itineraryUid, templateId: templateId || null }));
+      refresh();
     } finally {
       setBusy(false);
     }
@@ -141,23 +146,21 @@ export function QuotesPanel({
     setBusy(true);
     setError(undefined);
     try {
-      const res = await fetch(`/api/quotes/${uid}/compute`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const result = await dispatch(
+        computeQuote({
+          uid,
+          itineraryUid,
           taxProfileUid: computeForm.taxProfileUid || null,
           discountType: computeForm.discountType,
           discountValue: computeForm.discountValue ? Number(computeForm.discountValue) : null,
           displayCurrencyCode: computeForm.displayCurrencyCode || null,
           fxRateSnapshot: computeForm.fxRateSnapshot ? Number(computeForm.fxRateSnapshot) : null,
         }),
-      });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(body?.message ?? "Failed to compute pricing");
-      setComputeWarnings(body.pricingWarnings ?? []);
-      await load();
+      ).unwrap();
+      setComputeWarnings(result.pricingWarnings ?? []);
+      refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to compute pricing");
+      setError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to compute pricing"));
     } finally {
       setBusy(false);
     }
@@ -172,10 +175,10 @@ export function QuotesPanel({
         </Button>
       </div>
 
-      {quotes === null && <Body muted>Loading…</Body>}
-      {quotes !== null && quotes.length === 0 && !showForm && <Body muted>No quotes yet.</Body>}
+      {quotesStatus === "loading" && quotes.length === 0 && <LoadingState />}
+      {quotesStatus !== "loading" && quotes.length === 0 && !showForm && <Body muted>No quotes yet.</Body>}
 
-      {quotes && quotes.length > 0 && (
+      {quotes.length > 0 && (
         <div className="flex flex-col gap-2">
           {quotes.map((q) => (
             <div key={q.uid} className="flex flex-col gap-2 rounded border border-border px-3 py-2 text-sm">
@@ -190,7 +193,7 @@ export function QuotesPanel({
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={() => openCompute(q.uid)} disabled={busy} className="text-primary hover:underline">Compute pricing</button>
                   <a href={`/quotes/${q.uid}/preview`} target="_blank" rel="noreferrer" className="text-primary hover:underline">Preview</a>
-                  {!dealExists && !["accepted", "superseded", "rejected"].includes(q.status) && (
+                  {!deal && !["accepted", "superseded", "rejected"].includes(q.status) && (
                     <button type="button" onClick={() => handleAccept(q.uid)} disabled={busy} className="text-success hover:underline">Accept quote</button>
                   )}
                   <button type="button" onClick={() => handleRevise(q.uid)} disabled={busy} className="text-primary hover:underline">Revise</button>
@@ -212,7 +215,7 @@ export function QuotesPanel({
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     <Select
                       label="Tax profile"
-                      options={taxProfiles.map((t) => ({ value: t.uid, label: `${t.displayName} (${t.ratePercent}%)` }))}
+                      options={activeTaxProfiles.map((t) => ({ value: t.uid, label: `${t.displayName} (${t.ratePercent}%)` }))}
                       value={computeForm.taxProfileUid}
                       onChange={(e) => setComputeForm((f) => ({ ...f, taxProfileUid: e.target.value }))}
                       placeholder="No tax"
@@ -270,10 +273,11 @@ export function QuotesPanel({
         </div>
       )}
 
+      {error && <p className="text-sm text-danger">{error}</p>}
+
       {showForm && (
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded border border-border p-3">
           <TextInput label="Valid until" type="date" value={form.validUntil} onChange={(e) => setForm({ validUntil: e.target.value })} />
-          {error && <p className="text-sm text-danger">{error}</p>}
           <Button type="submit" size="sm" disabled={busy}>{busy ? "Saving…" : "Save quote"}</Button>
         </form>
       )}

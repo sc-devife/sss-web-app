@@ -1,15 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
+import { LoadingState } from "@/components/ui/Spinner";
 import type { AppUser } from "@/lib/users";
 import type { Destination } from "@/lib/destinations";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchUsers, updateAgentAssignmentSettings } from "@/features/users/usersThunks";
+import { selectOrgUsers, selectOrgUsersStatus, selectOrgUsersError } from "@/features/users/usersSelectors";
 
 interface RowState {
   isSpecialist: boolean;
@@ -29,13 +33,36 @@ function toRowState(user: AppUser): RowState {
   };
 }
 
-export function AgentAssignmentSettingsPanel({ users, destinations }: { users: AppUser[]; destinations: Destination[] }) {
-  const router = useRouter();
-  const [rows, setRows] = useState<Record<string, RowState>>(() =>
-    Object.fromEntries(users.map((u) => [u.uid, toRowState(u)])),
-  );
+export function AgentAssignmentSettingsPanel({ destinations }: { destinations: Destination[] }) {
+  const dispatch = useAppDispatch();
+  const users = useAppSelector(selectOrgUsers);
+  const status = useAppSelector(selectOrgUsersStatus);
+  const error = useAppSelector(selectOrgUsersError);
+
+  const [rows, setRows] = useState<Record<string, RowState>>({});
   const [savingUid, setSavingUid] = useState<string | null>(null);
-  const [error, setError] = useState<string | undefined>();
+  const [formError, setFormError] = useState<string | undefined>();
+
+  useEffect(() => {
+    dispatch(fetchUsers());
+  }, [dispatch]);
+
+  // Row edit state is seeded from Redux once per user — re-seeding on every
+  // users update would clobber in-progress edits, so this only fills in rows
+  // for users that don't have one yet (first load, or a newly invited user).
+  useEffect(() => {
+    setRows((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const user of users) {
+        if (!next[user.uid]) {
+          next[user.uid] = toRowState(user);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [users]);
 
   function update(uid: string, patch: Partial<RowState>) {
     setRows((r) => ({ ...r, [uid]: { ...r[uid], ...patch } }));
@@ -44,36 +71,42 @@ export function AgentAssignmentSettingsPanel({ users, destinations }: { users: A
   async function handleSave(uid: string) {
     const row = rows[uid];
     setSavingUid(uid);
-    setError(undefined);
+    setFormError(undefined);
     try {
-      const res = await fetch(`/api/users/${uid}/assignment-settings`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          isSpecialist: row.isSpecialist,
-          specialistDestinations: row.isSpecialist ? row.specialistDestinations.map(Number) : [],
-          maxConcurrentAssignments: row.maxConcurrentAssignments ? Number(row.maxConcurrentAssignments) : null,
-          eligibleForPriorityLeads: row.eligibleForPriorityLeads,
-          acceptingLeads: row.acceptingLeads,
+      await dispatch(
+        updateAgentAssignmentSettings({
+          uid,
+          settings: {
+            isSpecialist: row.isSpecialist,
+            specialistDestinations: row.isSpecialist ? row.specialistDestinations.map(Number) : [],
+            maxConcurrentAssignments: row.maxConcurrentAssignments ? Number(row.maxConcurrentAssignments) : null,
+            eligibleForPriorityLeads: row.eligibleForPriorityLeads,
+            acceptingLeads: row.acceptingLeads,
+          },
         }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Failed to save agent settings");
-      }
-      router.refresh();
+      ).unwrap();
+      dispatch(fetchUsers());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save agent settings");
+      setFormError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to save agent settings"));
     } finally {
       setSavingUid(null);
     }
   }
 
+  if (status === "loading" && users.length === 0) {
+    return <LoadingState label="Loading agents…" />;
+  }
+
+  if (status === "failed") {
+    return <Body className="text-danger">{error}</Body>;
+  }
+
   return (
     <div className="flex flex-col gap-3">
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {formError && <p className="text-sm text-danger">{formError}</p>}
       {users.map((user) => {
         const row = rows[user.uid];
+        if (!row) return null;
         return (
           <Card key={user.uid} className="flex flex-col gap-3">
             <div className="flex items-center justify-between">

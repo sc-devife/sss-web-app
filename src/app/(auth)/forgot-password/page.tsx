@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Heading, Body } from "@/components/ui/Typography";
 import { Button } from "@/components/ui/Button";
 import { isValidEmail, validationMessages } from "@/lib/validators";
+import { clientApi } from "@/lib/axios/clientClient";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -24,11 +25,7 @@ export default function ForgotPasswordPage() {
     setEmailError(undefined);
     setLoading(true);
     try {
-      await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
+      await clientApi.post("/auth/forgot-password", { email });
       // Always show the same success state, whether or not the email is
       // registered — the backend deliberately doesn't reveal which.
       setSent(true);

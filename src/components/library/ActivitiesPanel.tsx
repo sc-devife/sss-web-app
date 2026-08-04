@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
@@ -10,8 +9,14 @@ import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { FileUpload } from "@/components/ui/FileUpload";
 import { BulkImportModal } from "@/components/library/BulkImportModal";
+import { Body } from "@/components/ui/Typography";
+import { LoadingState } from "@/components/ui/Spinner";
 import type { Activity } from "@/lib/activities";
 import type { Destination } from "@/lib/destinations";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchActivities, createActivity, updateActivity, deleteActivity } from "@/features/activities/activitiesThunks";
+import { selectActivities, selectActivitiesStatus, selectActivitiesError } from "@/features/activities/activitiesSelectors";
 
 const CATEGORY_OPTIONS = [
   { value: "water_sports", label: "Water Sports" },
@@ -33,19 +38,26 @@ const emptyForm = {
 type FormState = typeof emptyForm;
 
 export function ActivitiesPanel({
-  initialActivities,
   destinations,
 }: {
-  initialActivities: Activity[];
   destinations: Destination[];
 }) {
-  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const activities = useAppSelector(selectActivities);
+  const status = useAppSelector(selectActivitiesStatus);
+  const error = useAppSelector(selectActivitiesError);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [editing, setEditing] = useState<Activity | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [deletingUid, setDeletingUid] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | undefined>();
+  const [formError, setFormError] = useState<string | undefined>();
+
+  useEffect(() => {
+    dispatch(fetchActivities());
+  }, [dispatch]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -54,7 +66,7 @@ export function ActivitiesPanel({
   function openCreate() {
     setEditing(null);
     setForm(emptyForm);
-    setError(undefined);
+    setFormError(undefined);
     setModalOpen(true);
   }
 
@@ -70,14 +82,14 @@ export function ActivitiesPanel({
       basePrice: activity.basePrice != null ? String(activity.basePrice) : "",
       status: activity.status ?? "active",
     });
-    setError(undefined);
+    setFormError(undefined);
     setModalOpen(true);
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(undefined);
+    setFormError(undefined);
     try {
       const payload = {
         name: form.name,
@@ -89,29 +101,28 @@ export function ActivitiesPanel({
         basePrice: form.basePrice ? Number(form.basePrice) : null,
         status: form.status,
       };
-      const url = editing ? `/api/library/activities/${editing.uid}` : "/api/library/activities";
-      const method = editing ? "PUT" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Failed to save activity");
+      if (editing) {
+        await dispatch(updateActivity({ uid: editing.uid, payload })).unwrap();
+      } else {
+        await dispatch(createActivity(payload)).unwrap();
       }
+      dispatch(fetchActivities());
       setModalOpen(false);
-      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save activity");
+      setFormError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to save activity"));
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(activity: Activity) {
-    await fetch(`/api/library/activities/${activity.uid}`, { method: "DELETE" });
-    router.refresh();
+    setDeletingUid(activity.uid);
+    try {
+      await dispatch(deleteActivity(activity.uid));
+      dispatch(fetchActivities());
+    } finally {
+      setDeletingUid(null);
+    }
   }
 
   const columns: DataTableColumn<Activity>[] = [
@@ -155,28 +166,39 @@ export function ActivitiesPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-2">
+      <div className="flex gap-2 justify-end">
         <Button className="self-start" onClick={openCreate}>Add activity</Button>
         <Button variant="secondary" className="self-start" onClick={() => setBulkImportOpen(true)}>Bulk import</Button>
       </div>
 
       {bulkImportOpen && (
-        <BulkImportModal entityType="activities" label="activities" onClose={() => setBulkImportOpen(false)} />
+        <BulkImportModal
+          entityType="activities"
+          label="activities"
+          onClose={() => setBulkImportOpen(false)}
+          onImported={() => dispatch(fetchActivities())}
+        />
       )}
 
-      <DataTable
-        columns={columns}
-        rows={initialActivities}
-        rowKey={(a) => a.uid}
-        searchPlaceholder="Search activities…"
-        emptyMessage="No activities yet — add your first one."
-        actions={(a) => (
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" size="sm" onClick={() => openEdit(a)}>Edit</Button>
-            <Button variant="danger" size="sm" onClick={() => handleDelete(a)}>Archive</Button>
-          </div>
-        )}
-      />
+      {status === "loading" && activities.length === 0 ? (
+        <LoadingState label="Loading activities…" />
+      ) : status === "failed" ? (
+        <Body className="text-danger">{error}</Body>
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={activities}
+          rowKey={(a) => a.uid}
+          searchPlaceholder="Search activities…"
+          emptyMessage="No activities yet — add your first one."
+          actions={(a) => (
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" size="sm" onClick={() => openEdit(a)}>Edit</Button>
+              <Button variant="danger" size="sm" disabled={deletingUid === a.uid} onClick={() => handleDelete(a)}>Archive</Button>
+            </div>
+          )}
+        />
+      )}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit activity" : "Add activity"}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -225,7 +247,7 @@ export function ActivitiesPanel({
             onChange={(e) => update("status", e.target.value)}
           />
 
-          {error && <p className="text-sm text-danger">{error}</p>}
+          {formError && <p className="text-sm text-danger">{formError}</p>}
 
           <div className="flex gap-2">
             <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save activity"}</Button>
