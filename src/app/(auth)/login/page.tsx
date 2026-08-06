@@ -10,6 +10,8 @@ import {
   useRouter,
   useSearchParams,
 } from "next/navigation";
+import axios from "axios";
+import { toast } from "react-toastify";
 import {
   IoMailOutline,
   IoLockClosedOutline,
@@ -25,6 +27,7 @@ import {
   Body,
 } from "@/components/ui/Typography";
 import { Button } from "@/components/ui/Button";
+import { Alert } from "@/components/ui/Alert";
 import {
   isValidEmail,
   validationMessages,
@@ -32,11 +35,13 @@ import {
 } from "@/lib/validators";
 import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
-import { setStoredUserData, type StoredUserData } from "@/lib/user-data-storage";
+import { useAppDispatch } from "@/store/hooks";
+import { setLoggedInUser, type LoggedInUser } from "@/features/auth/authSlice";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const dispatch = useAppDispatch();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -84,8 +89,15 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const res = await clientApi.post<StoredUserData>("/login", { email, password });
-      setStoredUserData({ userId: res.data.userId, name: res.data.name, role: res.data.role });
+      const res = await clientApi.post<LoggedInUser>("/login", { email, password });
+      dispatch(setLoggedInUser({
+        userId: res.data.userId,
+        name: res.data.name,
+        role: res.data.role,
+        organizationLogo: res.data.organizationLogo ?? null,
+      }));
+
+      toast.success("Login successful.");
 
       const destination =
         searchParams.get("from") ??
@@ -93,7 +105,23 @@ function LoginForm() {
 
       router.push(destination);
     } catch (err) {
-      setFormError(extractErrorMessage(err, "Invalid credentials"));
+      if (axios.isAxiosError(err) && err.response) {
+        if (err.response.status === 503) {
+          // Backend unreachable (stopped, connection refused, timed out) —
+          // not a credentials problem, so a toast rather than the inline
+          // form Alert.
+          toast.error(extractErrorMessage(err, "Unable to connect to the server. Please try again later."));
+        } else if (err.response.status === 401) {
+          setFormError("Invalid email or password.");
+        } else {
+          // e.g. 403 blocked-account — a real backend message worth showing
+          // inline, same treatment as invalid credentials.
+          setFormError(extractErrorMessage(err, "Invalid email or password."));
+        }
+      } else {
+        // No response at all (e.g. the Next.js server itself unreachable).
+        toast.error("Unable to connect to the server. Please try again later.");
+      }
     } finally {
       setLoading(false);
     }
@@ -167,7 +195,7 @@ function LoginForm() {
               autoComplete="username"
               placeholder="Enter your email"
               disabled={loading}
-              className="h-[50px] w-full rounded-[10px] border border-[#c8c8c8] bg-transparent px-14 text-[16px] text-black outline-none transition placeholder:text-[#aaa] focus:border-[#c8ff32] focus:ring-1 focus:ring-[#c8ff32] disabled:cursor-not-allowed disabled:bg-gray-50"
+              className="h-[50px] w-full rounded-[10px] border border-[#c8c8c8] bg-transparent px-14 text-[16px] text-black outline-none transition placeholder:text-[#aaa] focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:bg-gray-50"
             />
           </div>
 
@@ -217,7 +245,7 @@ function LoginForm() {
               autoComplete="current-password"
               placeholder="Enter your password"
               disabled={loading}
-              className="h-[50px] w-full rounded-[10px] border border-[#c8c8c8] bg-transparent px-14 pr-14 text-[16px] text-black outline-none transition placeholder:text-[#aaa] focus:border-[#c8ff32] focus:ring-1 focus:ring-[#c8ff32] disabled:cursor-not-allowed disabled:bg-gray-50"
+              className="h-[50px] w-full rounded-[10px] border border-[#c8c8c8] bg-transparent px-14 pr-14 text-[16px] text-black outline-none transition placeholder:text-[#aaa] focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:bg-gray-50"
             />
 
             {/* Password Visibility */}
@@ -251,13 +279,6 @@ function LoginForm() {
           )}
         </div>
 
-        {/* Form Error */}
-        {formError && (
-          <Body className="text-sm text-red-500 text-center">
-            {formError}
-          </Body>
-        )}
-
         {/* Forgot Password */}
         <div className="flex justify-end">
           <Link
@@ -268,15 +289,21 @@ function LoginForm() {
           </Link>
         </div>
 
+        {/* Invalid credentials / account error */}
+        {formError && (
+          <Alert tone="danger" autoClose={false}>
+            {formError}
+          </Alert>
+        )}
+
         {/* Sign In */}
         <Button
           type="submit"
-          disabled={loading}
+          loading={loading}
+          loadingText="Signing in…"
           className="mt-1 h-[48px] rounded-[8px] bg-[#c8ff32] text-[18px] font-bold text-black transition hover:bg-[#bafa20]"
         >
-          {loading
-            ? "Signing in…"
-            : "Sign In"}
+          Sign In
         </Button>
       </form>
     </Card>

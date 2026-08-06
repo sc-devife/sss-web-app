@@ -5,15 +5,28 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
+import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { integerField, required, runValidators } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchReminderRules, createReminderRule, deleteReminderRule } from "@/features/reminderRules/reminderRulesThunks";
 import { selectReminderRules, selectReminderRulesStatus, selectReminderRulesError } from "@/features/reminderRules/reminderRulesSelectors";
 
 const emptyForm = { label: "", offsetDays: "", recurring: "false" };
+
+type FormState = typeof emptyForm;
+
+function validate(v: FormState): Record<string, string> {
+  const errors: Record<string, string> = {};
+  const labelErr = runValidators(v.label, [required("Label is required")]);
+  if (labelErr) errors.label = labelErr;
+  const offsetErr = runValidators(v.offsetDays, [required("Offset is required"), integerField("Must be a whole number")]);
+  if (offsetErr) errors.offsetDays = offsetErr;
+  return errors;
+}
 
 export function ReminderRulesPanel() {
   const dispatch = useAppDispatch();
@@ -23,6 +36,7 @@ export function ReminderRulesPanel() {
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
   const [deletingUid, setDeletingUid] = useState<string | null>(null);
@@ -35,12 +49,20 @@ export function ReminderRulesPanel() {
 
   function update<K extends keyof typeof emptyForm>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
+    setErrors((p) => ({ ...p, [key]: "" }));
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setSaving(true);
     setFormError(undefined);
+
+    const nextErrors = validate(form);
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      return;
+    }
+    setErrors({});
+    setSaving(true);
     try {
       await dispatch(
         createReminderRule({
@@ -102,33 +124,62 @@ export function ReminderRulesPanel() {
       )}
 
       {!showForm && (
-        <Button variant="secondary" className="self-start" onClick={() => setShowForm(true)}>Add reminder rule</Button>
+        <Button
+          variant="secondary"
+          className="self-start"
+          onClick={() => {
+            setForm(emptyForm);
+            setErrors({});
+            setFormError(undefined);
+            setShowForm(true);
+          }}
+        >
+          Add reminder rule
+        </Button>
       )}
 
       {showForm && (
         <Card>
           <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-            <TextInput label="Label" value={form.label} onChange={(e) => update("label", e.target.value)} required placeholder="e.g. Final notice" />
-            <TextInput
-              label="Offset (days from due date, negative = before)"
-              type="number"
-              value={form.offsetDays}
-              onChange={(e) => update("offsetDays", e.target.value)}
-              required
-            />
-            <Select
-              label="Recurring while overdue"
-              options={[
-                { value: "false", label: "No — send once" },
-                { value: "true", label: "Yes — repeat" },
-              ]}
-              value={form.recurring}
-              onChange={(e) => update("recurring", e.target.value)}
-            />
-            {formError && <p className="col-span-2 text-sm text-danger">{formError}</p>}
+            <fieldset disabled={saving} className="contents">
+              <TextInput
+                label="Label"
+                value={form.label}
+                onChange={(e) => update("label", e.target.value)}
+                error={errors.label}
+                required
+                placeholder="e.g. Final notice"
+              />
+              <TextInput
+                label="Offset (days from due date, negative = before)"
+                type="number"
+                value={form.offsetDays}
+                onChange={(e) => update("offsetDays", e.target.value)}
+                error={errors.offsetDays}
+                required
+              />
+              <Select
+                label="Recurring while overdue"
+                options={[
+                  { value: "false", label: "No — send once" },
+                  { value: "true", label: "Yes — repeat" },
+                ]}
+                value={form.recurring}
+                onChange={(e) => update("recurring", e.target.value)}
+              />
+            </fieldset>
+            {formError && (
+              <Alert tone="danger" autoClose={false} className="col-span-2">
+                {formError}
+              </Alert>
+            )}
             <div className="col-span-2 flex gap-2">
-              <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save rule"}</Button>
-              <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
+              <Button type="submit" disabled={saving} loading={saving} loadingText="Saving…">
+                Save rule
+              </Button>
+              <Button type="button" variant="ghost" disabled={saving} onClick={() => setShowForm(false)}>
+                Cancel
+              </Button>
             </div>
           </form>
         </Card>

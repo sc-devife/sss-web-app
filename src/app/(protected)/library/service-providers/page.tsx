@@ -1,4 +1,3 @@
-import { Heading, Body } from "@/components/ui/Typography";
 import { ServiceProvidersPanel } from "@/components/library/ServiceProvidersPanel";
 
 export default function Page() {

@@ -43,8 +43,8 @@ export function DashboardPanel() {
             <Body className="text-2xl font-semibold text-foreground">{dashboard.orgMetrics.conversionRatePercent.toFixed(1)}%</Body>
           </Card>
           <Card>
-            <Caption>Trips in progress</Caption>
-            <Body className="text-2xl font-semibold text-foreground">{dashboard.orgMetrics.tripsInProgress}</Body>
+            <Caption>Escapes in progress</Caption>
+            <Body className="text-2xl font-semibold text-foreground">{dashboard.orgMetrics.escapesInProgress}</Body>
           </Card>
           <Card>
             <Caption>Revenue pipeline (outstanding)</Caption>
@@ -61,7 +61,7 @@ export function DashboardPanel() {
             <Card key={lead.seqp} className="flex items-center justify-between">
               <div>
                 <Body className="font-medium">{lead.name}</Body>
-                <Caption>{lead.destination || "No destination set"}</Caption>
+                <Caption>{lead.destination || "No escape point set"}</Caption>
               </div>
               <div className="flex items-center gap-1">
                 {lead.isPriority && <Badge tone="warning">Priority</Badge>}
@@ -73,20 +73,20 @@ export function DashboardPanel() {
         </div>
 
         <div className="flex flex-col gap-3">
-          <Heading as="h3">My trips</Heading>
-          {dashboard.myOpenTrips.length === 0 && <Body muted>No open trips assigned to you.</Body>}
-          {dashboard.myOpenTrips.map((trip) => (
-            <Link key={trip.seqp} href={`/trips/${trip.seqp}`}>
+          <Heading as="h3">My escapes</Heading>
+          {dashboard.myOpenEscapes.length === 0 && <Body muted>No open escapes assigned to you.</Body>}
+          {dashboard.myOpenEscapes.map((escape) => (
+            <Link key={escape.seqp} href={`/escapes/${escape.seqp}`}>
               <Card className="flex items-center justify-between hover:border-primary">
                 <div>
-                  <Body className="font-medium">{trip.lead?.name ?? `Trip #${trip.seqp}`}</Body>
-                  <Caption>{trip.destinations.map((d) => d.name).join(", ") || "No destinations set"}</Caption>
+                  <Body className="font-medium">{escape.lead?.name ?? `Escape #${escape.seqp}`}</Body>
+                  <Caption>{escape.escapePoints.map((d) => d.name).join(", ") || "No escape points set"}</Caption>
                 </div>
-                <Badge tone="neutral">{trip.status}</Badge>
+                <Badge tone="neutral">{escape.status}</Badge>
               </Card>
             </Link>
           ))}
-          <Link href="/trips" className="text-sm text-primary hover:underline">View all trips →</Link>
+          <Link href="/escapes" className="text-sm text-primary hover:underline">View all escapes →</Link>
         </div>
 
         <div className="flex flex-col gap-3">

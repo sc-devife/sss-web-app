@@ -5,11 +5,15 @@ import { PiPencilSimple, PiTrash } from "react-icons/pi";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Modal } from "@/components/ui/Modal";
 import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useIsDirty } from "@/lib/forms";
+import { emailField, mobileField, required, runValidators } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchAddresses, createAddress, updateAddress, deleteAddress } from "@/features/addresses/addressesThunks";
 import { selectAddresses, selectAddressesStatus, selectAddressesError } from "@/features/addresses/addressesSelectors";
@@ -47,17 +51,42 @@ function toForm(address: Address): FormState {
   };
 }
 
-function AddressFormFields({ form, update }: { form: FormState; update: <K extends keyof FormState>(key: K, value: string) => void }) {
+function validate(v: FormState): Record<string, string> {
+  const errors: Record<string, string> = {};
+  const err = (key: keyof FormState, validators: Parameters<typeof runValidators>[1]) => {
+    const e = runValidators(v[key], validators);
+    if (e) errors[key] = e;
+  };
+  err("label", [required("Label is required")]);
+  err("streetFirst", [required("Street address is required")]);
+  err("city", [required("City is required")]);
+  err("state", [required("State is required")]);
+  err("country", [required("Country is required")]);
+  err("zipCode", [required("Pincode is required")]);
+  err("contactNumber", [mobileField()]); // optional, format-checked only if filled
+  err("contactEmail", [emailField()]); // optional, format-checked only if filled
+  return errors;
+}
+
+function AddressFormFields({
+  form,
+  update,
+  errors,
+}: {
+  form: FormState;
+  update: <K extends keyof FormState>(key: K, value: string) => void;
+  errors: Record<string, string>;
+}) {
   return (
     <>
-      <TextInput label="Label" value={form.label} onChange={(e) => update("label", e.target.value)} required placeholder="e.g. Head Office" />
-      <TextInput label="Street Address" value={form.streetFirst} onChange={(e) => update("streetFirst", e.target.value)} required />
-      <TextInput label="City/Town/District" value={form.city} onChange={(e) => update("city", e.target.value)} required />
-      <TextInput label="State/Region" value={form.state} onChange={(e) => update("state", e.target.value)} required />
-      <TextInput label="Country" value={form.country} onChange={(e) => update("country", e.target.value)} required />
-      <TextInput label="Pincode" value={form.zipCode} onChange={(e) => update("zipCode", e.target.value)} required />
-      <TextInput label="Contact Number" value={form.contactNumber} onChange={(e) => update("contactNumber", e.target.value)} />
-      <TextInput label="Contact Email" type="email" value={form.contactEmail} onChange={(e) => update("contactEmail", e.target.value)} />
+      <TextInput label="Label" value={form.label} onChange={(e) => update("label", e.target.value)} error={errors.label} required placeholder="e.g. Head Office" />
+      <TextInput label="Street Address" value={form.streetFirst} onChange={(e) => update("streetFirst", e.target.value)} error={errors.streetFirst} required />
+      <TextInput label="City/Town/District" value={form.city} onChange={(e) => update("city", e.target.value)} error={errors.city} required />
+      <TextInput label="State/Region" value={form.state} onChange={(e) => update("state", e.target.value)} error={errors.state} required />
+      <TextInput label="Country" value={form.country} onChange={(e) => update("country", e.target.value)} error={errors.country} required />
+      <TextInput label="Pincode" value={form.zipCode} onChange={(e) => update("zipCode", e.target.value)} error={errors.zipCode} required />
+      <PhoneInput label="Contact Number" value={form.contactNumber} onChange={(v) => update("contactNumber", v)} error={errors.contactNumber} />
+      <TextInput label="Contact Email" type="email" value={form.contactEmail} onChange={(e) => update("contactEmail", e.target.value)} error={errors.contactEmail} />
     </>
   );
 }
@@ -70,11 +99,14 @@ export function ContactAddressPanel({ orgId }: { orgId: number }) {
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<FormState>(emptyForm);
+  const [editOriginal, setEditOriginal] = useState<FormState | null>(null);
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | undefined>();
 
@@ -86,16 +118,40 @@ export function ContactAddressPanel({ orgId }: { orgId: number }) {
 
   function update<K extends keyof FormState>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
+    setErrors((p) => ({ ...p, [key]: "" }));
   }
 
   function updateEdit<K extends keyof FormState>(key: K, value: string) {
     setEditForm((f) => ({ ...f, [key]: value }));
+    setEditErrors((p) => ({ ...p, [key]: "" }));
+  }
+
+  function openAddModal() {
+    setForm(emptyForm);
+    setErrors({});
+    setFormError(undefined);
+    setShowForm(true);
+  }
+
+  // Ignored while a save is in flight — the modal's X button, backdrop
+  // click, and Escape key all route through this, so a pending request
+  // can't be silently abandoned mid-flight.
+  function closeAddModal() {
+    if (saving) return;
+    setShowForm(false);
   }
 
   async function handleAdd(e: FormEvent) {
     e.preventDefault();
-    setSaving(true);
     setFormError(undefined);
+
+    const nextErrors = validate(form);
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      return;
+    }
+    setErrors({});
+    setSaving(true);
     try {
       await dispatch(createAddress({ orgId, payload: form })).unwrap();
       dispatch(fetchAddresses(orgId));
@@ -111,18 +167,36 @@ export function ContactAddressPanel({ orgId }: { orgId: number }) {
   function startEdit(address: Address) {
     setEditingId(address.id);
     setEditForm(toForm(address));
+    setEditOriginal(toForm(address));
+    setEditErrors({});
     setEditError(undefined);
-    setShowForm(false);
   }
+
+  function closeEditModal() {
+    if (editSaving) return;
+    setEditingId(null);
+    setEditOriginal(null);
+  }
+
+  const isEditDirty = useIsDirty(editOriginal, editForm);
 
   async function handleUpdate(e: FormEvent, addressId: number) {
     e.preventDefault();
-    setEditSaving(true);
+    if (!isEditDirty) return;
     setEditError(undefined);
+
+    const nextErrors = validate(editForm);
+    if (Object.keys(nextErrors).length > 0) {
+      setEditErrors(nextErrors);
+      return;
+    }
+    setEditErrors({});
+    setEditSaving(true);
     try {
       await dispatch(updateAddress({ orgId, addressId, payload: editForm })).unwrap();
       dispatch(fetchAddresses(orgId));
       setEditingId(null);
+      setEditOriginal(null);
     } catch (err) {
       setEditError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to update address"));
     } finally {
@@ -145,17 +219,13 @@ export function ContactAddressPanel({ orgId }: { orgId: number }) {
 
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-end">
-
-
-        {!showForm && editingId === null && (
-          <Button
-            onClick={() => setShowForm(true)}
-            className="self-start md:self-auto"
-          >
-            <PiPlusBold className="mr-2 h-4 w-4" />
-            Add Address
-          </Button>
-        )}
+        <Button
+          onClick={openAddModal}
+          className="self-start md:self-auto"
+        >
+          <PiPlusBold className="mr-2 h-4 w-4" />
+          Add Address
+        </Button>
       </div>
 
       {status === "loading" && addresses.length === 0 ? (
@@ -166,12 +236,12 @@ export function ContactAddressPanel({ orgId }: { orgId: number }) {
         <>
           {/* Empty State */}
 
-          {addresses.length === 0 && !showForm && (
+          {addresses.length === 0 && (
             <EmptyState
               icon={PiMapPin}
               title="No addresses added"
               description="Add your headquarters or office address. This information can be used in invoices, documents and customer communication."
-              action={{ label: "Add First Address", onClick: () => setShowForm(true) }}
+              action={{ label: "Add First Address", onClick: openAddModal }}
             />
           )}
 
@@ -181,179 +251,128 @@ export function ContactAddressPanel({ orgId }: { orgId: number }) {
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
-              {addresses.map((address) =>
+              {addresses.map((address) => (
 
-                editingId === address.id ? (
+                <Card key={address.id} variant="elevated">
 
-                  <Card
-                    key={address.id}
-                    className="rounded-2xl border-primary/20"
-                  >
+                  <div className="flex h-full flex-col justify-between">
 
-                    <form
-                      onSubmit={(e) => handleUpdate(e, address.id)}
-                      className="space-y-4"
-                    >
+                    <div>
 
-                      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                      <div className="flex items-start justify-between">
 
-                        <AddressFormFields
-                          form={editForm}
-                          update={updateEdit}
-                        />
+                        <div>
+
+                          <div className="flex items-center gap-3">
+
+                            <div className="rounded-xl bg-primary/10 p-2">
+
+                              <PiBuildings className="h-5 w-5 text-primary" />
+
+                            </div>
+
+                            <Body className="text-lg font-semibold">
+                              {address.label}
+                            </Body>
+
+                          </div>
+
+                        </div>
+
+                        <div className="flex gap-2">
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={deletingId === address.id}
+                            onClick={() => startEdit(address)}
+                          >
+                            <PiPencilSimple className="mr-0.5 h-4 w-4" />
+                            Edit
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-danger hover:bg-danger/10"
+                            disabled={deletingId === address.id}
+                            onClick={() => handleDelete(address.id)}
+                          >
+                            <PiTrash className="mr-0.5 h-4 w-4" />
+                            {deletingId === address.id ? "Deleting..." : "Delete"}
+                          </Button>
+
+                        </div>
 
                       </div>
 
-                      {editError && <Alert tone="danger">{editError}</Alert>}
+                      <div className="mt-4 space-y-2">
 
-                      <div className="flex flex-wrap justify-end gap-3 border-t pt-5">
+                        <div className="flex gap-3">
 
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          disabled={editSaving}
-                          onClick={() => setEditingId(null)}
-                        >
-                          Cancel
-                        </Button>
-
-                        <Button
-                          type="submit"
-                          disabled={editSaving}
-                        >
-                          {editSaving ? "Saving..." : "Save Changes"}
-                        </Button>
-
-                      </div>
-
-                    </form>
-
-                  </Card>
-
-                ) : (
-
-                  <Card key={address.id} variant="elevated">
-
-                    <div className="flex h-full flex-col justify-between">
-
-                      <div>
-
-                        <div className="flex items-start justify-between">
+                          <PiMapPin className="mt-0.5 h-5 w-5 text-primary" />
 
                           <div>
 
-                            <div className="flex items-center gap-3">
+                            <Caption>{address.streetFirst}</Caption>
 
-                              <div className="rounded-xl bg-primary/10 p-2">
+                            <Caption>
+                              {address.city}, {address.state}
+                            </Caption>
 
-                                <PiBuildings className="h-5 w-5 text-primary" />
-
-                              </div>
-
-                              <Body className="text-lg font-semibold">
-                                {address.label}
-                              </Body>
-
-                            </div>
-
-                          </div>
-
-                          <div className="flex gap-2">
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={deletingId === address.id}
-                              onClick={() => startEdit(address)}
-                            >
-                              <PiPencilSimple className="mr-0.5 h-4 w-4" />
-                              Edit
-                            </Button>
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-danger hover:bg-danger/10"
-                              disabled={deletingId === address.id}
-                              onClick={() => handleDelete(address.id)}
-                            >
-                              <PiTrash className="mr-0.5 h-4 w-4" />
-                              {deletingId === address.id ? "Deleting..." : "Delete"}
-                            </Button>
+                            <Caption>
+                              {address.country} - {address.zipCode}
+                            </Caption>
 
                           </div>
 
                         </div>
-
-                        <div className="mt-4 space-y-2">
-
-                          <div className="flex gap-3">
-
-                            <PiMapPin className="mt-0.5 h-5 w-5 text-primary" />
-
-                            <div>
-
-                              <Caption>{address.streetFirst}</Caption>
-
-                              <Caption>
-                                {address.city}, {address.state}
-                              </Caption>
-
-                              <Caption>
-                                {address.country} - {address.zipCode}
-                              </Caption>
-
-                            </div>
-
-                          </div>
-
-                        </div>
-
-                        {(address.contactNumber || address.contactEmail) && (
-
-                          <div className="mt-4 space-y-3 border-t pt-4">
-
-                            {address.contactNumber && (
-
-                              <div className="flex items-center gap-3">
-
-                                <FaPhoneAlt className="text-primary" />
-
-                                <span className="text-sm">
-                                  {address.contactNumber}
-                                </span>
-
-                              </div>
-
-                            )}
-
-                            {address.contactEmail && (
-
-                              <div className="flex items-center gap-3">
-
-                                <FaEnvelope className="text-primary" />
-
-                                <span className="text-sm">
-                                  {address.contactEmail}
-                                </span>
-
-                              </div>
-
-                            )}
-
-                          </div>
-
-                        )}
 
                       </div>
 
+                      {(address.contactNumber || address.contactEmail) && (
+
+                        <div className="mt-4 space-y-3 border-t pt-4">
+
+                          {address.contactNumber && (
+
+                            <div className="flex items-center gap-3">
+
+                              <FaPhoneAlt className="text-primary" />
+
+                              <span className="text-sm">
+                                {address.contactNumber}
+                              </span>
+
+                            </div>
+
+                          )}
+
+                          {address.contactEmail && (
+
+                            <div className="flex items-center gap-3">
+
+                              <FaEnvelope className="text-primary" />
+
+                              <span className="text-sm">
+                                {address.contactEmail}
+                              </span>
+
+                            </div>
+
+                          )}
+
+                        </div>
+
+                      )}
+
                     </div>
 
-                  </Card>
+                  </div>
 
-                )
+                </Card>
 
-              )}
+              ))}
 
             </div>
 
@@ -362,64 +381,60 @@ export function ContactAddressPanel({ orgId }: { orgId: number }) {
       )}
 
       {/* Add Address */}
+      <Modal open={showForm} onClose={closeAddModal} title="Add Address" className="max-w-2xl">
+        <form onSubmit={handleAdd} className="space-y-6">
+        <fieldset disabled={saving} className="contents">
 
-      {showForm && (
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <AddressFormFields form={form} update={update} errors={errors} />
+          </div>
+        </fieldset>
 
-        <Card className="rounded-2xl">
+          {formError && (
+            <Alert tone="danger" autoClose={false}>
+              {formError}
+            </Alert>
+          )}
 
-          <div className="mb-6">
-
-            <h4 className="text-lg font-semibold">
-              Add New Address
-            </h4>
-
-            <Caption className="mt-1 text-muted-foreground">
-              Enter your office or branch details.
-            </Caption>
-
+          <div className="flex flex-wrap justify-end gap-3 border-t pt-5">
+            <Button type="button" variant="ghost" disabled={saving} onClick={closeAddModal}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saving} loading={saving} loadingText="Saving...">
+              Save Address
+            </Button>
           </div>
 
-          <form
-            onSubmit={handleAdd}
-            className="space-y-6"
-          >
+        </form>
+      </Modal>
 
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+      {/* Edit Address */}
+      <Modal open={editingId !== null} onClose={closeEditModal} title="Edit Address" className="max-w-2xl">
+        <form onSubmit={(e) => editingId !== null && handleUpdate(e, editingId)} className="space-y-6">
+        <fieldset disabled={editSaving} className="contents">
 
-              <AddressFormFields
-                form={form}
-                update={update}
-              />
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <AddressFormFields form={editForm} update={updateEdit} errors={editErrors} />
+          </div>
+        </fieldset>
 
-            </div>
+          {editError && (
+            <Alert tone="danger" autoClose={false}>
+              {editError}
+            </Alert>
+          )}
 
-            {formError && <Alert tone="danger">{formError}</Alert>}
+          <div className="flex flex-wrap justify-end gap-3 border-t pt-5">
+            <Button type="button" variant="ghost" disabled={editSaving} onClick={closeEditModal}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={editSaving || !isEditDirty} loading={editSaving} loadingText="Saving...">
+              Save Changes
+            </Button>
+          </div>
 
-            <div className="flex flex-wrap justify-end gap-3 border-t pt-6">
-
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={saving}
-                onClick={() => setShowForm(false)}
-              >
-                Cancel
-              </Button>
-
-              <Button
-                type="submit"
-                disabled={saving}
-              >
-                {saving ? "Saving..." : "Save Address"}
-              </Button>
-
-            </div>
-
-          </form>
-
-        </Card>
-
-      )}
+        </form>
+      </Modal>
 
     </div>
   );

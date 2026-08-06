@@ -4,7 +4,7 @@ export type { Activity };
 
 export interface ActivityPayload {
   name: string;
-  destinationId: string | null;
+  escapePointId: string | null;
   categoryCode: string | null;
   durationMinutes: number | null;
   description: string;

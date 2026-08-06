@@ -1,14 +1,13 @@
-import { Heading, Body } from "@/components/ui/Typography";
 import { TransportPanel } from "@/components/library/TransportPanel";
 import { getServiceProviders } from "@/lib/service-providers";
-import { getDestinations } from "@/lib/destinations";
+import { getEscapePoints } from "@/lib/escape-points";
 
 export default async function Page() {
-  const [providers, destinations] = await Promise.all([getServiceProviders(), getDestinations()]);
+  const [providers, escapePoints] = await Promise.all([getServiceProviders(), getEscapePoints()]);
 
   return (
     <div className="flex flex-col gap-5">
-      <TransportPanel providers={providers} destinations={destinations} />
+      <TransportPanel providers={providers} escapePoints={escapePoints} />
     </div>
   );
 }

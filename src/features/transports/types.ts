@@ -10,7 +10,7 @@ export interface TransportPayload {
   basePrice: number | null;
   pickupLocation: string | null;
   dropLocation: string | null;
-  destinationId: string | null;
+  escapePointId: string | null;
   status: string;
 }
 

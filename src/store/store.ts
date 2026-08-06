@@ -2,11 +2,11 @@ import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "@/features/auth/authSlice";
 import uiReducer from "@/features/ui/uiSlice";
 import leadsReducer from "@/features/leads/leadsSlice";
-import tripsReducer from "@/features/trips/tripsSlice";
+import escapesReducer from "@/features/escapes/escapesSlice";
 import hotelsReducer from "@/features/hotels/hotelsSlice";
 import activitiesReducer from "@/features/activities/activitiesSlice";
 import transportsReducer from "@/features/transports/transportsSlice";
-import destinationsReducer from "@/features/destinations/destinationsSlice";
+import escapePointsReducer from "@/features/escapePoints/escapePointsSlice";
 import serviceProvidersReducer from "@/features/serviceProviders/serviceProvidersSlice";
 import inclusionExclusionsReducer from "@/features/inclusionExclusions/inclusionExclusionsSlice";
 import bankAccountsReducer from "@/features/bankAccounts/bankAccountsSlice";
@@ -34,11 +34,11 @@ export function makeStore() {
       auth: authReducer,
       ui: uiReducer,
       leads: leadsReducer,
-      trips: tripsReducer,
+      escapes: escapesReducer,
       hotels: hotelsReducer,
       activities: activitiesReducer,
       transports: transportsReducer,
-      destinations: destinationsReducer,
+      escapePoints: escapePointsReducer,
       serviceProviders: serviceProvidersReducer,
       inclusionExclusions: inclusionExclusionsReducer,
       bankAccounts: bankAccountsReducer,

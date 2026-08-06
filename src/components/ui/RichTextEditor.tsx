@@ -21,6 +21,7 @@ interface RichTextEditorProps {
   onChange: (html: string) => void;
   placeholder?: string;
   className?: string;
+  error?: string;
 }
 
 function ToolbarButton({
@@ -93,7 +94,7 @@ function Toolbar({ editor }: { editor: Editor }) {
 
 // A small Word-like rich text editor: bold/italic/underline plus nested
 // bullet/numbered lists (indent = sub-bullet). Stores/emits plain HTML.
-export function RichTextEditor({ label, value, onChange, placeholder, className }: RichTextEditorProps) {
+export function RichTextEditor({ label, value, onChange, placeholder, className, error }: RichTextEditorProps) {
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [StarterKit, Underline],
@@ -120,13 +121,19 @@ export function RichTextEditor({ label, value, onChange, placeholder, className 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       {label && <span className="text-sm font-medium text-foreground">{label}</span>}
-      <div className="rounded border border-border bg-background focus-within:outline focus-within:outline-2 focus-within:outline-primary">
+      <div
+        className={cn(
+          "rounded border border-border bg-background focus-within:outline focus-within:outline-2 focus-within:outline-primary",
+          error && "border-danger",
+        )}
+      >
         {editor && <Toolbar editor={editor} />}
         {editor && !value && (
           <div className="pointer-events-none absolute px-3 py-2 text-sm text-muted-foreground">{placeholder}</div>
         )}
         <EditorContent editor={editor} />
       </div>
+      {error && <span className="text-xs text-danger">{error}</span>}
     </div>
   );
 }

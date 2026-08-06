@@ -8,15 +8,20 @@ import { Modal } from "@/components/ui/Modal";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { BulkImportModal } from "@/components/library/BulkImportModal";
+import { Alert } from "@/components/ui/Alert";
 import { Body } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import type { Transport } from "@/lib/transports";
 import type { ServiceProvider } from "@/lib/service-providers";
-import type { Destination } from "@/lib/destinations";
+import type { EscapePoint } from "@/lib/escape-points";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useIsDirty } from "@/lib/forms";
+import { positiveNumber, requiredSelection, runValidators } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchTransports, createTransport, updateTransport, deleteTransport } from "@/features/transports/transportsThunks";
 import { selectTransports, selectTransportsStatus, selectTransportsError } from "@/features/transports/transportsSelectors";
+import { FaPlus } from "react-icons/fa";
+import { LuImport } from "react-icons/lu";
 
 const MODE_OPTIONS = [
   { value: "flight", label: "Flight" },
@@ -156,18 +161,29 @@ const emptyForm = {
   basePrice: "",
   pickupLocation: "",
   dropLocation: "",
-  destinationId: "",
+  escapePointId: "",
   status: "active",
 };
 
 type FormState = typeof emptyForm;
 
+function validate(v: FormState): Record<string, string> {
+  const errors: Record<string, string> = {};
+  const modeErr = requiredSelection(v.modeCode, "Please select a mode");
+  if (modeErr) errors.modeCode = modeErr;
+  const capacityErr = runValidators(v.capacity, [positiveNumber("Capacity must be a positive number")]);
+  if (capacityErr) errors.capacity = capacityErr;
+  const priceErr = runValidators(v.basePrice, [positiveNumber("Base price must be a positive number")]);
+  if (priceErr) errors.basePrice = priceErr;
+  return errors;
+}
+
 export function TransportPanel({
   providers,
-  destinations,
+  escapePoints,
 }: {
   providers: ServiceProvider[];
-  destinations: Destination[];
+  escapePoints: EscapePoint[];
 }) {
   const dispatch = useAppDispatch();
   const transports = useAppSelector(selectTransports);
@@ -178,6 +194,8 @@ export function TransportPanel({
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [editing, setEditing] = useState<Transport | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [original, setOriginal] = useState<FormState | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
   const [deletingUid, setDeletingUid] = useState<string | null>(null);
@@ -197,13 +215,14 @@ export function TransportPanel({
   function openCreate() {
     setEditing(null);
     setForm(emptyForm);
+    setOriginal(null);
+    setErrors({});
     setFormError(undefined);
     setModalOpen(true);
   }
 
   function openEdit(transport: Transport) {
-    setEditing(transport);
-    setForm({
+    const snapshot: FormState = {
       modeCode: transport.modeCode,
       vehicleTypeCode: transport.vehicleTypeCode ?? "",
       capacity: transport.capacity ? String(transport.capacity) : "",
@@ -211,17 +230,31 @@ export function TransportPanel({
       basePrice: transport.basePrice != null ? String(transport.basePrice) : "",
       pickupLocation: transport.pickupLocation ?? "",
       dropLocation: transport.dropLocation ?? "",
-      destinationId: transport.destination?.uid ?? "",
+      escapePointId: transport.escapePoint?.uid ?? "",
       status: transport.status ?? "active",
-    });
+    };
+    setEditing(transport);
+    setForm(snapshot);
+    setOriginal(snapshot);
+    setErrors({});
     setFormError(undefined);
     setModalOpen(true);
   }
 
+  const isDirty = useIsDirty(original, form);
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setSaving(true);
+    if (editing && !isDirty) return;
     setFormError(undefined);
+
+    const nextErrors = validate(form);
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      return;
+    }
+    setErrors({});
+    setSaving(true);
     try {
       const payload = {
         modeCode: form.modeCode,
@@ -231,7 +264,7 @@ export function TransportPanel({
         basePrice: form.basePrice ? Number(form.basePrice) : null,
         pickupLocation: form.pickupLocation || null,
         dropLocation: form.dropLocation || null,
-        destinationId: form.destinationId || null,
+        escapePointId: form.escapePointId || null,
         status: form.status,
       };
       if (editing) {
@@ -299,8 +332,8 @@ export function TransportPanel({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-2 justify-end">
-        <Button className="self-start" onClick={openCreate}>Add transport</Button>
-        <Button variant="secondary" className="self-start" onClick={() => setBulkImportOpen(true)}>Bulk import</Button>
+        <Button className="self-start" onClick={openCreate}><FaPlus />Add transport</Button>
+        <Button variant="secondary" className="self-start" onClick={() => setBulkImportOpen(true)}><LuImport />Bulk import</Button>
       </div>
 
       {bulkImportOpen && (
@@ -332,69 +365,109 @@ export function TransportPanel({
         />
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit transport" : "Add transport"}>
+      <Modal
+        open={modalOpen}
+        onClose={() => {
+          if (saving) return;
+          setModalOpen(false);
+        }}
+        title={editing ? "Edit transport" : "Add transport"}
+      >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <fieldset disabled={saving} className="contents">
 
-          <TextInput label="Pickup Location" value={form.pickupLocation} onChange={(e) => update("pickupLocation", e.target.value)} />
-          <TextInput label="Drop Location" value={form.dropLocation} onChange={(e) => update("dropLocation", e.target.value)} />
+            <TextInput label="Pickup Location" value={form.pickupLocation} onChange={(e) => update("pickupLocation", e.target.value)} />
+            <TextInput label="Drop Location" value={form.dropLocation} onChange={(e) => update("dropLocation", e.target.value)} />
 
-          <Select
-            label="Trip Destination"
-            options={destinations.map((d) => ({ value: d.uid, label: d.name }))}
-            value={form.destinationId}
-            onChange={(e) => update("destinationId", e.target.value)}
-            placeholder={destinations.length ? "Select a destination" : "No destinations added yet"}
-          />
+            <Select
+              label="Escape Point"
+              options={escapePoints.map((d) => ({ value: d.uid, label: d.name }))}
+              value={form.escapePointId}
+              onChange={(e) => update("escapePointId", e.target.value)}
+              placeholder={escapePoints.length ? "Select an escape point" : "No escape points added yet"}
+            />
 
-          <Select
-            label="Mode"
-            options={MODE_OPTIONS}
-            value={form.modeCode}
-            onChange={(e) => {
-              update("modeCode", e.target.value);
-              update("vehicleTypeCode", "");
-            }}
-            placeholder="Select mode"
-          />
-          <Select
-            label="Vehicle type"
-            options={vehicleTypeOptions}
-            value={form.vehicleTypeCode}
-            onChange={(e) => update("vehicleTypeCode", e.target.value)}
-            placeholder={
-              vehicleTypeOptions.length
-                ? "Select vehicle type"
-                : "Not applicable"
-            }
-            disabled={!vehicleTypeOptions.length}
-          />
-          <TextInput label="Capacity" type="number" min={1} value={form.capacity} onChange={(e) => update("capacity", e.target.value)} />
+            <Select
+              label="Mode"
+              options={MODE_OPTIONS}
+              value={form.modeCode}
+              onChange={(e) => {
+                update("modeCode", e.target.value);
+                update("vehicleTypeCode", "");
+                setErrors((p) => ({ ...p, modeCode: "" }));
+              }}
+              error={errors.modeCode}
+              placeholder="Select mode"
+            />
+            <Select
+              label="Vehicle type"
+              options={vehicleTypeOptions}
+              value={form.vehicleTypeCode}
+              onChange={(e) => update("vehicleTypeCode", e.target.value)}
+              placeholder={
+                vehicleTypeOptions.length
+                  ? "Select vehicle type"
+                  : "Not applicable"
+              }
+              disabled={!vehicleTypeOptions.length}
+            />
+            <TextInput
+              label="Capacity"
+              type="number"
+              min={1}
+              value={form.capacity}
+              onChange={(e) => {
+                update("capacity", e.target.value);
+                setErrors((p) => ({ ...p, capacity: "" }));
+              }}
+              error={errors.capacity}
+            />
 
-          <Select
-            label="Provider"
-            options={transportProviders.map((p) => ({ value: p.uid, label: p.name }))}
-            value={form.providerId}
-            onChange={(e) => update("providerId", e.target.value)}
-            placeholder={transportProviders.length ? "Select a provider" : "No transport providers yet"}
-          />
+            <Select
+              label="Provider"
+              options={transportProviders.map((p) => ({ value: p.uid, label: p.name }))}
+              value={form.providerId}
+              onChange={(e) => update("providerId", e.target.value)}
+              placeholder={transportProviders.length ? "Select a provider" : "No transport providers yet"}
+            />
 
-          <TextInput label="Base price (USD)" type="number" min={0} step="0.01" value={form.basePrice} onChange={(e) => update("basePrice", e.target.value)} />
+            <TextInput
+              label="Base price (USD)"
+              type="number"
+              min={0}
+              step="0.01"
+              value={form.basePrice}
+              onChange={(e) => {
+                update("basePrice", e.target.value);
+                setErrors((p) => ({ ...p, basePrice: "" }));
+              }}
+              error={errors.basePrice}
+            />
 
-          <Select
-            label="Status"
-            options={[
-              { value: "active", label: "Active" },
-              { value: "inactive", label: "Inactive" },
-            ]}
-            value={form.status}
-            onChange={(e) => update("status", e.target.value)}
-          />
+            <Select
+              label="Status"
+              options={[
+                { value: "active", label: "Active" },
+                { value: "inactive", label: "Inactive" },
+              ]}
+              value={form.status}
+              onChange={(e) => update("status", e.target.value)}
+            />
+          </fieldset>
 
-          {formError && <p className="text-sm text-danger">{formError}</p>}
+          {formError && (
+            <Alert tone="danger" autoClose={false}>
+              {formError}
+            </Alert>
+          )}
 
           <div className="flex gap-2">
-            <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save transport"}</Button>
-            <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={saving || (!!editing && !isDirty)} loading={saving} loadingText="Saving…">
+              Save transport
+            </Button>
+            <Button type="button" variant="ghost" disabled={saving} onClick={() => setModalOpen(false)}>
+              Cancel
+            </Button>
           </div>
         </form>
       </Modal>

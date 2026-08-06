@@ -1,7 +1,7 @@
 import { getDealByUid } from "@/lib/deals";
 import { getQuoteByUid } from "@/lib/quotes";
 import { getItineraryByUid } from "@/lib/itineraries";
-import { getTripById } from "@/lib/trips";
+import { getEscapeById } from "@/lib/escapes";
 import { getMilestonesForDeal } from "@/lib/payment-milestones";
 import { getMyOrganization } from "@/lib/organization";
 import { getInvoiceTemplates } from "@/lib/invoice-templates";
@@ -13,7 +13,7 @@ export default async function InvoicePreviewPage({ params }: { params: { uid: st
   const quote = await getQuoteByUid(deal.acceptedQuoteUid);
   const itinerary = await getItineraryByUid(quote.itineraryUid);
   const [trip, milestones, organization, templates] = await Promise.all([
-    getTripById(itinerary.tripId),
+    getEscapeById(itinerary.escapeId),
     getMilestonesForDeal(deal.uid),
     getMyOrganization(),
     getInvoiceTemplates(),
@@ -52,10 +52,10 @@ export default async function InvoicePreviewPage({ params }: { params: { uid: st
 
         <div className="mb-8">
           <h1 className="text-xl font-semibold" style={{ color: template.accentColor }}>
-            {trip.lead?.name ?? `Trip #${trip.seqp}`}
+            {trip.lead?.name ?? `Escape #${trip.seqp}`}
           </h1>
           <p className="text-sm text-gray-600">
-            {trip.destinations.map((d) => d.name).join(", ")}
+            {trip.escapePoints.map((d) => d.name).join(", ")}
             {trip.startDate && ` · ${trip.startDate}`}
             {trip.numberOfDays && ` · ${trip.numberOfDays} days`}
           </p>

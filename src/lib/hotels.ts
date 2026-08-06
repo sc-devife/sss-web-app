@@ -5,7 +5,7 @@ export interface Hotel {
   name: string;
   stars: number | null;
   location: { uid: string; displayName: string } | null;
-  destination: { uid: string; name: string } | null;
+  escapePoint: { uid: string; name: string } | null;
   checkInTime: string | null;
   checkOutTime: string | null;
   childAgeForExtraBed: string | null;

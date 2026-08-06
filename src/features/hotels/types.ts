@@ -6,7 +6,7 @@ export interface HotelPayload {
   name: string;
   stars: number | null;
   locationId: string;
-  destinationId: string | null;
+  escapePointId: string | null;
   address: string;
   contactInfo: string;
   images: string[];

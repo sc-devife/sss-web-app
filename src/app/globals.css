@@ -108,6 +108,161 @@ body {
   text-decoration: underline;
 }
 
+/* PhoneInput (react-phone-number-input) — the library ships unstyled inputs
+   by design (see style.css comments); this makes the whole widget read as
+   one bordered field matching TextInput's h-10/rounded/border-border look,
+   with the country-select + number sub-fields sitting inside it un-bordered. */
+
+/* The library's own style.css (which normally sizes the flag <img> down from
+   its ~225x150 native dimensions to a small icon) is never imported here, so
+   without this the flag renders full-size and blows out the whole layout. */
+.PhoneInputCountryIcon {
+  width: calc(1em * 1.5);
+  height: 1em;
+  flex-shrink: 0;
+}
+
+.PhoneInputCountryIconImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Also from the unimported base stylesheet: without this the number field
+   doesn't shrink to make room for the country selector, so on narrow
+   viewports it overflows the field box entirely instead of staying inline. */
+.PhoneInputInput {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Also from the unimported base stylesheet: without `position: relative` the
+   native <select> (which should sit invisibly on top of the flag as an
+   absolutely-positioned hit target) instead renders inline at its own
+   natural width — which, for a <select> full of country names, is wide
+   enough to push the number field off the end of the row entirely. */
+.PhoneInputCountry {
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+
+.PhoneInputCountrySelect {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  z-index: 1;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.PhoneInputCountrySelect[disabled] {
+  cursor: default;
+}
+
+.app-phone-input {
+  display: flex;
+  align-items: center;
+  height: 2.5rem;
+  gap: 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  padding: 0 0.75rem;
+}
+
+.app-phone-input:focus-within {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 1px;
+}
+
+.app-phone-input-error {
+  border-color: hsl(var(--danger));
+}
+
+.app-phone-input .PhoneInputInput {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.875rem;
+  color: hsl(var(--foreground));
+  height: 100%;
+}
+
+.app-phone-input .PhoneInputInput::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+.app-phone-input .PhoneInputCountry {
+  padding-right: 0.5rem;
+  border-right: 1px solid hsl(var(--border));
+}
+
+.app-phone-input[aria-disabled="true"],
+.app-phone-input:has(.PhoneInputInput:disabled) {
+  opacity: 0.5;
+}
+
+/* Signup page uses a fully custom, non-theme-token visual style (raw hex
+   colors, h-[50px]/rounded-[10px]) distinct from the rest of the app —
+   this re-skins the same PhoneInput component to match it instead of the
+   token-based .app-phone-input look. */
+.signup-phone-input {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #c8c8c8;
+  background: transparent;
+  padding: 0 1rem;
+}
+
+.signup-phone-input:focus-within {
+  border-color: hsl(var(--primary));
+  outline: 1px solid hsl(var(--primary));
+}
+
+.signup-phone-input .PhoneInputInput {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 15px;
+  color: #000;
+  height: 100%;
+}
+
+.signup-phone-input .PhoneInputInput::placeholder {
+  color: #aaa;
+}
+
+.signup-phone-input .PhoneInputCountry {
+  padding-right: 0.75rem;
+  border-right: 1px solid #c8c8c8;
+}
+
+/* Reduce toast height */
+.Toastify__toast {
+  min-height: 45px !important;
+  /* Default is around 64px */
+  padding: 10px 14px !important;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+}
+
+/* Reduce message spacing */
+.Toastify__toast-body {
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
 /* Hide scrollbar globally */
 ::-webkit-scrollbar {
   display: none;

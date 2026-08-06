@@ -13,12 +13,15 @@ import {
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Heading, Body, Caption } from "@/components/ui/Typography";
-import { LoadingState, Spinner } from "@/components/ui/Spinner";
+import { LoadingState } from "@/components/ui/Spinner";
 import { resolveFileUrl } from "@/lib/files";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useIsDirty } from "@/lib/forms";
+import { mobileField, required, runValidators } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchMyProfile, updateMyProfile } from "@/features/profile/profileThunks";
 import {
@@ -27,6 +30,20 @@ import {
   selectMyProfileError,
   selectMyProfileUpdateStatus,
 } from "@/features/profile/profileSelectors";
+
+type ProfileFormState = { firstName: string; lastName: string; mobileNumber: string };
+
+function validate(v: ProfileFormState): Record<string, string> {
+  const errors: Record<string, string> = {};
+  const err = (key: keyof ProfileFormState, validators: Parameters<typeof runValidators>[1]) => {
+    const e = runValidators(v[key], validators);
+    if (e) errors[key] = e;
+  };
+  err("firstName", [required("First name is required")]);
+  err("lastName", [required("Last name is required")]);
+  err("mobileNumber", [mobileField()]); // optional field, format-checked only if filled
+  return errors;
+}
 
 function ReadOnlyField({ label, value, icon: Icon }: { label: string; value: string; icon: IconType }) {
   return (
@@ -51,6 +68,7 @@ export function ProfilePanel() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
+  const [original, setOriginal] = useState<ProfileFormState | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | undefined>();
   const [saved, setSaved] = useState(false);
@@ -68,9 +86,15 @@ export function ProfilePanel() {
 
   function startEdit() {
     if (!profile) return;
-    setFirstName(profile.first_name ?? "");
-    setLastName(profile.last_name ?? "");
-    setMobileNumber(profile.contact_number ?? "");
+    const snapshot: ProfileFormState = {
+      firstName: profile.first_name ?? "",
+      lastName: profile.last_name ?? "",
+      mobileNumber: profile.contact_number ?? "",
+    };
+    setFirstName(snapshot.firstName);
+    setLastName(snapshot.lastName);
+    setMobileNumber(snapshot.mobileNumber);
+    setOriginal(snapshot);
     setErrors({});
     setFormError(undefined);
     setSaved(false);
@@ -79,19 +103,19 @@ export function ProfilePanel() {
 
   function cancelEdit() {
     setEditing(false);
+    setOriginal(null);
     setErrors({});
     setFormError(undefined);
   }
 
+  const isDirty = useIsDirty(original, { firstName, lastName, mobileNumber });
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (submittingRef.current) return;
+    if (submittingRef.current || !isDirty) return;
     setFormError(undefined);
 
-    const nextErrors: Record<string, string> = {};
-    if (!firstName.trim()) nextErrors.firstName = "First name is required";
-    if (!lastName.trim()) nextErrors.lastName = "Last name is required";
-
+    const nextErrors = validate({ firstName, lastName, mobileNumber });
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
@@ -192,11 +216,11 @@ export function ProfilePanel() {
                   disabled={saving}
                   required
                 />
-                <TextInput
+                <PhoneInput
                   label="Mobile Number"
                   value={mobileNumber}
-                  onChange={(e) => {
-                    setMobileNumber(e.target.value);
+                  onChange={(v) => {
+                    setMobileNumber(v);
                     setErrors((p) => ({ ...p, mobileNumber: "" }));
                   }}
                   error={errors.mobileNumber}
@@ -213,7 +237,11 @@ export function ProfilePanel() {
             )}
           </div>
 
-          {formError && <Alert tone="danger">{formError}</Alert>}
+          {formError && (
+            <Alert tone="danger" autoClose={false}>
+              {formError}
+            </Alert>
+          )}
           {saved && !editing && <Alert tone="success">Profile updated successfully.</Alert>}
 
           <div className="flex justify-end gap-3 border-t border-border pt-5">
@@ -222,14 +250,14 @@ export function ProfilePanel() {
                 <Button type="button" variant="ghost" onClick={cancelEdit} disabled={saving}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={saving} className="min-w-[140px]">
-                  {saving ? (
-                    <>
-                      <Spinner size="sm" /> Updating…
-                    </>
-                  ) : (
-                    "Update"
-                  )}
+                <Button
+                  type="submit"
+                  disabled={saving || !isDirty}
+                  loading={saving}
+                  loadingText="Updating…"
+                  className="min-w-[140px]"
+                >
+                  Update
                 </Button>
               </>
             ) : (

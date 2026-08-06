@@ -1,13 +1,12 @@
-import { Heading, Body } from "@/components/ui/Typography";
 import { InclusionExclusionsPanel } from "@/components/library/InclusionExclusionsPanel";
-import { getDestinations } from "@/lib/destinations";
+import { getEscapePoints } from "@/lib/escape-points";
 
 export default async function Page() {
-  const destinations = await getDestinations();
+  const escapePoints = await getEscapePoints();
 
   return (
     <div className="flex flex-col gap-5">
-      <InclusionExclusionsPanel destinations={destinations} />
+      <InclusionExclusionsPanel escapePoints={escapePoints} />
     </div>
   );
 }

@@ -3,10 +3,10 @@ import { AutoAssignTogglePanel } from "@/components/organization/AutoAssignToggl
 import { PriorityCalendarPanel } from "@/components/organization/PriorityCalendarPanel";
 import { AgentAssignmentSettingsPanel } from "@/components/organization/AgentAssignmentSettingsPanel";
 import { getMyOrganization } from "@/lib/organization";
-import { getDestinations } from "@/lib/destinations";
+import { getEscapePoints } from "@/lib/escape-points";
 
 export default async function Page() {
-  const [organization, destinations] = await Promise.all([getMyOrganization(), getDestinations()]);
+  const [organization, escapePoints] = await Promise.all([getMyOrganization(), getEscapePoints()]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -23,8 +23,8 @@ export default async function Page() {
 
       <div className="flex flex-col gap-2 border-t border-border pt-6">
         <Heading as="h3">Agent settings</Heading>
-        <Body muted>Specialist destinations, capacity caps, priority-lead eligibility, and temporary opt-out per agent.</Body>
-        <AgentAssignmentSettingsPanel destinations={destinations} />
+        <Body muted>Specialist escape points, capacity caps, priority-lead eligibility, and temporary opt-out per agent.</Body>
+        <AgentAssignmentSettingsPanel escapePoints={escapePoints} />
       </div>
     </div>
   );

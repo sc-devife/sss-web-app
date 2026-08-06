@@ -3,7 +3,7 @@ import { backendFetch } from "@/lib/backend";
 import { resolveCountryLabel } from "@/lib/reference-data";
 
 // Mirrors src/lib/service-providers.ts's getServiceProviders() enrichment —
-// see the equivalent comment in api/library/destinations/route.ts.
+// see the equivalent comment in api/library/escape-points/route.ts.
 export async function GET() {
   const res = await backendFetch("/api/v1/service-providers");
   const body = await res.json().catch(() => null);

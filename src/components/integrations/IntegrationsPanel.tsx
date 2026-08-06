@@ -5,13 +5,14 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Badge } from "@/components/ui/Badge";
+import { Alert } from "@/components/ui/Alert";
 import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { required, runValidators } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchIntegrations, connectIntegration, disconnectIntegration } from "@/features/integrations/integrationsThunks";
 import { selectIntegrations, selectIntegrationsStatus, selectIntegrationsError } from "@/features/integrations/integrationsSelectors";
-import type { IntegrationConnection } from "@/lib/integrations";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/sss";
 
@@ -24,6 +25,30 @@ const emptyMetaForm = {
   pageName: "",
 };
 
+// Validated on submit rather than gating the button proactively, matching
+// the rest of the app's Add-form convention (stay clickable, surface field
+// errors on click instead of silently disabling).
+function validateConnect(
+  channelCode: string,
+  secret: string,
+  metaForm: typeof emptyMetaForm,
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+  if (META_CHANNELS.has(channelCode)) {
+    const idKey = channelCode === "facebook" ? "pageId" : "igAccountId";
+    const idErr = runValidators(channelCode === "facebook" ? metaForm.pageId : metaForm.igAccountId, [
+      required("This field is required"),
+    ]);
+    if (idErr) errors[idKey] = idErr;
+    const tokenErr = runValidators(metaForm.accessToken, [required("Access token is required")]);
+    if (tokenErr) errors.accessToken = tokenErr;
+  } else {
+    const secretErr = runValidators(secret, [required("Shared secret is required")]);
+    if (secretErr) errors.secret = secretErr;
+  }
+  return errors;
+}
+
 export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
   const dispatch = useAppDispatch();
   const integrations = useAppSelector(selectIntegrations);
@@ -33,6 +58,7 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
   const [connecting, setConnecting] = useState<string | null>(null);
   const [secret, setSecret] = useState("");
   const [metaForm, setMetaForm] = useState(emptyMetaForm);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
 
@@ -44,18 +70,27 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
 
   function updateMetaForm<K extends keyof typeof emptyMetaForm>(key: K, value: string) {
     setMetaForm((f) => ({ ...f, [key]: value }));
+    setErrors((p) => ({ ...p, [key]: "" }));
   }
 
   function startConnecting(channelCode: string) {
     setConnecting(channelCode);
     setSecret("");
     setMetaForm(emptyMetaForm);
+    setErrors({});
     setFormError(undefined);
   }
 
   async function handleConnect(channelCode: string) {
-    setBusy(true);
     setFormError(undefined);
+
+    const nextErrors = validateConnect(channelCode, secret, metaForm);
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      return;
+    }
+    setErrors({});
+    setBusy(true);
     try {
       const isMeta = META_CHANNELS.has(channelCode);
       const body = isMeta
@@ -88,14 +123,6 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
     } finally {
       setBusy(false);
     }
-  }
-
-  function canSubmit(integration: IntegrationConnection) {
-    if (META_CHANNELS.has(integration.channelCode)) {
-      const idFilled = integration.channelCode === "facebook" ? !!metaForm.pageId : !!metaForm.igAccountId;
-      return !!metaForm.accessToken && idFilled;
-    }
-    return !!secret;
   }
 
   if (status === "loading" && integrations.length === 0) {
@@ -151,12 +178,14 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
               {integration.status !== "connected" ? (
                 connecting === integration.channelCode ? (
                   <div className="flex flex-col gap-2">
+                    <fieldset disabled={busy} className="contents">
                     {META_CHANNELS.has(integration.channelCode) ? (
                       <div className="grid grid-cols-2 gap-2">
                         <TextInput
                           label={integration.channelCode === "facebook" ? "Facebook Page ID" : "Instagram Business Account ID"}
                           value={integration.channelCode === "facebook" ? metaForm.pageId : metaForm.igAccountId}
                           onChange={(e) => updateMetaForm(integration.channelCode === "facebook" ? "pageId" : "igAccountId", e.target.value)}
+                          error={integration.channelCode === "facebook" ? errors.pageId : errors.igAccountId}
                         />
                         <TextInput
                           label="Page/Account name"
@@ -168,6 +197,7 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
                           label="Long-lived access token"
                           value={metaForm.accessToken}
                           onChange={(e) => updateMetaForm("accessToken", e.target.value)}
+                          error={errors.accessToken}
                           className="col-span-2"
                           placeholder="Paste the token from Graph API Explorer"
                         />
@@ -176,15 +206,20 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
                       <TextInput
                         label="Shared secret"
                         value={secret}
-                        onChange={(e) => setSecret(e.target.value)}
+                        onChange={(e) => {
+                          setSecret(e.target.value);
+                          setErrors((p) => ({ ...p, secret: "" }));
+                        }}
+                        error={errors.secret}
                         placeholder="Choose a secret for this channel"
                       />
                     )}
+                    </fieldset>
                     <div className="flex gap-2">
-                      <Button size="sm" disabled={busy || !canSubmit(integration)} onClick={() => handleConnect(integration.channelCode)}>
-                        {busy ? "Connecting…" : "Save"}
+                      <Button size="sm" disabled={busy} loading={busy} loadingText="Connecting…" onClick={() => handleConnect(integration.channelCode)}>
+                        Save
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setConnecting(null)}>Cancel</Button>
+                      <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConnecting(null)}>Cancel</Button>
                     </div>
                   </div>
                 ) : (
@@ -199,7 +234,11 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
           )}
         </Card>
       ))}
-      {formError && <p className="text-sm text-danger">{formError}</p>}
+      {formError && (
+        <Alert tone="danger" autoClose={false}>
+          {formError}
+        </Alert>
+      )}
     </div>
   );
 }

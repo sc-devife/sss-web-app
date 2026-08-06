@@ -6,7 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { TextInput } from "@/components/ui/TextInput";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
-import { isValidEmail, validationMessages } from "@/lib/validators";
+import { emailField, required, runValidators } from "@/lib/validators";
 import type { AppRole } from "@/lib/users";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useAppDispatch } from "@/store/hooks";
@@ -18,6 +18,8 @@ export function InviteUserForm({ roles }: { roles: AppRole[] }) {
   const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
+  const [emailError, setEmailError] = useState<string | undefined>();
+  const [rolesError, setRolesError] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
   const [sentTo, setSentTo] = useState<string | undefined>();
 
@@ -33,6 +35,8 @@ export function InviteUserForm({ roles }: { roles: AppRole[] }) {
   function openModal() {
     setEmail("");
     setSelectedRoles(new Set());
+    setEmailError(undefined);
+    setRolesError(undefined);
     setError(undefined);
     setSentTo(undefined);
     setOpen(true);
@@ -40,14 +44,15 @@ export function InviteUserForm({ roles }: { roles: AppRole[] }) {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!isValidEmail(email)) {
-      setError(validationMessages.email);
+    const nextEmailError = runValidators(email, [required("Email is required"), emailField()]);
+    const nextRolesError = selectedRoles.size === 0 ? "Select at least one role" : undefined;
+    if (nextEmailError || nextRolesError) {
+      setEmailError(nextEmailError);
+      setRolesError(nextRolesError);
       return;
     }
-    if (selectedRoles.size === 0) {
-      setError("Select at least one role");
-      return;
-    }
+    setEmailError(undefined);
+    setRolesError(undefined);
     setError(undefined);
     setSending(true);
     try {
@@ -75,13 +80,25 @@ export function InviteUserForm({ roles }: { roles: AppRole[] }) {
         </Alert>
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Send User Invitation">
+      <Modal
+        open={open}
+        onClose={() => {
+          if (sending) return;
+          setOpen(false);
+        }}
+        title="Send User Invitation"
+      >
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <fieldset disabled={sending} className="contents">
           <TextInput
             label="Email Address"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setEmailError(undefined);
+            }}
+            error={emailError}
             placeholder="user@example.com"
             autoFocus
           />
@@ -97,7 +114,10 @@ export function InviteUserForm({ roles }: { roles: AppRole[] }) {
                   <input
                     type="checkbox"
                     checked={selectedRoles.has(role.name)}
-                    onChange={() => toggleRole(role.name)}
+                    onChange={() => {
+                      toggleRole(role.name);
+                      setRolesError(undefined);
+                    }}
                     className="h-4 w-4 cursor-pointer rounded border-border text-primary focus:ring-primary"
                   />
                   <div className="flex flex-col">
@@ -107,25 +127,22 @@ export function InviteUserForm({ roles }: { roles: AppRole[] }) {
                 </label>
               ))}
             </div>
+            {rolesError && <span className="text-xs text-danger">{rolesError}</span>}
           </div>
+        </fieldset>
 
-          {error && <Alert tone="danger">{error}</Alert>}
+          {error && (
+            <Alert tone="danger" autoClose={false}>
+              {error}
+            </Alert>
+          )}
 
           <div className="flex gap-2 pt-2">
-            <Button type="submit" disabled={sending} className="flex-1">
-              {sending ? (
-                <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                  Sending…
-                </>
-              ) : (
-                <>
-                  <PiCheckCircleFill className="h-4 w-4" />
-                  Send Invitation
-                </>
-              )}
+            <Button type="submit" disabled={sending} loading={sending} loadingText="Sending…" className="flex-1">
+              <PiCheckCircleFill className="h-4 w-4" />
+              Send Invitation
             </Button>
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+            <Button type="button" variant="ghost" disabled={sending} onClick={() => setOpen(false)}>
               Cancel
             </Button>
           </div>

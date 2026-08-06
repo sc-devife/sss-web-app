@@ -6,7 +6,7 @@ export interface InclusionExclusionPayload {
   name: string;
   type: InclusionExclusionType;
   contentHtml: string;
-  destinationId: string | null;
+  escapePointId: string | null;
 }
 
 export interface UpdateInclusionExclusionPayload {

@@ -3,6 +3,6 @@ import type { Itinerary } from "@/lib/itineraries";
 export type { Itinerary };
 
 export interface CreateItineraryPayload {
-  tripId: number;
+  escapeId: number;
   name: string;
 }

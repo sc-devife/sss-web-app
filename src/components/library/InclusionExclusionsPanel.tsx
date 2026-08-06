@@ -8,11 +8,14 @@ import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
+import { Alert } from "@/components/ui/Alert";
 import { Body } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import type { InclusionExclusionItem, InclusionExclusionType } from "@/lib/inclusion-exclusions";
-import type { Destination } from "@/lib/destinations";
+import type { EscapePoint } from "@/lib/escape-points";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { useIsDirty } from "@/lib/forms";
+import { required, runValidators } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchInclusionExclusions,
@@ -25,6 +28,7 @@ import {
   selectInclusionExclusionsStatus,
   selectInclusionExclusionsError,
 } from "@/features/inclusionExclusions/inclusionExclusionsSelectors";
+import { FaPlus } from "react-icons/fa";
 
 // Dynamically imported (TipTap/ProseMirror add ~90KB) so pages that never
 // open the create/edit form don't pay for it on first load.
@@ -39,12 +43,26 @@ const TABS: { value: InclusionExclusionType; label: string }[] = [
   { value: "EXCLUSION", label: "Exclusions" },
 ];
 
-const emptyForm = { name: "", destinationId: "", contentHtml: "" };
+const emptyForm = { name: "", escapePointId: "", contentHtml: "" };
+
+type FormState = typeof emptyForm;
+
+function isContentEmpty(html: string): boolean {
+  return html.replace(/<[^>]*>/g, "").trim().length === 0;
+}
+
+function validate(v: FormState): Record<string, string> {
+  const errors: Record<string, string> = {};
+  const nameErr = runValidators(v.name, [required("Name is required")]);
+  if (nameErr) errors.name = nameErr;
+  if (isContentEmpty(v.contentHtml)) errors.contentHtml = "Content is required";
+  return errors;
+}
 
 export function InclusionExclusionsPanel({
-  destinations,
+  escapePoints,
 }: {
-  destinations: Destination[];
+  escapePoints: EscapePoint[];
 }) {
   const dispatch = useAppDispatch();
   const items = useAppSelector(selectInclusionExclusions);
@@ -55,6 +73,8 @@ export function InclusionExclusionsPanel({
   const [modalOpen, setModalOpen] = useState(false);
   const [editingUid, setEditingUid] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [original, setOriginal] = useState<FormState | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
   const [deactivatingUid, setDeactivatingUid] = useState<string | null>(null);
@@ -71,31 +91,46 @@ export function InclusionExclusionsPanel({
   function openCreate() {
     setEditingUid(null);
     setForm(emptyForm);
+    setOriginal(null);
+    setErrors({});
     setFormError(undefined);
     setModalOpen(true);
   }
 
   function openEdit(item: InclusionExclusionItem) {
-    setEditingUid(item.uid);
-    setForm({
+    const snapshot: FormState = {
       name: item.name,
-      destinationId: item.destinationId ?? "",
+      escapePointId: item.escapePointId ?? "",
       contentHtml: item.contentHtml ?? "",
-    });
+    };
+    setEditingUid(item.uid);
+    setForm(snapshot);
+    setOriginal(snapshot);
+    setErrors({});
     setFormError(undefined);
     setModalOpen(true);
   }
 
+  const isDirty = useIsDirty(original, form);
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setSaving(true);
+    if (editingUid && !isDirty) return;
     setFormError(undefined);
+
+    const nextErrors = validate(form);
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      return;
+    }
+    setErrors({});
+    setSaving(true);
     try {
       const payload = {
         name: form.name,
         type: activeTab,
         contentHtml: form.contentHtml,
-        destinationId: form.destinationId || null,
+        escapePointId: form.escapePointId || null,
       };
       if (editingUid) {
         await dispatch(updateInclusionExclusion({ uid: editingUid, payload })).unwrap();
@@ -130,15 +165,14 @@ export function InclusionExclusionsPanel({
               key={tab.value}
               type="button"
               onClick={() => setActiveTab(tab.value)}
-              className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
-                activeTab === tab.value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === tab.value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
             >
               {tab.label}
             </button>
           ))}
         </div>
-        <Button onClick={openCreate}>Add {TABS.find((t) => t.value === activeTab)?.label.replace(/s$/, "")}</Button>
+        <Button onClick={openCreate}> <FaPlus />Add {TABS.find((t) => t.value === activeTab)?.label.replace(/s$/, "")}</Button>
       </div>
 
       {status === "loading" && items.length === 0 ? (
@@ -153,8 +187,8 @@ export function InclusionExclusionsPanel({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Body className="font-medium">{item.name}</Body>
-                  <Badge tone={item.destination ? "neutral" : "success"}>
-                    {item.destination ? item.destination.name : "Org-wide"}
+                  <Badge tone={item.escapePoint ? "neutral" : "success"}>
+                    {item.escapePoint ? item.escapePoint.name : "Org-wide"}
                   </Badge>
                   {!item.isActive && <Badge tone="danger">Inactive</Badge>}
                 </div>
@@ -173,26 +207,57 @@ export function InclusionExclusionsPanel({
         </div>
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingUid ? "Edit item" : "Add item"} className="max-w-2xl">
+      <Modal
+        open={modalOpen}
+        onClose={() => {
+          if (saving) return;
+          setModalOpen(false);
+        }}
+        title={editingUid ? "Edit item" : "Add item"}
+        className="max-w-2xl"
+      >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <TextInput label="Name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
-          <Select
-            label="Destination"
-            options={destinations.map((d) => ({ value: d.uid, label: d.name }))}
-            value={form.destinationId}
-            onChange={(e) => setForm((f) => ({ ...f, destinationId: e.target.value }))}
-            placeholder="Org-wide (no destination)"
-          />
-          <RichTextEditor
-            label="Content"
-            value={form.contentHtml}
-            onChange={(html) => setForm((f) => ({ ...f, contentHtml: html }))}
-            placeholder="Type here…"
-          />
-          {formError && <p className="text-sm text-danger">{formError}</p>}
+          <fieldset disabled={saving} className="contents">
+            <TextInput
+              label="Name"
+              value={form.name}
+              onChange={(e) => {
+                setForm((f) => ({ ...f, name: e.target.value }));
+                setErrors((p) => ({ ...p, name: "" }));
+              }}
+              error={errors.name}
+              required
+            />
+            <Select
+              label="Escape Point"
+              options={escapePoints.map((d) => ({ value: d.uid, label: d.name }))}
+              value={form.escapePointId}
+              onChange={(e) => setForm((f) => ({ ...f, escapePointId: e.target.value }))}
+              placeholder="Org-wide (no escape point)"
+            />
+            <RichTextEditor
+              label="Content"
+              value={form.contentHtml}
+              onChange={(html) => {
+                setForm((f) => ({ ...f, contentHtml: html }));
+                setErrors((p) => ({ ...p, contentHtml: "" }));
+              }}
+              error={errors.contentHtml}
+              placeholder="Type here…"
+            />
+          </fieldset>
+          {formError && (
+            <Alert tone="danger" autoClose={false}>
+              {formError}
+            </Alert>
+          )}
           <div className="flex gap-2">
-            <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
-            <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={saving || (!!editingUid && !isDirty)} loading={saving} loadingText="Saving…">
+              Save
+            </Button>
+            <Button type="button" variant="ghost" disabled={saving} onClick={() => setModalOpen(false)}>
+              Cancel
+            </Button>
           </div>
         </form>
       </Modal>

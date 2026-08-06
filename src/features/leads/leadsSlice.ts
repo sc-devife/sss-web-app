@@ -8,7 +8,7 @@ import {
   toggleLeadPriority,
   applyLeadReasonAction,
   assignLead,
-  convertLeadToTrip,
+  convertLeadToEscape,
   fetchLeadAuditLog,
 } from "@/features/leads/leadsThunks";
 
@@ -97,14 +97,14 @@ const leadsSlice = createSlice({
         state.createError = action.payload ?? "Failed to create lead";
       })
 
-      .addCase(convertLeadToTrip.pending, (state) => {
+      .addCase(convertLeadToEscape.pending, (state) => {
         state.convertStatus = "loading";
         state.convertError = null;
       })
-      .addCase(convertLeadToTrip.fulfilled, (state) => {
+      .addCase(convertLeadToEscape.fulfilled, (state) => {
         state.convertStatus = "succeeded";
       })
-      .addCase(convertLeadToTrip.rejected, (state, action) => {
+      .addCase(convertLeadToEscape.rejected, (state, action) => {
         state.convertStatus = "failed";
         state.convertError = action.payload ?? "Failed to convert lead";
       })

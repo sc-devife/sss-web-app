@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { Deal } from "@/features/deals/types";
-import { fetchDealForTrip, acceptQuote } from "@/features/deals/dealsThunks";
+import { fetchDealForEscape, acceptQuote } from "@/features/deals/dealsThunks";
 
 type RequestStatus = "idle" | "loading" | "succeeded" | "failed";
 
@@ -32,15 +32,15 @@ const dealsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchDealForTrip.pending, (state) => {
+      .addCase(fetchDealForEscape.pending, (state) => {
         state.status = "loading";
         state.error = null;
       })
-      .addCase(fetchDealForTrip.fulfilled, (state, action) => {
+      .addCase(fetchDealForEscape.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.deal = action.payload;
       })
-      .addCase(fetchDealForTrip.rejected, (state, action) => {
+      .addCase(fetchDealForEscape.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload ?? "Failed to load deal";
       })

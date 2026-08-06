@@ -1,14 +1,13 @@
-import { Heading, Body } from "@/components/ui/Typography";
 import { HotelsPanel } from "@/components/library/HotelsPanel";
 import { getLocations } from "@/lib/locations";
-import { getDestinations } from "@/lib/destinations";
+import { getEscapePoints } from "@/lib/escape-points";
 
 export default async function Page() {
-  const [locations, destinations] = await Promise.all([getLocations(), getDestinations()]);
+  const [locations, escapePoints] = await Promise.all([getLocations(), getEscapePoints()]);
 
   return (
     <div className="flex flex-col gap-5">
-      <HotelsPanel locations={locations} destinations={destinations} />
+      <HotelsPanel locations={locations} escapePoints={escapePoints} />
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Body, Caption } from "@/components/ui/Typography";
 import type { AppUser, AppRole } from "@/lib/users";
-import { PiUsersThree, PiPencilSimple, PiProhibitFill, PiLockKeyOpenFill, PiWarningCircleFill, PiLockKeyOpenBold } from "react-icons/pi";
+import { PiUsersThree, PiPencilSimple, PiWarningCircleFill, PiLockKeyOpenBold } from "react-icons/pi";
 import { useAppDispatch } from "@/store/hooks";
 import { updateUserRoles, setUserBlockedStatus, fetchUsers } from "@/features/users/usersThunks";
 import { ImBlocked } from "react-icons/im";

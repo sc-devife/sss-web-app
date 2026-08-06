@@ -9,7 +9,7 @@ export interface Transport {
   basePrice: number | null;
   pickupLocation: string | null;
   dropLocation: string | null;
-  destination: { uid: string; name: string } | null;
+  escapePoint: { uid: string; name: string } | null;
   status: string | null;
 }
 

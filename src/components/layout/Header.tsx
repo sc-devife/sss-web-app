@@ -1,27 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { findRouteByPath, profileRoute } from "@/lib/nav-config";
 import Link from "next/link";
 import { LiaUserCircle } from "react-icons/lia";
 import { PiList } from "react-icons/pi";
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { toggleMobile } from "@/features/ui/uiSlice";
-import { getStoredUserData, type StoredUserData } from "@/lib/user-data-storage";
+import { selectLoggedInUser } from "@/features/auth/authSelectors";
+import { resolveFileUrl } from "@/lib/files";
 
 export function Header() {
   const pathname = usePathname();
   const route = findRouteByPath(pathname);
   const dispatch = useAppDispatch();
-
-  // Read once on mount — localStorage isn't available during SSR, and this
-  // is a cached snapshot of the login response, not something that needs to
-  // stay live-synced with the server.
-  const [userData, setUserData] = useState<StoredUserData | null>(null);
-  useEffect(() => {
-    setUserData(getStoredUserData());
-  }, []);
+  const user = useAppSelector(selectLoggedInUser);
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-4 md:px-5">
@@ -39,13 +32,23 @@ export function Header() {
       <div className="flex items-center gap-3">
         <Link
           href={profileRoute.path}
-          className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+          title="View Profile"
         >
-          <LiaUserCircle className="h-8 w-8" />
-          {userData && (
+          {user?.organizationLogo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={resolveFileUrl(user.organizationLogo)}
+              alt="Organization logo"
+              className="h-8 w-8 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <LiaUserCircle className="h-8 w-8 shrink-0" />
+          )}
+          {user && (
             <div className="hidden text-left leading-tight sm:block">
-              <div className="text-sm font-medium text-foreground">{userData.userId}</div>
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">{userData.role}</div>
+              <div className="text-sm font-medium text-foreground">{user.userId}</div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">{user.role}</div>
             </div>
           )}
         </Link>

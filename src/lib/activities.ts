@@ -3,7 +3,7 @@ import { backendJson } from "@/lib/backend";
 export interface Activity {
   uid: string;
   name: string;
-  destination: { uid: string; name: string } | null;
+  escapePoint: { uid: string; name: string } | null;
   categoryCode: string | null;
   durationMinutes: number | null;
   description: string | null;

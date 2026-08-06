@@ -17,7 +17,7 @@ export const fetchQuoteTemplates = createAsyncThunk<QuoteTemplate[], void, { rej
 
 // Mutates the Organization entity (its quote_template_id), not this module's
 // own data — same "different entity as a side effect" shape as
-// ConvertToTripModal's traveller creation. Organization itself isn't Redux-
+// ConvertToEscapeModal's traveller creation. Organization itself isn't Redux-
 // managed yet, so the panel calls router.refresh() afterward to pick up the
 // new default from its still-server-fetched organization prop.
 export const setDefaultQuoteTemplate = createAsyncThunk<void, SetDefaultQuoteTemplatePayload, { rejectValue: string }>(

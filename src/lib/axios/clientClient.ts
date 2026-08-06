@@ -16,7 +16,12 @@ clientApi.interceptors.response.use(
     // cookie-presence check (the cookie exists but the backend rejected the
     // JWT). No router instance is available inside an interceptor, so this
     // is a hard navigation rather than client-side routing.
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
+    //
+    // The /login call itself is excluded: a 401 there just means the
+    // submitted credentials were wrong, not a stale session, and the login
+    // page needs to handle that in place (inline error) rather than being
+    // hard-navigated away mid-render.
+    if (axios.isAxiosError(error) && error.response?.status === 401 && error.config?.url !== "/login") {
       window.location.assign("/login");
     }
     return Promise.reject(error);

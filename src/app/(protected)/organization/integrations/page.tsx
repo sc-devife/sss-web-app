@@ -1,4 +1,3 @@
-import { Heading, Body } from "@/components/ui/Typography";
 import { IntegrationsPanel } from "@/components/integrations/IntegrationsPanel";
 import { getMyOrganization } from "@/lib/organization";
 

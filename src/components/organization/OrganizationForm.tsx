@@ -7,11 +7,13 @@ import {
 } from "react-icons/pi";
 
 import { TextInput } from "@/components/ui/TextInput";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { Caption } from "@/components/ui/Typography";
 import { resolveFileUrl } from "@/lib/files";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { mobileField, runValidators } from "@/lib/validators";
 import { useAppDispatch } from "@/store/hooks";
 import { updateOrganization, uploadOrganizationLogo, fetchMyOrganization } from "@/features/organization/organizationThunks";
 import type { Organization } from "@/features/organization/types";
@@ -41,6 +43,7 @@ export function OrganizationForm({
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [error, setError] = useState<string>();
+  const [phoneError, setPhoneError] = useState<string>();
   const [saved, setSaved] = useState(false);
 
   async function handleLogoUpload(file: File) {
@@ -78,10 +81,16 @@ export function OrganizationForm({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-
-    setSaving(true);
     setError(undefined);
     setSaved(false);
+
+    const nextPhoneError = runValidators(supportPhone, [mobileField()]);
+    if (nextPhoneError) {
+      setPhoneError(nextPhoneError);
+      return;
+    }
+    setPhoneError(undefined);
+    setSaving(true);
 
     try {
       await dispatch(updateOrganization({
@@ -163,7 +172,7 @@ export function OrganizationForm({
                 className="shrink-0"
               >
                 <PiUploadSimple className="mr-2 h-5 w-5" />
-                {uploadingLogo ? "Uploading..." : "Choose Logo"}
+                {uploadingLogo ? "Uploading..." : "Choose New Logo"}
               </Button>
             </div>
 
@@ -178,39 +187,49 @@ export function OrganizationForm({
 
       {/* Organization Information */}
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <fieldset disabled={saving} className="contents">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 
-        <div>
-          <Caption className="mb-2 block">
-            Organization ID
-          </Caption>
+          <div>
+            <Caption className="mb-2 block">
+              Organization ID
+            </Caption>
 
-          <div className="rounded-lg border bg-muted px-4 py-3 text-sm font-medium">
-            {organization.org_code ?? "--"}
+            <div className="rounded-lg border bg-muted px-4 py-3 text-sm font-medium">
+              {organization.org_code ?? "--"}
+            </div>
           </div>
+
+          <PhoneInput
+            label="Support Phone"
+            value={supportPhone}
+            onChange={(v) => {
+              setSupportPhone(v);
+              setPhoneError(undefined);
+            }}
+            error={phoneError}
+          />
+
+          <TextInput
+            label="Display Name"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+          />
+
+          <TextInput
+            label="Registered Name"
+            value={registeredName}
+            onChange={(e) => setRegisteredName(e.target.value)}
+          />
+
         </div>
+      </fieldset>
 
-        <TextInput
-          label="Support Phone"
-          value={supportPhone}
-          onChange={(e) => setSupportPhone(e.target.value)}
-        />
-
-        <TextInput
-          label="Display Name"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-        />
-
-        <TextInput
-          label="Registered Name"
-          value={registeredName}
-          onChange={(e) => setRegisteredName(e.target.value)}
-        />
-
-      </div>
-
-      {error && <Alert tone="danger">{error}</Alert>}
+      {error && (
+        <Alert tone="danger" autoClose={false}>
+          {error}
+        </Alert>
+      )}
 
       {saved && <Alert tone="success">Organization updated successfully.</Alert>}
 
@@ -219,9 +238,11 @@ export function OrganizationForm({
         <Button
           type="submit"
           disabled={saving}
+          loading={saving}
+          loadingText="Saving..."
           className="min-w-[170px]"
         >
-          {saving ? "Saving..." : "Save Changes"}
+          Save Changes
         </Button>
 
       </div>

@@ -1,4 +1,3 @@
-import { Heading, Body } from "@/components/ui/Typography";
 import { LeadSourcesPanel } from "@/components/leadSources/LeadSourcesPanel";
 
 export default function LeadSourcesPage() {

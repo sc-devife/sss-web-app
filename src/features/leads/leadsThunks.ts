@@ -7,8 +7,8 @@ import type {
   CreateLeadPayload,
   LeadReasonActionPayload,
   AssignLeadPayload,
-  ConvertLeadToTripPayload,
-  ConvertLeadToTripResult,
+  ConvertLeadToEscapePayload,
+  ConvertLeadToEscapeResult,
 } from "@/features/leads/types";
 
 // Every thunk uses an explicit try/catch + rejectWithValue, rather than
@@ -101,11 +101,11 @@ export const assignLead = createAsyncThunk<void, AssignLeadPayload, { rejectValu
   },
 );
 
-export const convertLeadToTrip = createAsyncThunk<ConvertLeadToTripResult, ConvertLeadToTripPayload, { rejectValue: string }>(
-  "leads/convertToTrip",
+export const convertLeadToEscape = createAsyncThunk<ConvertLeadToEscapeResult, ConvertLeadToEscapePayload, { rejectValue: string }>(
+  "leads/convertToEscape",
   async (payload, { rejectWithValue }) => {
     try {
-      const res = await clientApi.post<ConvertLeadToTripResult>(`/leads/${payload.leadId}/actions/convert`, payload);
+      const res = await clientApi.post<ConvertLeadToEscapeResult>(`/leads/${payload.leadId}/actions/convert`, payload);
       return res.data;
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to convert lead"));

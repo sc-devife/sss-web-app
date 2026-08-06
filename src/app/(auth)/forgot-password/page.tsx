@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
                     autoComplete="username"
                     placeholder="Enter your email"
                     disabled={loading}
-                    className="h-[50px] w-full rounded-[10px] border border-[#c8c8c8] bg-transparent px-14 text-[16px] text-black outline-none transition placeholder:text-[#aaa] focus:border-[#c8ff32] focus:ring-1 focus:ring-[#c8ff32] disabled:cursor-not-allowed disabled:bg-gray-50"
+                    className="h-[50px] w-full rounded-[10px] border border-[#c8c8c8] bg-transparent px-14 text-[16px] text-black outline-none transition placeholder:text-[#aaa] focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:bg-gray-50"
                   />
                 </div>
                 {emailError && <Body className="mt-1 text-sm text-red-500">{emailError}</Body>}

@@ -8,9 +8,9 @@ import { cn } from "@/lib/cn";
 import { FaChevronLeft, FaChevronRight, FaPowerOff } from "react-icons/fa";
 import { PiAirplaneTiltFill } from "react-icons/pi";
 import { clientApi } from "@/lib/axios/clientClient";
-import { clearStoredUserData } from "@/lib/user-data-storage";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setCollapsed as setCollapsedAction, closeMobile as closeMobileAction } from "@/features/ui/uiSlice";
+import { clearLoggedInUser } from "@/features/auth/authSlice";
 import pkg from "../../../package.json";
 
 const COLLAPSED_STORAGE_KEY = "sidebar-collapsed";
@@ -77,7 +77,7 @@ export function Sidebar({ roles }: { roles: string[] }) {
     setLoggingOut(true);
     try {
       await clientApi.post("/logout");
-      clearStoredUserData();
+      dispatch(clearLoggedInUser());
       router.push("/login");
       router.refresh();
     } finally {
@@ -117,6 +117,7 @@ export function Sidebar({ roles }: { roles: string[] }) {
               "hidden shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:flex",
               collapsed && "md:hidden",
             )}
+            title={collapsed ? "Maximize sidebar" : "Minimize sidebar"}
           >
             <FaChevronLeft className="h-4 w-4" />
           </button>
@@ -126,6 +127,7 @@ export function Sidebar({ roles }: { roles: string[] }) {
               onClick={() => setCollapsed(false)}
               aria-label="Expand sidebar"
               className="mx-auto mt-2 hidden rounded-lg py-1.5 px-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:flex"
+              title="Maximize sidebar"
             >
               <FaChevronRight className="h-4 w-4" />
             </button>

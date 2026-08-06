@@ -9,8 +9,8 @@ import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import type { Lead } from "@/lib/leads";
 import type { AppUser } from "@/lib/users";
-import type { Destination } from "@/lib/destinations";
-import { ConvertToTripModal } from "@/components/leads/ConvertToTripModal";
+import type { EscapePoint } from "@/lib/escape-points";
+import { ConvertToEscapeModal } from "@/components/leads/ConvertToEscapeModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchLeads, contactLead, qualifyLead, toggleLeadPriority, applyLeadReasonAction, assignLead, fetchLeadAuditLog } from "@/features/leads/leadsThunks";
 import { clearAuditLog } from "@/features/leads/leadsSlice";
@@ -22,12 +22,12 @@ const TERMINAL_STATUSES = ["Unqualified", "Lost", "Duplicate", "Converted"];
 export function LeadDetailModal({
   lead,
   users,
-  destinations,
+  escapePoints,
   onClose,
 }: {
   lead: Lead;
   users: AppUser[];
-  destinations: Destination[];
+  escapePoints: EscapePoint[];
   onClose: () => void;
 }) {
   const dispatch = useAppDispatch();
@@ -116,7 +116,7 @@ export function LeadDetailModal({
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
           <div><Caption>Email</Caption><Body>{lead.email || "—"}</Body></div>
           <div><Caption>Phone</Caption><Body>{lead.phone || "—"}</Body></div>
-          <div><Caption>Destination</Caption><Body>{lead.destination || "—"}</Body></div>
+          <div><Caption>Escape Point</Caption><Body>{lead.destination || "—"}</Body></div>
           <div><Caption>Travellers</Caption><Body>{lead.numberOfPeople ?? "—"}</Body></div>
           <div><Caption>Travel date</Caption><Body>{lead.travelDate ?? "—"}</Body></div>
           <div><Caption>Duration</Caption><Body>{lead.durationDays ? `${lead.durationDays} days` : "—"}</Body></div>
@@ -146,7 +146,7 @@ export function LeadDetailModal({
                 <Button size="sm" disabled={busy} onClick={handleQualify}>Mark qualified</Button>
               )}
               {lead.status === "Qualified" && (
-                <Button size="sm" disabled={busy} onClick={() => setConvertOpen(true)}>Convert to trip</Button>
+                <Button size="sm" disabled={busy} onClick={() => setConvertOpen(true)}>Convert to escape</Button>
               )}
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => setReasonPrompt("disqualify")}>Disqualify</Button>
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => setReasonPrompt("mark-lost")}>Mark lost</Button>
@@ -217,7 +217,7 @@ export function LeadDetailModal({
       </div>
 
       {convertOpen && (
-        <ConvertToTripModal lead={lead} destinations={destinations} onClose={() => setConvertOpen(false)} />
+        <ConvertToEscapeModal lead={lead} escapePoints={escapePoints} onClose={() => setConvertOpen(false)} />
       )}
     </Modal>
   );

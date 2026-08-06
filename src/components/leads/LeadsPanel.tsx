@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
@@ -11,7 +12,7 @@ import { Body } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import type { Lead } from "@/lib/leads";
 import type { AppUser } from "@/lib/users";
-import type { Destination } from "@/lib/destinations";
+import type { EscapePoint } from "@/lib/escape-points";
 import { LeadDetailModal } from "@/components/leads/LeadDetailModal";
 import { FaPlus } from "react-icons/fa";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -30,7 +31,7 @@ const emptyForm = {
   email: "",
   phone: "",
   destination: "",
-  destinationId: "",
+  escapePointId: "",
   numberOfPeople: "",
   travelDate: "",
   durationDays: "",
@@ -47,10 +48,10 @@ const TERMINAL_STATUSES = ["Unqualified", "Lost", "Duplicate", "Converted"];
 
 export function LeadsPanel({
   users,
-  destinations,
+  escapePoints,
 }: {
   users: AppUser[];
-  destinations: Destination[];
+  escapePoints: EscapePoint[];
 }) {
   const dispatch = useAppDispatch();
   const leads = useAppSelector(selectLeads);
@@ -100,7 +101,7 @@ export function LeadsPanel({
           email: form.email,
           phone: form.phone,
           destination: form.destination || null,
-          destinationId: form.destinationId || null,
+          escapePointId: form.escapePointId || null,
           numberOfPeople: form.numberOfPeople ? Number(form.numberOfPeople) : null,
           travelDate: form.travelDate || null,
           durationDays: form.durationDays ? Number(form.durationDays) : null,
@@ -133,7 +134,7 @@ export function LeadsPanel({
     },
     {
       key: "destination",
-      header: "Destination",
+      header: "Escape Point",
       render: (l) => l.destination || "—",
       filterValue: (l) => l.destination ?? "",
     },
@@ -192,17 +193,17 @@ export function LeadsPanel({
           <TextInput label="Name" value={form.name} onChange={(e) => update("name", e.target.value)} required />
           <div className="grid grid-cols-2 gap-4">
             <TextInput label="Email" type="email" value={form.email} onChange={(e) => update("email", e.target.value)} />
-            <TextInput label="Phone" value={form.phone} onChange={(e) => update("phone", e.target.value)} />
+            <PhoneInput label="Phone" value={form.phone} onChange={(v) => update("phone", v)} />
           </div>
           <p className="-mt-2 text-xs text-muted-foreground">Email or phone is required (at least one).</p>
 
-          <TextInput label="Destination (free text)" value={form.destination} onChange={(e) => update("destination", e.target.value)} placeholder="e.g. Bali" />
+          <TextInput label="Escape Point (free text)" value={form.destination} onChange={(e) => update("destination", e.target.value)} placeholder="e.g. Bali" />
           <Select
-            label="Destination (library)"
-            options={destinations.map((d) => ({ value: d.uid, label: d.name }))}
-            value={form.destinationId}
-            onChange={(e) => update("destinationId", e.target.value)}
-            placeholder="Optional — link to a library destination"
+            label="Escape Point (library)"
+            options={escapePoints.map((d) => ({ value: d.uid, label: d.name }))}
+            value={form.escapePointId}
+            onChange={(e) => update("escapePointId", e.target.value)}
+            placeholder="Optional — link to a library escape point"
           />
 
           <div className="grid grid-cols-2 gap-4">
@@ -258,7 +259,7 @@ export function LeadsPanel({
       </Modal>
 
       {selectedLead && (
-        <LeadDetailModal lead={selectedLead} users={users} destinations={destinations} onClose={() => setSelectedLead(null)} />
+        <LeadDetailModal lead={selectedLead} users={users} escapePoints={escapePoints} onClose={() => setSelectedLead(null)} />
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
+import { Spinner } from "@/components/ui/Spinner";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md";
@@ -7,6 +8,11 @@ type Size = "sm" | "md";
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
+  /** Shows a spinner and disables the button. Existing call sites that hand-roll
+   * their own spinner+text swap are unaffected — this is purely additive. */
+  loading?: boolean;
+  /** Text shown in place of children while `loading` is true. */
+  loadingText?: string;
 }
 
 const variantClasses: Record<Variant, string> = {
@@ -21,9 +27,20 @@ const sizeClasses: Record<Size, string> = {
   md: "h-10 px-4 text-sm",
 };
 
-export function Button({ variant = "primary", size = "md", className, ...props }: ButtonProps) {
+export function Button({
+  variant = "primary",
+  size = "md",
+  loading = false,
+  loadingText,
+  disabled,
+  className,
+  children,
+  ...props
+}: ButtonProps) {
   return (
     <button
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded font-medium transition-colors",
         "disabled:opacity-50 disabled:pointer-events-none",
@@ -33,6 +50,9 @@ export function Button({ variant = "primary", size = "md", className, ...props }
         className,
       )}
       {...props}
-    />
+    >
+      {loading && <Spinner size="sm" tone="current" />}
+      {loading && loadingText ? loadingText : children}
+    </button>
   );
 }

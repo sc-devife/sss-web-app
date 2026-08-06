@@ -88,7 +88,7 @@ function ResetPasswordForm() {
             autoComplete="new-password"
             placeholder="Enter a new password"
             disabled={loading}
-            className="h-[50px] w-full rounded-[10px] border border-[#c8c8c8] bg-transparent px-14 pr-14 text-[16px] text-black outline-none transition placeholder:text-[#aaa] focus:border-[#c8ff32] focus:ring-1 focus:ring-[#c8ff32] disabled:cursor-not-allowed disabled:bg-gray-50"
+            className="h-[50px] w-full rounded-[10px] border border-[#c8c8c8] bg-transparent px-14 pr-14 text-[16px] text-black outline-none transition placeholder:text-[#aaa] focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:bg-gray-50"
           />
           <button
             type="button"
@@ -121,7 +121,7 @@ function ResetPasswordForm() {
             autoComplete="new-password"
             placeholder="Re-enter the new password"
             disabled={loading}
-            className="h-[50px] w-full rounded-[10px] border border-[#c8c8c8] bg-transparent px-14 text-[16px] text-black outline-none transition placeholder:text-[#aaa] focus:border-[#c8ff32] focus:ring-1 focus:ring-[#c8ff32] disabled:cursor-not-allowed disabled:bg-gray-50"
+            className="h-[50px] w-full rounded-[10px] border border-[#c8c8c8] bg-transparent px-14 text-[16px] text-black outline-none transition placeholder:text-[#aaa] focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:bg-gray-50"
           />
         </div>
       </div>

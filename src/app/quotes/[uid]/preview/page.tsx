@@ -2,7 +2,7 @@ import { getQuoteByUid } from "@/lib/quotes";
 import { getItineraryByUid } from "@/lib/itineraries";
 import { getItemsForItinerary } from "@/lib/itinerary-items";
 import { getItineraryContentItems } from "@/lib/itinerary-content-items";
-import { getTripById } from "@/lib/trips";
+import { getEscapeById } from "@/lib/escapes";
 import { getMyOrganization } from "@/lib/organization";
 import { getQuoteTemplates } from "@/lib/quote-templates";
 import { resolveFileUrl } from "@/lib/files";
@@ -14,7 +14,7 @@ export default async function QuotePreviewPage({ params }: { params: { uid: stri
   const [items, contentItems, trip, organization, templates] = await Promise.all([
     getItemsForItinerary(itinerary.uid),
     getItineraryContentItems(itinerary.uid),
-    getTripById(itinerary.tripId),
+    getEscapeById(itinerary.escapeId),
     getMyOrganization(),
     getQuoteTemplates(),
   ]);
@@ -69,7 +69,7 @@ export default async function QuotePreviewPage({ params }: { params: { uid: stri
             {itinerary.name}
           </h1>
           <p className="text-sm text-gray-600">
-            {trip.destinations.map((d) => d.name).join(", ")}
+            {trip.escapePoints.map((d) => d.name).join(", ")}
             {trip.startDate && ` · ${trip.startDate}`}
             {trip.numberOfDays && ` · ${trip.numberOfDays} days`}
           </p>

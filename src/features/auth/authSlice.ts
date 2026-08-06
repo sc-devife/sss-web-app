@@ -1,36 +1,39 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { CurrentUser } from "@/lib/current-user";
 
-// Client-side mirror of the current user, seeded from the server-resolved
-// value in (protected)/layout.tsx so client components can useSelector it
-// instead of prop-drilling. This is NOT the authorization boundary — that's
-// still middleware.ts's cookie check + (protected)/layout.tsx's own
-// getCurrentUser() call, both untouched. This slice only exists so client
-// components have a convenient read of who's logged in.
+// Single source of truth for the logged-in user's identity — populated from
+// the login response on sign-in, and re-derived from the server-resolved
+// current user (see AuthHydrator) on every protected-page load/refresh, so
+// the Header keeps working after a refresh without ever touching
+// localStorage. This is NOT the authorization boundary — that's still
+// middleware.ts's cookie check + (protected)/layout.tsx's own
+// getCurrentUser() call, both untouched.
+export interface LoggedInUser {
+  userId: string;
+  name: string;
+  role: string;
+  organizationLogo: string | null;
+}
+
 interface AuthState {
-  user: CurrentUser | null;
-  roles: string[];
+  user: LoggedInUser | null;
 }
 
 const initialState: AuthState = {
   user: null,
-  roles: [],
 };
 
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    setCurrentUser(state, action: PayloadAction<{ user: CurrentUser; roles: string[] }>) {
-      state.user = action.payload.user;
-      state.roles = action.payload.roles;
+    setLoggedInUser(state, action: PayloadAction<LoggedInUser>) {
+      state.user = action.payload;
     },
-    clearCurrentUser(state) {
+    clearLoggedInUser(state) {
       state.user = null;
-      state.roles = [];
     },
   },
 });
 
-export const { setCurrentUser, clearCurrentUser } = authSlice.actions;
+export const { setLoggedInUser, clearLoggedInUser } = authSlice.actions;
 export default authSlice.reducer;

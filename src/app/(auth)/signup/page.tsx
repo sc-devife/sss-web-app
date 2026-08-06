@@ -3,12 +3,14 @@
 import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { IoMailOutline, IoLockClosedOutline, IoPersonOutline, IoCallOutline } from "react-icons/io5";
+import { IoMailOutline, IoLockClosedOutline, IoPersonOutline } from "react-icons/io5";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { isValidPhoneNumber } from "react-phone-number-input";
 import { Card } from "@/components/ui/Card";
 import { Heading, Body } from "@/components/ui/Typography";
 import { Button } from "@/components/ui/Button";
-import { isValidSignupPassword, isValidUserId, isValidPhone, validationMessages } from "@/lib/validators";
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import { isValidSignupPassword, isValidUserId, validationMessages } from "@/lib/validators";
 import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 
@@ -17,7 +19,7 @@ function fieldClass(hasError: boolean) {
 }
 
 const inputClass =
-  "h-[50px] w-full rounded-[10px] border border-[#c8c8c8] bg-transparent px-14 text-[16px] text-black outline-none transition placeholder:text-[#aaa] focus:border-[#c8ff32] focus:ring-1 focus:ring-[#c8ff32] disabled:cursor-not-allowed disabled:bg-gray-50";
+  "h-11 w-full rounded-[10px] border border-[#c8c8c8] bg-transparent px-14 text-[15px] text-black outline-none transition placeholder:text-[#aaa] focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:bg-gray-50";
 
 function SignupForm() {
   const router = useRouter();
@@ -46,7 +48,7 @@ function SignupForm() {
     if (!firstName.trim()) nextErrors.firstName = "First name is required";
     if (!lastName.trim()) nextErrors.lastName = "Last name is required";
     if (!isValidUserId(userId)) nextErrors.userId = validationMessages.userId;
-    if (!isValidPhone(mobileNumber)) nextErrors.mobileNumber = validationMessages.phone;
+    if (!mobileNumber.trim() || !isValidPhoneNumber(mobileNumber)) nextErrors.mobileNumber = "Enter a valid phone number";
     if (!isValidSignupPassword(password)) nextErrors.password = validationMessages.signupPassword;
     if (!confirmPassword) nextErrors.confirmPassword = "Please confirm your password";
     else if (password !== confirmPassword) nextErrors.confirmPassword = "Passwords do not match";
@@ -85,23 +87,23 @@ function SignupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <div className="w-full">
-        <label className="mb-2 block text-[16px] text-[#171717]">Email</label>
+        <label className="mb-1.5 block text-[14px] text-[#171717]">Email</label>
         <div className="relative">
           <IoMailOutline
             aria-hidden="true"
-            className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[24px] text-[#c8c8c8]"
+            className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[20px] text-[#c8c8c8]"
           />
           <input value={email} disabled readOnly className={inputClass} />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         <div className="w-full">
-          <label htmlFor="firstName" className="mb-2 block text-[16px] text-[#171717]">First name</label>
+          <label htmlFor="firstName" className="mb-1.5 block text-[14px] text-[#171717]">First name</label>
           <div className={fieldClass(!!errors.firstName)}>
-            <IoPersonOutline aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[24px] text-[#c8c8c8]" />
+            <IoPersonOutline aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[20px] text-[#c8c8c8]" />
             <input id="firstName" name="firstName" value={firstName}
               onChange={(e) => { setFirstName(e.target.value); setErrors((p) => ({ ...p, firstName: "" })); }}
               disabled={loading} placeholder="First name" className={inputClass} />
@@ -109,9 +111,9 @@ function SignupForm() {
           {errors.firstName && <Body className="mt-1 text-sm text-red-500">{errors.firstName}</Body>}
         </div>
         <div className="w-full">
-          <label htmlFor="lastName" className="mb-2 block text-[16px] text-[#171717]">Last name</label>
+          <label htmlFor="lastName" className="mb-1.5 block text-[14px] text-[#171717]">Last name</label>
           <div className={fieldClass(!!errors.lastName)}>
-            <IoPersonOutline aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[24px] text-[#c8c8c8]" />
+            <IoPersonOutline aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[20px] text-[#c8c8c8]" />
             <input id="lastName" name="lastName" value={lastName}
               onChange={(e) => { setLastName(e.target.value); setErrors((p) => ({ ...p, lastName: "" })); }}
               disabled={loading} placeholder="Last name" className={inputClass} />
@@ -121,9 +123,9 @@ function SignupForm() {
       </div>
 
       <div className="w-full">
-        <label htmlFor="userId" className="mb-2 block text-[16px] text-[#171717]">User ID</label>
+        <label htmlFor="userId" className="mb-1.5 block text-[14px] text-[#171717]">User ID</label>
         <div className={fieldClass(!!errors.userId)}>
-          <IoPersonOutline aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[24px] text-[#c8c8c8]" />
+          <IoPersonOutline aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[20px] text-[#c8c8c8]" />
           <input id="userId" name="userId" value={userId}
             onChange={(e) => { setUserId(e.target.value); setErrors((p) => ({ ...p, userId: "" })); }}
             disabled={loading} placeholder="Choose a user ID" className={inputClass} />
@@ -132,48 +134,50 @@ function SignupForm() {
       </div>
 
       <div className="w-full">
-        <label htmlFor="mobileNumber" className="mb-2 block text-[16px] text-[#171717]">Mobile number</label>
-        <div className={fieldClass(!!errors.mobileNumber)}>
-          <IoCallOutline aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[24px] text-[#c8c8c8]" />
-          <input id="mobileNumber" name="mobileNumber" value={mobileNumber}
-            onChange={(e) => { setMobileNumber(e.target.value); setErrors((p) => ({ ...p, mobileNumber: "" })); }}
-            disabled={loading} placeholder="10-digit mobile number" className={inputClass} />
-        </div>
+        <PhoneInput
+          label="Mobile number"
+          value={mobileNumber}
+          onChange={(v) => { setMobileNumber(v); setErrors((p) => ({ ...p, mobileNumber: "" })); }}
+          disabled={loading}
+          defaultCountry="IN"
+          inputClassName="signup-phone-input"
+          labelClassName="mb-1.5 block text-[14px] text-[#171717]"
+        />
         {errors.mobileNumber && <Body className="mt-1 text-sm text-red-500">{errors.mobileNumber}</Body>}
       </div>
 
       <div className="w-full">
-        <label htmlFor="password" className="mb-2 block text-[16px] text-[#171717]">Password</label>
+        <label htmlFor="password" className="mb-1.5 block text-[14px] text-[#171717]">Password</label>
         <div className={fieldClass(!!errors.password)}>
-          <IoLockClosedOutline aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[24px] text-[#c8c8c8]" />
+          <IoLockClosedOutline aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[20px] text-[#c8c8c8]" />
           <input id="password" name="password" type={showPassword ? "text" : "password"} value={password}
             onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: "" })); }}
             autoComplete="new-password" disabled={loading} placeholder="Create a password"
             className={`${inputClass} pr-14`} />
           <button type="button" onClick={() => setShowPassword((p) => !p)} disabled={loading}
             aria-label={showPassword ? "Hide password" : "Show password"}
-            className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-[21px] text-[#6f6f6f] transition hover:text-black disabled:cursor-not-allowed disabled:opacity-50">
+            className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-[19px] text-[#6f6f6f] transition hover:text-black disabled:cursor-not-allowed disabled:opacity-50">
             {showPassword ? <FaEyeSlash /> : <FaEye />}
           </button>
         </div>
         {errors.password ? (
           <Body className="mt-1 text-sm text-red-500">{errors.password}</Body>
         ) : (
-          <Body className="mt-1 text-sm text-[#6f6f6f]">At least 8 characters, with upper, lower, a number, and one of . @ $ ! % * # ? &amp;</Body>
+          <Body className="mt-1 text-xs text-[#6f6f6f]">At least 8 characters, with upper, lower, a number, and one of . @ $ ! % * # ? &amp;</Body>
         )}
       </div>
 
       <div className="w-full">
-        <label htmlFor="confirmPassword" className="mb-2 block text-[16px] text-[#171717]">Confirm password</label>
+        <label htmlFor="confirmPassword" className="mb-1.5 block text-[14px] text-[#171717]">Confirm password</label>
         <div className={fieldClass(!!errors.confirmPassword)}>
-          <IoLockClosedOutline aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[24px] text-[#c8c8c8]" />
+          <IoLockClosedOutline aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[20px] text-[#c8c8c8]" />
           <input id="confirmPassword" name="confirmPassword" type={showConfirmPassword ? "text" : "password"} value={confirmPassword}
             onChange={(e) => { setConfirmPassword(e.target.value); setErrors((p) => ({ ...p, confirmPassword: "" })); }}
             autoComplete="new-password" disabled={loading} placeholder="Re-enter your password"
             className={`${inputClass} pr-14`} />
           <button type="button" onClick={() => setShowConfirmPassword((p) => !p)} disabled={loading}
             aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-            className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-[21px] text-[#6f6f6f] transition hover:text-black disabled:cursor-not-allowed disabled:opacity-50">
+            className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-[19px] text-[#6f6f6f] transition hover:text-black disabled:cursor-not-allowed disabled:opacity-50">
             {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
           </button>
         </div>
@@ -183,7 +187,7 @@ function SignupForm() {
       {formError && <Body className="text-sm text-red-500 text-center">{formError}</Body>}
 
       <Button type="submit" disabled={loading}
-        className="mt-1 h-[48px] rounded-[8px] bg-[#c8ff32] text-[18px] font-bold text-black transition hover:bg-[#bafa20]">
+        className="mt-1 h-11 rounded-[8px] bg-[#c8ff32] text-[16px] font-bold text-black transition hover:bg-[#bafa20]">
         {loading ? "Creating account…" : "Create account"}
       </Button>
     </form>

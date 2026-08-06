@@ -5,7 +5,7 @@ export interface CreateLeadPayload {
   email: string;
   phone: string;
   destination: string | null;
-  destinationId: string | null;
+  escapePointId: string | null;
   numberOfPeople: number | null;
   travelDate: string | null;
   durationDays: number | null;
@@ -30,14 +30,14 @@ export interface AssignLeadPayload {
   reason?: string;
 }
 
-export interface ConvertLeadToTripPayload {
+export interface ConvertLeadToEscapePayload {
   leadId: number;
   travellerIds: number[];
-  destinationIds: number[];
+  escapePointIds: number[];
   startDate: string;
   numberOfDays: number;
 }
 
-export interface ConvertLeadToTripResult {
+export interface ConvertLeadToEscapeResult {
   seqp: number;
 }

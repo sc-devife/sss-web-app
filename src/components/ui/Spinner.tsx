@@ -7,12 +7,28 @@ const sizeClasses: Record<"sm" | "md" | "lg", string> = {
   lg: "h-8 w-8 border-[3px]",
 };
 
-export function Spinner({ size = "md", className }: { size?: "sm" | "md" | "lg"; className?: string }) {
+// "current" inherits the surrounding text color — needed inside solid-fill
+// buttons (e.g. primary/danger variants), where the default border-primary
+// would blend into a bg-primary background and become invisible.
+const toneClasses: Record<"primary" | "current", string> = {
+  primary: "border-primary",
+  current: "border-current",
+};
+
+export function Spinner({
+  size = "md",
+  tone = "primary",
+  className,
+}: {
+  size?: "sm" | "md" | "lg";
+  tone?: "primary" | "current";
+  className?: string;
+}) {
   return (
     <div
       role="status"
       aria-label="Loading"
-      className={cn("animate-spin rounded-full border-primary border-t-transparent", sizeClasses[size], className)}
+      className={cn("animate-spin rounded-full border-t-transparent", sizeClasses[size], toneClasses[tone], className)}
     />
   );
 }

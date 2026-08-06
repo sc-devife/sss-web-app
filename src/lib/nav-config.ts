@@ -52,7 +52,7 @@ export const routeGroups: RouteGroup[] = [
     routes: [
       { path: "/leads", title: "Leads", icon: PiUserPlus },
       { path: "/leads/sources", title: "Lead Sources", icon: TbPlug },
-      { path: "/trips", title: "Trips", icon: PiAirplaneTilt },
+      { path: "/escapes", title: "Escapes", icon: PiAirplaneTilt },
     ],
   },
   {
@@ -61,7 +61,7 @@ export const routeGroups: RouteGroup[] = [
     icon: PiStackSimple,
     routes: [
       { path: "/library/hotels", title: "Hotels", icon: TbHotelService },
-      { path: "/library/destinations", title: "Destinations", icon: PiMapPin },
+      { path: "/library/escape-points", title: "Escape Points", icon: PiMapPin },
       { path: "/library/activities", title: "Activities", icon: TbKayak },
       { path: "/library/transport", title: "Transport", icon: TbBus },
       { path: "/library/service-providers", title: "Service Providers", icon: PiSuitcaseRolling },

@@ -13,7 +13,7 @@ export interface Lead {
   status: string;
   sourceCode: string | null;
   sourceRefId: string | null;
-  destinationId: string | null;
+  escapePointId: string | null;
   isPriority: boolean | null;
   originCity: string | null;
   travelType: string | null;

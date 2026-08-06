@@ -6,7 +6,7 @@
 //
 // Server-only, enforced: country-state-city embeds its entire world dataset
 // (17MB unpacked) in the module — importing this from a Client Component
-// bundles all of it into client JS (a "/library/destinations" page briefly
+// bundles all of it into client JS (a "/library/escape-points" page briefly
 // shipped a 2.3MB bundle this way). Client components must go through
 // src/lib/reference-data-client.ts's fetch-based API instead.
 import "server-only";

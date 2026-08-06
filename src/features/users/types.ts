@@ -19,7 +19,7 @@ export interface SetUserBlockedPayload {
 
 export interface AgentAssignmentSettings {
   isSpecialist: boolean;
-  specialistDestinations: number[];
+  specialistEscapePoints: number[];
   maxConcurrentAssignments: number | null;
   eligibleForPriorityLeads: boolean;
   acceptingLeads: boolean;

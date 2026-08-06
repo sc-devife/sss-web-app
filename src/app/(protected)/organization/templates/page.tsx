@@ -1,4 +1,4 @@
-import { Heading, Body, Caption } from "@/components/ui/Typography";
+import { Heading, Body } from "@/components/ui/Typography";
 import { TemplatesPanel } from "@/components/organization/TemplatesPanel";
 import { InvoiceTemplatesPanel } from "@/components/organization/InvoiceTemplatesPanel";
 import { getMyOrganization } from "@/lib/organization";

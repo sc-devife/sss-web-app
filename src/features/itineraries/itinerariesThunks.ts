@@ -3,11 +3,11 @@ import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import type { Itinerary, CreateItineraryPayload } from "@/features/itineraries/types";
 
-export const fetchItinerariesForTrip = createAsyncThunk<Itinerary[], number, { rejectValue: string }>(
-  "itineraries/fetchItinerariesForTrip",
-  async (tripId, { rejectWithValue }) => {
+export const fetchItinerariesForEscape = createAsyncThunk<Itinerary[], number, { rejectValue: string }>(
+  "itineraries/fetchItinerariesForEscape",
+  async (escapeId, { rejectWithValue }) => {
     try {
-      const res = await clientApi.get<Itinerary[]>(`/itineraries?tripId=${tripId}`);
+      const res = await clientApi.get<Itinerary[]>(`/itineraries?escapeId=${escapeId}`);
       return res.data;
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to load itineraries"));

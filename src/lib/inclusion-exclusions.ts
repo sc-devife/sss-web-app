@@ -8,10 +8,10 @@ export interface InclusionExclusionItem {
   name: string;
   type: InclusionExclusionType;
   contentHtml: string | null;
-  destinationId: string | null;
+  escapePointId: string | null;
   sortOrder: number | null;
   isActive: boolean;
-  destination: { seqp: number; uid: string; name: string } | null;
+  escapePoint: { seqp: number; uid: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -14,7 +14,7 @@ export default function LandingPage() {
 
       <main className="flex flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
         <Heading as="h1" className="max-w-xl text-3xl">
-          Run your travel agency&apos;s leads, trips, and quotes in one place
+          Run your travel agency&apos;s leads, escapes, and quotes in one place
         </Heading>
         <Body muted className="max-w-md">
           Travel Planner CRM helps agencies manage leads, build itineraries, send quotes, and track

@@ -7,7 +7,9 @@ import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
 import { Body } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
+import { Alert } from "@/components/ui/Alert";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { required, runValidators } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchFieldMappings, saveFieldMapping } from "@/features/integrations/integrationsThunks";
 import { selectFieldMappings, selectFieldMappingsStatus, selectFieldMappingsError } from "@/features/integrations/integrationsSelectors";
@@ -16,7 +18,7 @@ const CRM_FIELD_OPTIONS = [
   { value: "name", label: "Name" },
   { value: "email", label: "Email" },
   { value: "phone", label: "Phone" },
-  { value: "destination_hint", label: "Destination" },
+  { value: "destination_hint", label: "Escape Point" },
   { value: "travel_date", label: "Travel date" },
   { value: "number_of_people", label: "Number of people" },
   { value: "duration_days", label: "Duration (days)" },
@@ -33,6 +35,7 @@ export function FieldMappingEditor({ channelCode, onClose }: { channelCode: stri
   const error = useAppSelector(selectFieldMappingsError);
 
   const [newRow, setNewRow] = useState(emptyRow);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
 
@@ -41,12 +44,14 @@ export function FieldMappingEditor({ channelCode, onClose }: { channelCode: stri
   }, [dispatch, channelCode]);
 
   async function handleAdd() {
-    if (!newRow.metaFieldKey.trim()) {
-      setFormError("Meta field key is required");
+    setFormError(undefined);
+    const metaFieldKeyErr = runValidators(newRow.metaFieldKey, [required("Meta field key is required")]);
+    if (metaFieldKeyErr) {
+      setErrors({ metaFieldKey: metaFieldKeyErr });
       return;
     }
+    setErrors({});
     setSaving(true);
-    setFormError(undefined);
     try {
       await dispatch(
         saveFieldMapping({
@@ -90,28 +95,38 @@ export function FieldMappingEditor({ channelCode, onClose }: { channelCode: stri
           </div>
 
           <div className="grid grid-cols-2 gap-3 rounded border border-border p-3">
-            <TextInput
-              label="Meta field key"
-              value={newRow.metaFieldKey}
-              onChange={(e) => setNewRow((r) => ({ ...r, metaFieldKey: e.target.value }))}
-              placeholder="e.g. q_which_destination"
-            />
-            <Select
-              label="CRM field"
-              options={CRM_FIELD_OPTIONS}
-              value={newRow.crmField}
-              onChange={(e) => setNewRow((r) => ({ ...r, crmField: e.target.value }))}
-            />
-            <TextInput
-              label="Form ID (optional)"
-              value={newRow.formId}
-              onChange={(e) => setNewRow((r) => ({ ...r, formId: e.target.value }))}
-              placeholder="Leave blank for org-wide default"
-              className="col-span-2"
-            />
-            {formError && <p className="col-span-2 text-sm text-danger">{formError}</p>}
-            <Button className="col-span-2" disabled={saving} onClick={handleAdd}>
-              {saving ? "Saving…" : "Add mapping"}
+            <fieldset disabled={saving} className="contents">
+              <TextInput
+                label="Meta field key"
+                value={newRow.metaFieldKey}
+                onChange={(e) => {
+                  setNewRow((r) => ({ ...r, metaFieldKey: e.target.value }));
+                  setErrors((p) => ({ ...p, metaFieldKey: "" }));
+                }}
+                error={errors.metaFieldKey}
+                placeholder="e.g. q_which_destination"
+              />
+              <Select
+                label="CRM field"
+                options={CRM_FIELD_OPTIONS}
+                value={newRow.crmField}
+                onChange={(e) => setNewRow((r) => ({ ...r, crmField: e.target.value }))}
+              />
+              <TextInput
+                label="Form ID (optional)"
+                value={newRow.formId}
+                onChange={(e) => setNewRow((r) => ({ ...r, formId: e.target.value }))}
+                placeholder="Leave blank for org-wide default"
+                className="col-span-2"
+              />
+            </fieldset>
+            {formError && (
+              <Alert tone="danger" autoClose={false} className="col-span-2">
+                {formError}
+              </Alert>
+            )}
+            <Button className="col-span-2" disabled={saving} loading={saving} loadingText="Saving…" onClick={handleAdd}>
+              Add mapping
             </Button>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { Itinerary } from "@/features/itineraries/types";
-import { fetchItinerariesForTrip, createItinerary, deleteItinerary, newItineraryVersion } from "@/features/itineraries/itinerariesThunks";
+import { fetchItinerariesForEscape, createItinerary, deleteItinerary, newItineraryVersion } from "@/features/itineraries/itinerariesThunks";
 
 type RequestStatus = "idle" | "loading" | "succeeded" | "failed";
 
@@ -42,15 +42,15 @@ const itinerariesSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchItinerariesForTrip.pending, (state) => {
+      .addCase(fetchItinerariesForEscape.pending, (state) => {
         state.status = "loading";
         state.error = null;
       })
-      .addCase(fetchItinerariesForTrip.fulfilled, (state, action) => {
+      .addCase(fetchItinerariesForEscape.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.items = action.payload;
       })
-      .addCase(fetchItinerariesForTrip.rejected, (state, action) => {
+      .addCase(fetchItinerariesForEscape.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload ?? "Failed to load itineraries";
       })

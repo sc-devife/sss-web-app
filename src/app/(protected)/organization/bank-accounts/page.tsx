@@ -1,4 +1,3 @@
-import { Heading, Body } from "@/components/ui/Typography";
 import { BankAccountsPanel } from "@/components/organization/BankAccountsPanel";
 import { getMyOrganization } from "@/lib/organization";
 

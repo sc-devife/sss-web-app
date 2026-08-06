@@ -10,7 +10,7 @@ export interface AppUser {
   contact_number: string | null;
   roles: { role: { name: string; label: string } }[];
   isSpecialist: boolean | null;
-  specialistDestinations: number[] | null;
+  specialistEscapePoints: number[] | null;
   maxConcurrentAssignments: number | null;
   eligibleForPriorityLeads: boolean | null;
   acceptingLeads: boolean | null;
