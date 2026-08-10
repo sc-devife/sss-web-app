@@ -1,0 +1,39 @@
+# design-sync notes — sss-web-app
+
+This repo is a Next.js **app**, not a publishable component-library package — it has no `main`/`module`/`exports`/`types` in `package.json` and no build step that produces an importable dist entry. The converter runs in synth-entry mode against `src/components/ui/` directly. Everything below documents the real, non-obvious setup this required.
+
+## Required one-time (and per-fresh-clone) setup before building
+
+1. **The `node_modules/sss-web-app` proxy directory is required and is NOT a symlink/junction.** `PKG_DIR` resolution in `package-build.mjs` falls back to `join(NODE_MODULES, PKG)` when no `--entry` is passed (which we deliberately never pass, so synth-entry mode covers the whole `src/components/ui/` tree rather than just one file). A **plain directory** at `node_modules/sss-web-app/` containing only a copy of the real `package.json` satisfies this. **Do not use a Windows junction/symlink pointing back at the repo root** — it was tried first and caused a ~19-minute JS-heap-OOM crash. Windows directory junctions are not detected as symlinks by Node's `fs` APIs, so glob/walk code that excludes `node_modules/**` via symlink-awareness doesn't see the junction as one, and it recurses into itself indefinitely (`node_modules/sss-web-app` → junction back to repo root → `node_modules/sss-web-app` → …). Recreate the proxy dir after a fresh clone or `node_modules` wipe:
+   ```
+   mkdir -p node_modules/sss-web-app && cp package.json node_modules/sss-web-app/package.json
+   ```
+2. **`cfg.srcDir`, `cfg.tsconfig` are set as `../../`-relative paths** (`../../src/components/ui`, `../../tsconfig.json`) — these fields are bounded to the *workspace root* (the git repo), so a relative escape from the tiny proxy dir back up to the real source is legitimate and intended, not a hack.
+3. **`cfg.cssEntry` is `"globals.css"` (bare, no `../../`)** — unlike `srcDir`/`tsconfig`, `cssEntry` is deliberately bounded to `PKG_DIR` itself (security: its content is uploaded near-verbatim, so the tool won't let it point outside the sandboxed proxy dir). This means the **real, compiled** CSS must be physically copied into the proxy dir before every build — the raw `src/app/globals.css` still has unprocessed `@tailwind base/components/utilities` directives, which would ship as inert `@tailwind` at-rules (no real utility classes) if pointed at directly. Recompile before every build:
+   ```
+   npx tailwindcss -i src/app/globals.css -o node_modules/sss-web-app/globals.css
+   ```
+4. **Node 18.20.2 on this machine** (see [[project_travel_crm_known_gaps]]) — `playwright` dropped Node 18 support around the 1.5x line; installing `playwright@latest` in `.ds-sync/` will silently fail at import time (`Playwright requires Node.js 20 or higher`). Pin to **`playwright@1.49.0`** (confirmed `engines.node: ">=18"`) and its matching chromium via `npx playwright install chromium` from inside `.ds-sync/`.
+5. **`npm install <pkg>` inside `.ds-sync/` can prune previously-installed converter deps** if `.ds-sync/package.json`'s dependency list wasn't fully saved (e.g. after `esbuild`'s postinstall script crashes mid-install — see next point — the whole `npm i` transaction can roll back the `package.json` save even though the packages *are* physically present in `node_modules`). If `node .ds-sync/package-build.mjs` ever fails with `Cannot find package 'esbuild'` (or `ts-morph`), just reinstall everything together: `cd .ds-sync && npm i esbuild ts-morph @types/react playwright@1.49.0`.
+6. **`esbuild`'s own postinstall script crashes on this npm/Node/Windows combo** (`ERR_INVALID_ARG_TYPE: The "file" argument must be of type string. Received undefined`, thrown from `esbuild/install.js`'s postinstall). This is harmless — the platform binary (`@esbuild/win32-x64`) is still fetched and linked correctly; `require('esbuild')` and actual builds work fine despite the crash. Don't chase this error.
+
+## A real source-code fix this sync required (not converter-side)
+
+`src/lib/files.ts` did a bare `process.env.NEXT_PUBLIC_API_BASE_URL` read. Next.js's own webpack build always polyfills/replaces `process.env.NEXT_PUBLIC_*` reads via its own `DefinePlugin`, so this was invisible in the real app — but esbuild's `define` here only covers the one key it's explicitly told about (`process.env.NODE_ENV`), so this specific read threw `ReferenceError: process is not defined` in the browser. Because **all 21 components share one bundle**, this one unguarded read (reachable via `FileUpload` → `resolveFileUrl`) killed `window.SssWebApp`'s registration for every single component, not just FileUpload — surfaced as `[BUNDLE_EXPORT] 21/21 not a component` plus a `process is not defined` render error on every card. Fixed with a `typeof process !== "undefined"` guard (behaviorally identical in the real app, since `process` always exists there) — this fix is a legitimate, permanent, low-risk improvement to the real source file, not a design-sync-only workaround; it's fine that it lives in `src/lib/files.ts` itself rather than being papered over in config.
+
+## Known render warns (checked, non-issues on this build)
+
+- `tokens: 76 defined, 45 referenced (1 missing, below threshold)` — one CSS custom property referenced but not defined somewhere in the compiled Tailwind output; below the tool's noise threshold, not investigated further. Re-check if this count grows significantly on a future re-sync.
+- `FileUpload`'s "has files" preview state was deliberately **not** authored (only the empty/idle state) — its `resolveFileUrl()` builds URLs pointing at the real backend (`http://localhost:8080/...`), unreachable from an isolated build, which would render as broken-image icons. Not a bug; a scoping choice. Revisit if a future author wants to compose that state with a real reachable placeholder image URL instead.
+
+## Overrides in `.design-sync/config.json`
+
+- `DataTable`: `cardMode: "column"` — it's a wide, multi-column table; without this it would overflow/misrender in the product's card grid.
+- `Modal`: `cardMode: "single", viewport: "600x500"` — it's an overlay/dialog rendered via `createPortal`, returns `null` when `open=false`; needs the full-card single mode so the open state renders instead of collapsing to zero height. All `Modal.tsx` preview stories pass `open={true}`.
+
+## Re-sync risks — what to watch for next time
+
+- **Everything under `node_modules/` (the proxy dir + its copied `globals.css`) is regenerated, not committed.** A fresh clone or `npm install`/`node_modules` wipe needs steps 1 and 3 above re-run before the next build. This is the single most likely thing to silently break a future re-sync — the symptoms (`ENOENT .../node_modules/sss-web-app/package.json`, or `[CSS_RUNTIME] no static CSS found`) look unrelated to this cause if you haven't read this file first.
+- **This app's own source has kept growing** since this sync — if new `src/components/ui/*.tsx` files were added, or existing ones gained new named exports, they'll be picked up automatically by the synth-entry scan on the next build (no config change needed), but they'll ship as unauthored floor cards until someone writes `.design-sync/previews/<Name>.tsx` for them.
+- **`conventions.md`'s example snippet and class-family table were written against the state of `tailwind.config.ts`/`globals.css` at sync time** — if the token names change (e.g. a rebrand touching `--primary`/`--danger`/etc.), re-validate the conventions file against the fresh build rather than assuming it's still accurate (the base skill's conventions-authoring step does this automatically on every re-sync).
+- **All 21 components were authored and graded `good` in a single first-sync pass** — no floor cards remain. A future re-sync only needs to touch components whose *source* actually changed (the anchor-based diff handles this automatically); don't assume everything needs re-authoring.

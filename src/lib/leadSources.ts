@@ -16,7 +16,7 @@ export interface WebhookEvent {
 }
 
 export interface LeadImportAttempt {
-  seqp: number;
+  uid: string;
   provider: string;
   leadgenId: string;
   formId: string | null;
@@ -24,7 +24,7 @@ export interface LeadImportAttempt {
   adId: string | null;
   campaignId: string | null;
   status: "success" | "failed" | "duplicate_matched";
-  leadId: number | null;
+  leadUid: string | null;
   failureReason: string | null;
   retryCount: number;
   lastAttemptedAt: string;

@@ -39,11 +39,11 @@ export function ConvertToEscapeModal({
   const [travellers, setTravellers] = useState<Traveller[]>([]);
   const [travellerIds, setTravellerIds] = useState<string[]>([]);
   const [escapePointIds, setEscapePointIds] = useState<string[]>(() => {
-    // lead.escapePointId is the EscapePoint's uid; the escape-conversion API
-    // wants numeric seqp values (matching the travellerIds pattern below),
-    // so resolve the lead's pre-selected escape point to its seqp up front.
+    // lead.escapePointId is the EscapePoint's uid, which is exactly what the
+    // escape-conversion API now wants (escapePointUids), so no resolution
+    // step is needed beyond confirming it's a valid option.
     const preselected = escapePoints.find((d) => d.uid === lead.escapePointId);
-    return preselected ? [String(preselected.seqp)] : [];
+    return preselected ? [preselected.uid] : [];
   });
   const [startDate, setStartDate] = useState(lead.travelDate ?? "");
   const [numberOfDays, setNumberOfDays] = useState(lead.durationDays ? String(lead.durationDays) : "");
@@ -66,7 +66,7 @@ export function ConvertToEscapeModal({
     try {
       const res = await clientApi.post<Traveller>("/travellers", newTraveller);
       setTravellers((t) => [...t, res.data]);
-      setTravellerIds((ids) => [...ids, String(res.data.seqp)]);
+      setTravellerIds((ids) => [...ids, res.data.uid]);
       setNewTraveller({ firstName: "", lastName: "", email: "", phone: "" });
       setAddingTraveller(false);
     } catch (err) {
@@ -94,14 +94,14 @@ export function ConvertToEscapeModal({
     try {
       const result = await dispatch(
         convertLeadToEscape({
-          leadId: lead.seqp,
-          travellerIds: travellerIds.map(Number),
-          escapePointIds: escapePointIds.map(Number),
+          leadUid: lead.uid,
+          travellerUids: travellerIds,
+          escapePointUids: escapePointIds,
           startDate,
           numberOfDays: Number(numberOfDays),
         }),
       ).unwrap();
-      router.push(`/escapes/${result.seqp}`);
+      router.push(`/escapes/${result.uid}`);
     } catch {
       // convertError already set in the slice, rendered below.
     }
@@ -115,7 +115,7 @@ export function ConvertToEscapeModal({
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <MultiSelect
           label="Escape Points"
-          options={escapePoints.map((d) => ({ value: String(d.seqp), label: d.name }))}
+          options={escapePoints.map((d) => ({ value: d.uid, label: d.name }))}
           value={escapePointIds}
           onChange={setEscapePointIds}
         />
@@ -127,7 +127,7 @@ export function ConvertToEscapeModal({
 
         <MultiSelect
           label="Travellers"
-          options={travellers.map((t) => ({ value: String(t.seqp), label: `${t.firstName} ${t.lastName ?? ""}`.trim() }))}
+          options={travellers.map((t) => ({ value: t.uid, label: `${t.firstName} ${t.lastName ?? ""}`.trim() }))}
           value={travellerIds}
           onChange={setTravellerIds}
         />

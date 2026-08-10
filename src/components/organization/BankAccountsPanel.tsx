@@ -56,7 +56,7 @@ function validate(v: BankAccountFormState): Record<string, string> {
   return errors;
 }
 
-export function BankAccountsPanel({ orgId }: { orgId: number }) {
+export function BankAccountsPanel({ orgId }: { orgId: string }) {
   const dispatch = useAppDispatch();
   const accounts = useAppSelector(selectBankAccounts);
   const status = useAppSelector(selectBankAccountsStatus);
@@ -67,7 +67,7 @@ export function BankAccountsPanel({ orgId }: { orgId: number }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
-  const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(fetchBankAccounts(orgId));
@@ -115,7 +115,7 @@ export function BankAccountsPanel({ orgId }: { orgId: number }) {
     }
   }
 
-  async function handleSetStatus(accountId: number, action: "deactivate" | "reactivate") {
+  async function handleSetStatus(accountId: string, action: "deactivate" | "reactivate") {
     setUpdatingId(accountId);
     try {
       await dispatch(setBankAccountStatus({ orgId, accountId, action }));
@@ -140,7 +140,7 @@ export function BankAccountsPanel({ orgId }: { orgId: number }) {
         <div className="flex flex-col gap-3">
           {accounts.length === 0 && <Body muted>No bank accounts added yet.</Body>}
           {accounts.map((account) => (
-            <Card key={account.id} className="flex items-center justify-between">
+            <Card key={account.uid} className="flex items-center justify-between">
               <div>
                 <Body className="font-medium">
                   {account.bankName} · {account.accountName}{" "}
@@ -149,11 +149,11 @@ export function BankAccountsPanel({ orgId }: { orgId: number }) {
                 <Caption>{account.accountNumber} · {account.branchCity}, {account.country} · {account.currency}</Caption>
               </div>
               {account.status === "active" ? (
-                <Button variant="danger" size="sm" disabled={updatingId === account.id} onClick={() => handleSetStatus(account.id, "deactivate")}>
+                <Button variant="danger" size="sm" disabled={updatingId === account.uid} onClick={() => handleSetStatus(account.uid, "deactivate")}>
                   Deactivate
                 </Button>
               ) : (
-                <Button variant="secondary" size="sm" disabled={updatingId === account.id} onClick={() => handleSetStatus(account.id, "reactivate")}>
+                <Button variant="secondary" size="sm" disabled={updatingId === account.uid} onClick={() => handleSetStatus(account.uid, "reactivate")}>
                   Reactivate
                 </Button>
               )}

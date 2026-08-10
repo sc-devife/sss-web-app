@@ -58,7 +58,7 @@ export function DashboardPanel() {
           <Heading as="h3">My leads</Heading>
           {dashboard.myOpenLeads.length === 0 && <Body muted>No open leads assigned to you.</Body>}
           {dashboard.myOpenLeads.map((lead) => (
-            <Card key={lead.seqp} className="flex items-center justify-between">
+            <Card key={lead.uid} className="flex items-center justify-between">
               <div>
                 <Body className="font-medium">{lead.name}</Body>
                 <Caption>{lead.destination || "No escape point set"}</Caption>
@@ -76,10 +76,10 @@ export function DashboardPanel() {
           <Heading as="h3">My escapes</Heading>
           {dashboard.myOpenEscapes.length === 0 && <Body muted>No open escapes assigned to you.</Body>}
           {dashboard.myOpenEscapes.map((escape) => (
-            <Link key={escape.seqp} href={`/escapes/${escape.seqp}`}>
+            <Link key={escape.uid} href={`/escapes/${escape.uid}`}>
               <Card className="flex items-center justify-between hover:border-primary">
                 <div>
-                  <Body className="font-medium">{escape.lead?.name ?? `Escape #${escape.seqp}`}</Body>
+                  <Body className="font-medium">{escape.lead?.name ?? `Escape #${escape.uid}`}</Body>
                   <Caption>{escape.escapePoints.map((d) => d.name).join(", ") || "No escape points set"}</Caption>
                 </div>
                 <Badge tone="neutral">{escape.status}</Badge>

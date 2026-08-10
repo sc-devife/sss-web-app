@@ -3,8 +3,7 @@
 import { usePathname } from "next/navigation";
 import { findRouteByPath, profileRoute } from "@/lib/nav-config";
 import Link from "next/link";
-import { LiaUserCircle } from "react-icons/lia";
-import { PiList } from "react-icons/pi";
+import { PiBuildings, PiList } from "react-icons/pi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { toggleMobile } from "@/features/ui/uiSlice";
 import { selectLoggedInUser } from "@/features/auth/authSelectors";
@@ -43,7 +42,7 @@ export function Header() {
               className="h-8 w-8 shrink-0 rounded-full object-cover"
             />
           ) : (
-            <LiaUserCircle className="h-8 w-8 shrink-0" />
+            <PiBuildings className="h-8 w-8 shrink-0" />
           )}
           {user && (
             <div className="hidden text-left leading-tight sm:block">

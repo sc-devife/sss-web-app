@@ -14,17 +14,17 @@ export interface AddressPayload {
 }
 
 export interface CreateAddressPayload {
-  orgId: number;
+  orgId: string;
   payload: AddressPayload;
 }
 
 export interface UpdateAddressPayload {
-  orgId: number;
-  addressId: number;
+  orgId: string;
+  addressId: string;
   payload: AddressPayload;
 }
 
 export interface DeleteAddressPayload {
-  orgId: number;
-  addressId: number;
+  orgId: string;
+  addressId: string;
 }

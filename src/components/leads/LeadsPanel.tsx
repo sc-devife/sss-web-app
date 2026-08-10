@@ -179,7 +179,7 @@ export function LeadsPanel({
         <DataTable
           columns={columns}
           rows={leads}
-          rowKey={(l) => String(l.seqp)}
+          rowKey={(l) => l.uid}
           searchPlaceholder="Search leads…"
           emptyMessage="No leads yet."
           actions={(l) => (

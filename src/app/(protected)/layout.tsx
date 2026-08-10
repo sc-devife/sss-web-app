@@ -20,7 +20,7 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
         <Sidebar roles={roles} />
         <div className="flex flex-1 flex-col min-w-0">
           <Header />
-          <main className="flex-1 overflow-y-auto p-4">{children}</main>
+          <main className="flex-1 overflow-y-auto p-2">{children}</main>
         </div>
       </div>
     </>

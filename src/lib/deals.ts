@@ -2,15 +2,15 @@ import { backendJson } from "@/lib/backend";
 
 export interface Deal {
   uid: string;
-  escapeId: number;
+  escapeUid: string;
   acceptedQuoteUid: string;
   status: string;
   createdAt: string;
 }
 
-export async function getDealForEscape(escapeId: number): Promise<Deal | null> {
+export async function getDealForEscape(escapeUid: string): Promise<Deal | null> {
   try {
-    return await backendJson<Deal>(`/api/deals?escapeId=${escapeId}`);
+    return await backendJson<Deal>(`/api/deals?escapeUid=${escapeUid}`);
   } catch {
     return null;
   }

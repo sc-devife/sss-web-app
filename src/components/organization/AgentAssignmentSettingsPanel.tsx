@@ -212,7 +212,7 @@ export function AgentAssignmentSettingsPanel({ escapePoints }: { escapePoints: E
             {row.isSpecialist && (
               <MultiSelect
                 label="Specialist escape points"
-                options={escapePoints.map((d) => ({ value: String(d.seqp), label: d.name }))}
+                options={escapePoints.map((d) => ({ value: d.uid, label: d.name }))}
                 value={row.specialistEscapePoints}
                 onChange={(next) => update(user.uid, { specialistEscapePoints: next })}
                 error={errs.specialistEscapePoints}

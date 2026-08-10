@@ -39,7 +39,7 @@ export function UsersPageContent() {
   }, [dispatch]);
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-4">
+    <div className="mx-auto w-full max-w-7xl space-y-4">
       <div className="flex items-center justify-end">
         <InviteUserForm roles={roles} />
       </div>

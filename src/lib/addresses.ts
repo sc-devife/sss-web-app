@@ -1,7 +1,7 @@
 import { backendJson } from "@/lib/backend";
 
 export interface Address {
-  id: number;
+  uid: string;
   label: string;
   city: string;
   state: string;
@@ -12,6 +12,6 @@ export interface Address {
   contactEmail: string | null;
 }
 
-export async function getAddresses(orgId: number): Promise<Address[]> {
+export async function getAddresses(orgId: string): Promise<Address[]> {
   return backendJson<Address[]>(`/api/addresses/${orgId}`);
 }

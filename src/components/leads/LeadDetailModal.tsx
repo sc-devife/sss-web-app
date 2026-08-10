@@ -42,11 +42,11 @@ export function LeadDetailModal({
   const [convertOpen, setConvertOpen] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchLeadAuditLog(lead.seqp));
+    dispatch(fetchLeadAuditLog(lead.uid));
     return () => {
       dispatch(clearAuditLog());
     };
-  }, [dispatch, lead.seqp]);
+  }, [dispatch, lead.uid]);
 
   const assignedUser = users.find((u) => u.seqp === lead.assignedToUserId);
   const isTerminal = TERMINAL_STATUSES.includes(lead.status);
@@ -60,7 +60,7 @@ export function LeadDetailModal({
 
   async function handleContact() {
     try {
-      await dispatch(contactLead(lead.seqp)).unwrap();
+      await dispatch(contactLead(lead.uid)).unwrap();
       await afterAction();
     } catch {
       // actionError already set in the slice, rendered below.
@@ -69,7 +69,7 @@ export function LeadDetailModal({
 
   async function handleQualify() {
     try {
-      await dispatch(qualifyLead(lead.seqp)).unwrap();
+      await dispatch(qualifyLead(lead.uid)).unwrap();
       await afterAction();
     } catch {
       // actionError already set in the slice.
@@ -78,7 +78,7 @@ export function LeadDetailModal({
 
   async function handleTogglePriority() {
     try {
-      await dispatch(toggleLeadPriority(lead.seqp)).unwrap();
+      await dispatch(toggleLeadPriority(lead.uid)).unwrap();
       await afterAction();
     } catch {
       // actionError already set in the slice.
@@ -87,7 +87,7 @@ export function LeadDetailModal({
 
   async function handleReasonAction(action: LeadReasonAction) {
     try {
-      await dispatch(applyLeadReasonAction({ leadId: lead.seqp, action, reason })).unwrap();
+      await dispatch(applyLeadReasonAction({ leadUid: lead.uid, action, reason })).unwrap();
       await afterAction();
     } catch {
       // actionError already set in the slice.
@@ -97,7 +97,7 @@ export function LeadDetailModal({
   async function handleAssign() {
     if (!assigneeId) return;
     try {
-      await dispatch(assignLead({ leadId: lead.seqp, userId: Number(assigneeId), reason: reason || undefined })).unwrap();
+      await dispatch(assignLead({ leadUid: lead.uid, userId: Number(assigneeId), reason: reason || undefined })).unwrap();
       await afterAction();
     } catch {
       // actionError already set in the slice.

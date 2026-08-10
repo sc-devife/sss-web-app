@@ -8,11 +8,11 @@ export interface EscapeAuditLogEntry {
 }
 
 export interface AdvanceEscapePayload {
-  escapeId: number;
+  escapeUid: string;
   targetStatus: string;
 }
 
 export interface CancelEscapePayload {
-  escapeId: number;
+  escapeUid: string;
   reason: string;
 }

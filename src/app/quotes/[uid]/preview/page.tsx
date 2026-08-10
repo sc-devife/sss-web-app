@@ -14,7 +14,7 @@ export default async function QuotePreviewPage({ params }: { params: { uid: stri
   const [items, contentItems, trip, organization, templates] = await Promise.all([
     getItemsForItinerary(itinerary.uid),
     getItineraryContentItems(itinerary.uid),
-    getEscapeById(itinerary.escapeId),
+    getEscapeById(itinerary.escapeUid),
     getMyOrganization(),
     getQuoteTemplates(),
   ]);

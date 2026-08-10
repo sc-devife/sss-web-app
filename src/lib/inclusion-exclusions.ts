@@ -11,7 +11,7 @@ export interface InclusionExclusionItem {
   escapePointId: string | null;
   sortOrder: number | null;
   isActive: boolean;
-  escapePoint: { seqp: number; uid: string; name: string } | null;
+  escapePoint: { uid: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
 }

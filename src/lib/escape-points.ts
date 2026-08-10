@@ -2,7 +2,6 @@ import { backendJson } from "@/lib/backend";
 import { resolveCountryLabel, resolveRegionLabel, resolveCityLabel } from "@/lib/reference-data";
 
 export interface EscapePoint {
-  seqp: number;
   uid: string;
   id: string;
   name: string;

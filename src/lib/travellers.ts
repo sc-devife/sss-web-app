@@ -1,7 +1,7 @@
 import { backendJson } from "@/lib/backend";
 
 export interface Traveller {
-  seqp: number;
+  uid: string;
   type: string | null;
   salutation: string | null;
   firstName: string;

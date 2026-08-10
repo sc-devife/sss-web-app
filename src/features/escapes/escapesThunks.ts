@@ -15,11 +15,11 @@ export const fetchEscapes = createAsyncThunk<Escape[], void, { rejectValue: stri
   },
 );
 
-export const fetchEscapeById = createAsyncThunk<Escape, number, { rejectValue: string }>(
+export const fetchEscapeById = createAsyncThunk<Escape, string, { rejectValue: string }>(
   "escapes/fetchEscapeById",
-  async (escapeId, { rejectWithValue }) => {
+  async (escapeUid, { rejectWithValue }) => {
     try {
-      const res = await clientApi.get<Escape>(`/escapes/${escapeId}`);
+      const res = await clientApi.get<Escape>(`/escapes/${escapeUid}`);
       return res.data;
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to load escape"));
@@ -27,11 +27,11 @@ export const fetchEscapeById = createAsyncThunk<Escape, number, { rejectValue: s
   },
 );
 
-export const fetchEscapeAuditLog = createAsyncThunk<EscapeAuditLogEntry[], number, { rejectValue: string }>(
+export const fetchEscapeAuditLog = createAsyncThunk<EscapeAuditLogEntry[], string, { rejectValue: string }>(
   "escapes/fetchEscapeAuditLog",
-  async (escapeId, { rejectWithValue }) => {
+  async (escapeUid, { rejectWithValue }) => {
     try {
-      const res = await clientApi.get<EscapeAuditLogEntry[]>(`/escapes/${escapeId}/audit-log`);
+      const res = await clientApi.get<EscapeAuditLogEntry[]>(`/escapes/${escapeUid}/audit-log`);
       return res.data;
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to load history"));
@@ -41,9 +41,9 @@ export const fetchEscapeAuditLog = createAsyncThunk<EscapeAuditLogEntry[], numbe
 
 export const advanceEscapeStatus = createAsyncThunk<void, AdvanceEscapePayload, { rejectValue: string }>(
   "escapes/advanceEscapeStatus",
-  async ({ escapeId, targetStatus }, { rejectWithValue }) => {
+  async ({ escapeUid, targetStatus }, { rejectWithValue }) => {
     try {
-      await clientApi.post(`/escapes/${escapeId}/advance`, { targetStatus });
+      await clientApi.post(`/escapes/${escapeUid}/advance`, { targetStatus });
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to advance status"));
     }
@@ -52,9 +52,9 @@ export const advanceEscapeStatus = createAsyncThunk<void, AdvanceEscapePayload, 
 
 export const cancelEscape = createAsyncThunk<void, CancelEscapePayload, { rejectValue: string }>(
   "escapes/cancelEscape",
-  async ({ escapeId, reason }, { rejectWithValue }) => {
+  async ({ escapeUid, reason }, { rejectWithValue }) => {
     try {
-      await clientApi.post(`/escapes/${escapeId}/cancel`, { reason });
+      await clientApi.post(`/escapes/${escapeUid}/cancel`, { reason });
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to cancel escape"));
     }

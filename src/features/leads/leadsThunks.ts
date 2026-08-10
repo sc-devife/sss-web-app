@@ -46,33 +46,33 @@ export const createLead = createAsyncThunk<void, CreateLeadPayload, { rejectValu
   },
 );
 
-export const contactLead = createAsyncThunk<void, number, { rejectValue: string }>(
+export const contactLead = createAsyncThunk<void, string, { rejectValue: string }>(
   "leads/contactLead",
-  async (leadId, { rejectWithValue }) => {
+  async (leadUid, { rejectWithValue }) => {
     try {
-      await clientApi.post(`/leads/${leadId}/actions/contact`);
+      await clientApi.post(`/leads/${leadUid}/actions/contact`);
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Action failed"));
     }
   },
 );
 
-export const qualifyLead = createAsyncThunk<void, number, { rejectValue: string }>(
+export const qualifyLead = createAsyncThunk<void, string, { rejectValue: string }>(
   "leads/qualifyLead",
-  async (leadId, { rejectWithValue }) => {
+  async (leadUid, { rejectWithValue }) => {
     try {
-      await clientApi.post(`/leads/${leadId}/actions/qualify`);
+      await clientApi.post(`/leads/${leadUid}/actions/qualify`);
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Action failed"));
     }
   },
 );
 
-export const toggleLeadPriority = createAsyncThunk<void, number, { rejectValue: string }>(
+export const toggleLeadPriority = createAsyncThunk<void, string, { rejectValue: string }>(
   "leads/togglePriority",
-  async (leadId, { rejectWithValue }) => {
+  async (leadUid, { rejectWithValue }) => {
     try {
-      await clientApi.post(`/leads/${leadId}/actions/toggle-priority`);
+      await clientApi.post(`/leads/${leadUid}/actions/toggle-priority`);
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Action failed"));
     }
@@ -81,9 +81,9 @@ export const toggleLeadPriority = createAsyncThunk<void, number, { rejectValue: 
 
 export const applyLeadReasonAction = createAsyncThunk<void, LeadReasonActionPayload, { rejectValue: string }>(
   "leads/applyReasonAction",
-  async ({ leadId, action, reason }, { rejectWithValue }) => {
+  async ({ leadUid, action, reason }, { rejectWithValue }) => {
     try {
-      await clientApi.post(`/leads/${leadId}/actions/${action}`, { reason });
+      await clientApi.post(`/leads/${leadUid}/actions/${action}`, { reason });
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Action failed"));
     }
@@ -92,9 +92,9 @@ export const applyLeadReasonAction = createAsyncThunk<void, LeadReasonActionPayl
 
 export const assignLead = createAsyncThunk<void, AssignLeadPayload, { rejectValue: string }>(
   "leads/assignLead",
-  async ({ leadId, userId, reason }, { rejectWithValue }) => {
+  async ({ leadUid, userId, reason }, { rejectWithValue }) => {
     try {
-      await clientApi.post(`/leads/${leadId}/assign`, { userId, reason: reason || undefined });
+      await clientApi.post(`/leads/${leadUid}/assign`, { userId, reason: reason || undefined });
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Action failed"));
     }
@@ -105,7 +105,7 @@ export const convertLeadToEscape = createAsyncThunk<ConvertLeadToEscapeResult, C
   "leads/convertToEscape",
   async (payload, { rejectWithValue }) => {
     try {
-      const res = await clientApi.post<ConvertLeadToEscapeResult>(`/leads/${payload.leadId}/actions/convert`, payload);
+      const res = await clientApi.post<ConvertLeadToEscapeResult>(`/leads/${payload.leadUid}/actions/convert`, payload);
       return res.data;
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to convert lead"));
@@ -113,11 +113,11 @@ export const convertLeadToEscape = createAsyncThunk<ConvertLeadToEscapeResult, C
   },
 );
 
-export const fetchLeadAuditLog = createAsyncThunk<AuditLogEntry[], number, { rejectValue: string }>(
+export const fetchLeadAuditLog = createAsyncThunk<AuditLogEntry[], string, { rejectValue: string }>(
   "leads/fetchAuditLog",
-  async (leadId, { rejectWithValue }) => {
+  async (leadUid, { rejectWithValue }) => {
     try {
-      const res = await clientApi.get<AuditLogEntry[]>(`/leads/${leadId}/audit-log`);
+      const res = await clientApi.get<AuditLogEntry[]>(`/leads/${leadUid}/audit-log`);
       return res.data;
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to load history"));

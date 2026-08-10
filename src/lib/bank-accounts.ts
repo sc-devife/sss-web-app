@@ -1,7 +1,7 @@
 import { backendJson } from "@/lib/backend";
 
 export interface BankAccount {
-  id: number;
+  uid: string;
   bankName: string;
   bankShortName: string;
   branchName: string;
@@ -18,6 +18,6 @@ export interface BankAccount {
   status: "active" | "inactive";
 }
 
-export async function getBankAccounts(orgId: number): Promise<BankAccount[]> {
+export async function getBankAccounts(orgId: string): Promise<BankAccount[]> {
   return backendJson<BankAccount[]>(`/api/bank-accounts/${orgId}`);
 }

@@ -6,7 +6,7 @@ export default async function BankAccountsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <BankAccountsPanel orgId={organization.seqp} />
+      <BankAccountsPanel orgId={organization.uid} />
     </div>
   );
 }

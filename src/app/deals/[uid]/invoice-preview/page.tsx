@@ -13,7 +13,7 @@ export default async function InvoicePreviewPage({ params }: { params: { uid: st
   const quote = await getQuoteByUid(deal.acceptedQuoteUid);
   const itinerary = await getItineraryByUid(quote.itineraryUid);
   const [trip, milestones, organization, templates] = await Promise.all([
-    getEscapeById(itinerary.escapeId),
+    getEscapeById(itinerary.escapeUid),
     getMilestonesForDeal(deal.uid),
     getMyOrganization(),
     getInvoiceTemplates(),
@@ -52,7 +52,7 @@ export default async function InvoicePreviewPage({ params }: { params: { uid: st
 
         <div className="mb-8">
           <h1 className="text-xl font-semibold" style={{ color: template.accentColor }}>
-            {trip.lead?.name ?? `Escape #${trip.seqp}`}
+            {trip.lead?.name ?? `Escape #${trip.uid}`}
           </h1>
           <p className="text-sm text-gray-600">
             {trip.escapePoints.map((d) => d.name).join(", ")}

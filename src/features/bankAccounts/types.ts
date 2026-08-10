@@ -19,12 +19,12 @@ export interface BankAccountPayload {
 }
 
 export interface CreateBankAccountPayload {
-  orgId: number;
+  orgId: string;
   payload: BankAccountPayload;
 }
 
 export interface SetBankAccountStatusPayload {
-  orgId: number;
-  accountId: number;
+  orgId: string;
+  accountId: string;
   action: "deactivate" | "reactivate";
 }

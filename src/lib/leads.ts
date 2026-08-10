@@ -1,7 +1,7 @@
 import { backendJson } from "@/lib/backend";
 
 export interface Lead {
-  seqp: number;
+  uid: string;
   name: string;
   email: string;
   phone: string;
@@ -18,6 +18,7 @@ export interface Lead {
   originCity: string | null;
   travelType: string | null;
   assignedToUserId: number | null;
+  assignedToUserName: string | null;
   assignmentReason: string | null;
   notes: string | null;
   createdAt: string | null;

@@ -39,11 +39,11 @@ const emptyComputeForm = {
 
 export function QuotesPanel({
   itineraryUid,
-  escapeId,
+  escapeUid,
   onDealChanged,
 }: {
   itineraryUid: string;
-  escapeId: number;
+  escapeUid: string;
   onDealChanged?: () => void;
 }) {
   const dispatch = useAppDispatch();
@@ -117,7 +117,7 @@ export function QuotesPanel({
     setBusy(true);
     setError(undefined);
     try {
-      await dispatch(acceptQuote({ quoteUid: uid, escapeId })).unwrap();
+      await dispatch(acceptQuote({ quoteUid: uid, escapeUid })).unwrap();
       onDealChanged?.();
       refresh();
     } catch (err) {

@@ -16,13 +16,13 @@ import { fetchItinerariesForEscape, createItinerary } from "@/features/itinerari
 import { selectItineraries, selectItinerariesStatus, selectItinerariesError } from "@/features/itineraries/itinerariesSelectors";
 
 export function ItinerariesSection({
-  escapeId,
+  escapeUid,
   hotels,
   activities,
   transports,
   onDealChanged,
 }: {
-  escapeId: number;
+  escapeUid: string;
   hotels: Hotel[];
   activities: Activity[];
   transports: Transport[];
@@ -38,11 +38,11 @@ export function ItinerariesSection({
   const [formError, setFormError] = useState<string | undefined>();
 
   useEffect(() => {
-    dispatch(fetchItinerariesForEscape(escapeId));
-  }, [dispatch, escapeId]);
+    dispatch(fetchItinerariesForEscape(escapeUid));
+  }, [dispatch, escapeUid]);
 
   function refresh() {
-    dispatch(fetchItinerariesForEscape(escapeId));
+    dispatch(fetchItinerariesForEscape(escapeUid));
   }
 
   async function handleCreate(e: FormEvent) {
@@ -51,7 +51,7 @@ export function ItinerariesSection({
     setSaving(true);
     setFormError(undefined);
     try {
-      await dispatch(createItinerary({ escapeId, name })).unwrap();
+      await dispatch(createItinerary({ escapeUid, name })).unwrap();
       refresh();
       setName("");
     } catch (err) {
@@ -63,7 +63,6 @@ export function ItinerariesSection({
 
   return (
     <div className="flex flex-col gap-4">
-      <Caption>Itineraries</Caption>
 
       <Card>
         <form onSubmit={handleCreate} className="flex items-end gap-2">
@@ -85,7 +84,7 @@ export function ItinerariesSection({
             <ItineraryCard
               key={itinerary.uid}
               itinerary={itinerary}
-              escapeId={escapeId}
+              escapeUid={escapeUid}
               hotels={hotels}
               activities={activities}
               transports={transports}

@@ -19,25 +19,25 @@ export interface CreateLeadPayload {
 export type LeadReasonAction = "disqualify" | "mark-lost" | "mark-duplicate";
 
 export interface LeadReasonActionPayload {
-  leadId: number;
+  leadUid: string;
   action: LeadReasonAction;
   reason: string;
 }
 
 export interface AssignLeadPayload {
-  leadId: number;
+  leadUid: string;
   userId: number;
   reason?: string;
 }
 
 export interface ConvertLeadToEscapePayload {
-  leadId: number;
-  travellerIds: number[];
-  escapePointIds: number[];
+  leadUid: string;
+  travellerUids: string[];
+  escapePointUids: string[];
   startDate: string;
   numberOfDays: number;
 }
 
 export interface ConvertLeadToEscapeResult {
-  seqp: number;
+  uid: string;
 }

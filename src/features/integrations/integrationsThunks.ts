@@ -81,11 +81,11 @@ export const fetchImportAttempts = createAsyncThunk<Page<LeadImportAttempt>, str
   },
 );
 
-export const resyncImportAttempt = createAsyncThunk<void, number, { rejectValue: string }>(
+export const resyncImportAttempt = createAsyncThunk<void, string, { rejectValue: string }>(
   "integrations/resyncImportAttempt",
-  async (id, { rejectWithValue }) => {
+  async (uid, { rejectWithValue }) => {
     try {
-      await clientApi.post(`/lead-sources/import-attempts/${id}/resync`);
+      await clientApi.post(`/lead-sources/import-attempts/${uid}/resync`);
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to resync"));
     }

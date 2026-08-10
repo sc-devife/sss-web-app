@@ -91,7 +91,7 @@ function AddressFormFields({
   );
 }
 
-export function ContactAddressPanel({ orgId }: { orgId: number }) {
+export function ContactAddressPanel({ orgId }: { orgId: string }) {
   const dispatch = useAppDispatch();
   const addresses = useAppSelector(selectAddresses);
   const status = useAppSelector(selectAddressesStatus);
@@ -103,14 +103,14 @@ export function ContactAddressPanel({ orgId }: { orgId: number }) {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
 
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<FormState>(emptyForm);
   const [editOriginal, setEditOriginal] = useState<FormState | null>(null);
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | undefined>();
 
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(fetchAddresses(orgId));
@@ -165,7 +165,7 @@ export function ContactAddressPanel({ orgId }: { orgId: number }) {
   }
 
   function startEdit(address: Address) {
-    setEditingId(address.id);
+    setEditingId(address.uid);
     setEditForm(toForm(address));
     setEditOriginal(toForm(address));
     setEditErrors({});
@@ -180,7 +180,7 @@ export function ContactAddressPanel({ orgId }: { orgId: number }) {
 
   const isEditDirty = useIsDirty(editOriginal, editForm);
 
-  async function handleUpdate(e: FormEvent, addressId: number) {
+  async function handleUpdate(e: FormEvent, addressId: string) {
     e.preventDefault();
     if (!isEditDirty) return;
     setEditError(undefined);
@@ -204,7 +204,7 @@ export function ContactAddressPanel({ orgId }: { orgId: number }) {
     }
   }
 
-  async function handleDelete(addressId: number) {
+  async function handleDelete(addressId: string) {
     setDeletingId(addressId);
     try {
       await dispatch(deleteAddress({ orgId, addressId })).unwrap();
@@ -253,7 +253,7 @@ export function ContactAddressPanel({ orgId }: { orgId: number }) {
 
               {addresses.map((address) => (
 
-                <Card key={address.id} variant="elevated">
+                <Card key={address.uid} variant="elevated">
 
                   <div className="flex h-full flex-col justify-between">
 
@@ -284,7 +284,7 @@ export function ContactAddressPanel({ orgId }: { orgId: number }) {
                           <Button
                             variant="ghost"
                             size="sm"
-                            disabled={deletingId === address.id}
+                            disabled={deletingId === address.uid}
                             onClick={() => startEdit(address)}
                           >
                             <PiPencilSimple className="mr-0.5 h-4 w-4" />
@@ -295,11 +295,11 @@ export function ContactAddressPanel({ orgId }: { orgId: number }) {
                             variant="ghost"
                             size="sm"
                             className="text-danger hover:bg-danger/10"
-                            disabled={deletingId === address.id}
-                            onClick={() => handleDelete(address.id)}
+                            disabled={deletingId === address.uid}
+                            onClick={() => handleDelete(address.uid)}
                           >
                             <PiTrash className="mr-0.5 h-4 w-4" />
-                            {deletingId === address.id ? "Deleting..." : "Delete"}
+                            {deletingId === address.uid ? "Deleting..." : "Delete"}
                           </Button>
 
                         </div>

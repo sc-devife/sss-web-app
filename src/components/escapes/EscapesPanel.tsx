@@ -72,11 +72,11 @@ export function EscapesPanel() {
     <DataTable
       columns={columns}
       rows={escapes}
-      rowKey={(t) => String(t.seqp)}
+      rowKey={(t) => t.uid}
       searchPlaceholder="Search escapes…"
       emptyMessage="No escapes yet — convert a qualified lead to get started."
       actions={(t) => (
-        <Button variant="secondary" size="sm" onClick={() => router.push(`/escapes/${t.seqp}`)}>View</Button>
+        <Button variant="secondary" size="sm" onClick={() => router.push(`/escapes/${t.uid}`)}>View</Button>
       )}
     />
   );

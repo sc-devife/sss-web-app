@@ -1,0 +1,13 @@
+{
+  "projectId": "e04d6806-eb25-4ab0-ae52-269f78e8e16f",
+  "shape": "package",
+  "pkg": "sss-web-app",
+  "srcDir": "../../src/components/ui",
+  "tsconfig": "../../tsconfig.json",
+  "cssEntry": "globals.css",
+  "readmeHeader": ".design-sync/conventions.md",
+  "overrides": {
+    "DataTable": { "cardMode": "column" },
+    "Modal": { "cardMode": "single", "viewport": "600x500" }
+  }
+}

@@ -3,7 +3,7 @@ import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import type { BankAccount, CreateBankAccountPayload, SetBankAccountStatusPayload } from "@/features/bankAccounts/types";
 
-export const fetchBankAccounts = createAsyncThunk<BankAccount[], number, { rejectValue: string }>(
+export const fetchBankAccounts = createAsyncThunk<BankAccount[], string, { rejectValue: string }>(
   "bankAccounts/fetchBankAccounts",
   async (orgId, { rejectWithValue }) => {
     try {

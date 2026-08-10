@@ -4,5 +4,5 @@ export type { Deal };
 
 export interface AcceptQuotePayload {
   quoteUid: string;
-  escapeId: number;
+  escapeUid: string;
 }

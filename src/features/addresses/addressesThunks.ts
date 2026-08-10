@@ -8,7 +8,7 @@ import type {
   DeleteAddressPayload,
 } from "@/features/addresses/types";
 
-export const fetchAddresses = createAsyncThunk<Address[], number, { rejectValue: string }>(
+export const fetchAddresses = createAsyncThunk<Address[], string, { rejectValue: string }>(
   "addresses/fetchAddresses",
   async (orgId, { rejectWithValue }) => {
     try {

@@ -23,13 +23,13 @@ export function SyncHistoryModal({ channelCode, onClose }: { channelCode: string
   const page = useAppSelector(selectImportAttempts);
   const status = useAppSelector(selectImportAttemptsStatus);
   const error = useAppSelector(selectImportAttemptsError);
-  const [resyncingId, setResyncingId] = useState<number | null>(null);
+  const [resyncingId, setResyncingId] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(fetchImportAttempts(channelCode));
   }, [dispatch, channelCode]);
 
-  async function handleResync(id: number) {
+  async function handleResync(id: string) {
     setResyncingId(id);
     try {
       await dispatch(resyncImportAttempt(id));
@@ -46,7 +46,7 @@ export function SyncHistoryModal({ channelCode, onClose }: { channelCode: string
     { key: "form", header: "Form", render: (a) => a.formId ?? "—" },
     { key: "campaign", header: "Campaign", render: (a) => a.campaignId ?? "—" },
     { key: "status", header: "Status", render: (a) => <Badge tone={STATUS_TONE[a.status]}>{a.status}</Badge> },
-    { key: "lead", header: "Lead", render: (a) => a.leadId ?? "—" },
+    { key: "lead", header: "Lead", render: (a) => a.leadUid ?? "—" },
     { key: "reason", header: "Failure reason", render: (a) => a.failureReason ?? "—" },
   ];
 
@@ -60,12 +60,12 @@ export function SyncHistoryModal({ channelCode, onClose }: { channelCode: string
         <DataTable
           columns={columns}
           rows={attempts}
-          rowKey={(a) => String(a.seqp)}
+          rowKey={(a) => a.uid}
           emptyMessage="No sync activity yet."
           actions={(a) =>
             a.status === "failed" ? (
-              <Button size="sm" variant="secondary" disabled={resyncingId === a.seqp} onClick={() => handleResync(a.seqp)}>
-                {resyncingId === a.seqp ? "Resyncing…" : "Resync"}
+              <Button size="sm" variant="secondary" disabled={resyncingId === a.uid} onClick={() => handleResync(a.uid)}>
+                {resyncingId === a.uid ? "Resyncing…" : "Resync"}
               </Button>
             ) : null
           }

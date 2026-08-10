@@ -87,7 +87,7 @@ export function OrganizationProfilePanel() {
         </div>
 
         <div className="px-6 py-4">
-          <ContactAddressPanel orgId={organization.seqp} />
+          <ContactAddressPanel orgId={organization.uid} />
         </div>
       </Card>
     </div>

@@ -34,7 +34,7 @@ const ITEM_TYPES = [
 
 export function ItineraryCard({
   itinerary,
-  escapeId,
+  escapeUid,
   hotels,
   activities,
   transports,
@@ -42,7 +42,7 @@ export function ItineraryCard({
   onDealChanged,
 }: {
   itinerary: Itinerary;
-  escapeId: number;
+  escapeUid: string;
   hotels: Hotel[];
   activities: Activity[];
   transports: Transport[];
@@ -230,7 +230,7 @@ export function ItineraryCard({
 
           <ItineraryContentSection itineraryUid={itinerary.uid} />
 
-          <QuotesPanel itineraryUid={itinerary.uid} escapeId={escapeId} onDealChanged={onDealChanged} />
+          <QuotesPanel itineraryUid={itinerary.uid} escapeUid={escapeUid} onDealChanged={onDealChanged} />
         </div>
       )}
     </Card>

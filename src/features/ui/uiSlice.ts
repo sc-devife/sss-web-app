@@ -13,7 +13,12 @@ interface UiState {
 }
 
 const initialState: UiState = {
-  collapsed: false,
+  // Defaults to collapsed on desktop/tablet for a fresh session — Sidebar's
+  // own localStorage-restore effect overrides this for any user who has
+  // already toggled it, so this only affects first-ever loads. Mobile is
+  // unaffected: mobileOpen is a separate field, and collapsed's styling is
+  // entirely scoped behind md: Tailwind variants.
+  collapsed: true,
   mobileOpen: false,
   activeModal: null,
 };
