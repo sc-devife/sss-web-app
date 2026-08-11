@@ -1,7 +1,15 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
-import type { Escape, EscapeAuditLogEntry, AdvanceEscapePayload, CancelEscapePayload } from "@/features/escapes/types";
+import type {
+  Escape,
+  EscapeAuditLogEntry,
+  AdvanceEscapePayload,
+  CancelEscapePayload,
+  AddEscapeTravellerPayload,
+  UpdateTravellerPayload,
+  DeleteTravellerPayload,
+} from "@/features/escapes/types";
 
 export const fetchEscapes = createAsyncThunk<Escape[], void, { rejectValue: string }>(
   "escapes/fetchEscapes",
@@ -57,6 +65,39 @@ export const cancelEscape = createAsyncThunk<void, CancelEscapePayload, { reject
       await clientApi.post(`/escapes/${escapeUid}/cancel`, { reason });
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to cancel escape"));
+    }
+  },
+);
+
+export const addEscapeTraveller = createAsyncThunk<void, AddEscapeTravellerPayload, { rejectValue: string }>(
+  "escapes/addEscapeTraveller",
+  async ({ escapeUid, ...payload }, { rejectWithValue }) => {
+    try {
+      await clientApi.post(`/escapes/${escapeUid}/travellers`, payload);
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to add traveller"));
+    }
+  },
+);
+
+export const updateTraveller = createAsyncThunk<void, UpdateTravellerPayload, { rejectValue: string }>(
+  "escapes/updateTraveller",
+  async ({ travellerUid, ...payload }, { rejectWithValue }) => {
+    try {
+      await clientApi.put(`/travellers/${travellerUid}`, payload);
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to update traveller"));
+    }
+  },
+);
+
+export const deleteTraveller = createAsyncThunk<void, DeleteTravellerPayload, { rejectValue: string }>(
+  "escapes/deleteTraveller",
+  async ({ escapeUid, travellerUid }, { rejectWithValue }) => {
+    try {
+      await clientApi.delete(`/escapes/${escapeUid}/travellers/${travellerUid}`);
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to delete traveller"));
     }
   },
 );

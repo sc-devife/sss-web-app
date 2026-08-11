@@ -2,11 +2,17 @@ import { backendJson } from "@/lib/backend";
 import { resolveLocationLabel } from "@/lib/reference-data";
 import type { Lead } from "@/lib/leads";
 import type { EscapePoint } from "@/lib/escape-points";
+import type { Traveller } from "@/lib/travellers";
 
 export interface Escape {
   uid: string;
   lead: Lead | null;
-  travellers: { uid: string; firstName: string; lastName: string | null }[];
+  travellers: Traveller[];
+  // uid of the traveller who represents the lead's original/primary
+  // contact, set once at escape-creation time. Null for escapes created
+  // before this field existed — no traveller should be treated as primary
+  // in that case.
+  primaryTravellerUid: string | null;
   // locationLabel is resolved server-side by the /api/escapes/[id] route
   // handler (mirrors getEscapePoints()'s resolution) — reference-data.ts's
   // resolvers are server-only and can't run in the client bundle that

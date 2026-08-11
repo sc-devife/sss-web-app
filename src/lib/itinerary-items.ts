@@ -1,12 +1,24 @@
 import { backendJson } from "@/lib/backend";
 
+export type PlanningItemType =
+  | "transport"
+  | "pickup_drop"
+  | "hotel"
+  | "activity"
+  | "sightseeing"
+  | "meal"
+  | "free_time"
+  | "other";
+
 export interface ItineraryItem {
   uid: string;
   itineraryUid: string;
   dayNumber: number;
-  itemType: "hotel" | "activity" | "transport";
-  referenceId: string;
+  itemType: PlanningItemType;
+  referenceId: string | null;
   referenceLabel: string;
+  title: string | null;
+  startTime: string | null;
   notes: string | null;
   sortOrder: number;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { IoCheckmarkCircle, IoTimeOutline } from "react-icons/io5";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
@@ -126,12 +127,6 @@ export function ItineraryManagementCard({ escapeUid, escape }: { escapeUid: stri
     <Card variant="elevated" className="flex flex-col gap-2.5 p-3">
       <Caption className="font-semibold">Itineraries</Caption>
 
-      <form onSubmit={handleCreate} className="flex flex-col gap-1.5">
-        <TextInput label="New itinerary name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Option A" />
-        <Button type="submit" size="sm" disabled={saving}>{saving ? "Adding…" : "Add itinerary"}</Button>
-        {formError && <p className="text-xs text-danger">{formError}</p>}
-      </form>
-
       {itinerariesStatus === "loading" && itineraries.length === 0 ? (
         <LoadingState label="Loading itineraries…" />
       ) : itinerariesStatus === "failed" ? (
@@ -143,7 +138,12 @@ export function ItineraryManagementCard({ escapeUid, escape }: { escapeUid: stri
             <div key={itinerary.uid} className="flex flex-col gap-1 rounded border border-border p-2">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="truncate text-xs font-medium text-foreground">{itinerary.name}</span>
-                <Badge tone={itinerary.status === "active" ? "success" : "neutral"}>v{itinerary.version} · {itinerary.status}</Badge>
+                <Badge
+                  tone={itinerary.status === "active" ? "success" : "neutral"}
+                  icon={itinerary.status === "active" ? IoCheckmarkCircle : IoTimeOutline}
+                >
+                  v{itinerary.version} · {itinerary.status}
+                </Badge>
               </div>
               <div className="flex gap-1.5">
                 <Button size="sm" variant="secondary" disabled={rowBusyUid === itinerary.uid} onClick={() => handleNewVersion(itinerary.uid)} className="h-7 px-2 text-xs">
@@ -157,6 +157,12 @@ export function ItineraryManagementCard({ escapeUid, escape }: { escapeUid: stri
           ))}
         </div>
       )}
+
+      <form onSubmit={handleCreate} className="flex flex-col gap-1.5">
+        <TextInput label="New itinerary name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Option A" />
+        <Button type="submit" size="sm" disabled={saving}>{saving ? "Adding…" : "Add itinerary"}</Button>
+        {formError && <p className="text-xs text-danger">{formError}</p>}
+      </form>
 
       <div className="flex flex-col gap-1.5 border-t border-border pt-2.5">
         {statusError && <p className="text-xs text-danger">{statusError}</p>}

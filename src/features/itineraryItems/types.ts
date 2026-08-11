@@ -1,12 +1,25 @@
-import type { ItineraryItem } from "@/lib/itinerary-items";
+import type { ItineraryItem, PlanningItemType } from "@/lib/itinerary-items";
 
-export type { ItineraryItem };
+export type { ItineraryItem, PlanningItemType };
 
 export interface CreateItineraryItemPayload {
   itineraryUid: string;
   dayNumber: number;
-  itemType: "hotel" | "activity" | "transport";
-  referenceId: string;
+  itemType: PlanningItemType;
+  referenceId?: string;
+  title?: string;
+  startTime?: string;
+  notes?: string;
+}
+
+export interface UpdateItineraryItemPayload {
+  uid: string;
+  itineraryUid: string; // not sent to the backend — kept for slice bookkeeping
+  dayNumber?: number;
+  itemType?: PlanningItemType;
+  referenceId?: string;
+  title?: string;
+  startTime?: string;
   notes?: string;
 }
 

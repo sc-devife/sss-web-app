@@ -4,6 +4,7 @@ import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import type {
   ItineraryItem,
   CreateItineraryItemPayload,
+  UpdateItineraryItemPayload,
   DeleteItineraryItemPayload,
   ReorderItineraryItemsPayload,
 } from "@/features/itineraryItems/types";
@@ -30,6 +31,18 @@ export const createItineraryItem = createAsyncThunk<void, CreateItineraryItemPay
       await clientApi.post("/itinerary-items", payload);
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to add item"));
+    }
+  },
+);
+
+export const updateItineraryItem = createAsyncThunk<void, UpdateItineraryItemPayload, { rejectValue: string }>(
+  "itineraryItems/updateItineraryItem",
+  async (payload, { rejectWithValue }) => {
+    const { uid, dayNumber, itemType, referenceId, title, startTime, notes } = payload;
+    try {
+      await clientApi.put(`/itinerary-items/${uid}`, { dayNumber, itemType, referenceId, title, startTime, notes });
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to update item"));
     }
   },
 );

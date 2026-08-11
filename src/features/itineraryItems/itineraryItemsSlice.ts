@@ -3,6 +3,7 @@ import type { ItineraryItem } from "@/features/itineraryItems/types";
 import {
   fetchItineraryItems,
   createItineraryItem,
+  updateItineraryItem,
   deleteItineraryItem,
   reorderItineraryItems,
 } from "@/features/itineraryItems/itineraryItemsThunks";
@@ -17,6 +18,9 @@ interface ItineraryItemsState {
   saveStatus: RequestStatus;
   saveError: string | null;
 
+  updateStatus: RequestStatus;
+  updateError: string | null;
+
   deleteStatus: RequestStatus;
   deleteError: string | null;
 
@@ -30,6 +34,8 @@ const initialState: ItineraryItemsState = {
   errorByItinerary: {},
   saveStatus: "idle",
   saveError: null,
+  updateStatus: "idle",
+  updateError: null,
   deleteStatus: "idle",
   deleteError: null,
   reorderStatus: "idle",
@@ -70,6 +76,18 @@ const itineraryItemsSlice = createSlice({
       .addCase(createItineraryItem.rejected, (state, action) => {
         state.saveStatus = "failed";
         state.saveError = action.payload ?? "Failed to add item";
+      })
+
+      .addCase(updateItineraryItem.pending, (state) => {
+        state.updateStatus = "loading";
+        state.updateError = null;
+      })
+      .addCase(updateItineraryItem.fulfilled, (state) => {
+        state.updateStatus = "succeeded";
+      })
+      .addCase(updateItineraryItem.rejected, (state, action) => {
+        state.updateStatus = "failed";
+        state.updateError = action.payload ?? "Failed to update item";
       })
 
       .addCase(deleteItineraryItem.pending, (state) => {

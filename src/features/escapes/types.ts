@@ -16,3 +16,24 @@ export interface CancelEscapePayload {
   escapeUid: string;
   reason: string;
 }
+
+export interface AddEscapeTravellerPayload {
+  escapeUid: string;
+  firstName: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface UpdateTravellerPayload {
+  travellerUid: string;
+  firstName: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface DeleteTravellerPayload {
+  escapeUid: string;
+  travellerUid: string;
+}

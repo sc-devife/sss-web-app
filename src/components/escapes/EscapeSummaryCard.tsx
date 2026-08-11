@@ -17,11 +17,13 @@ import {
 } from "react-icons/pi";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Avatar } from "@/components/ui/Avatar";
 import { Caption } from "@/components/ui/Typography";
 import { resolveFileUrl } from "@/lib/files";
-import { ESCAPE_STATUS_CANCELLED } from "@/lib/escape-status";
+import { escapeStatusTone, escapeStatusIcon } from "@/lib/escape-status";
 import type { Escape } from "@/lib/escapes";
 import type { EscapeAuditLogEntry } from "@/features/escapes/types";
+import { FaLocationArrow } from "react-icons/fa";
 
 // Sizing here is done via plain styled spans rather than the shared
 // Typography components (Heading/Body) in places that need a size the
@@ -43,7 +45,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function InfoRow({ icon: Icon, label, value }: { icon: IconType; label: string; value: string | null | undefined }) {
   if (!value) return null;
   return (
-    <div className="flex items-start gap-1.5">
+    <div className="flex items-start gap-1.5 rounded-lg border border-border/60 bg-muted/40 p-2">
       <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
       <div className="min-w-0">
         <span className="block text-[11px] leading-tight text-muted-foreground">{label}</span>
@@ -70,7 +72,6 @@ export function EscapeSummaryCard({
     setImageFailed(false);
   }, [cover]);
 
-  const isCancelled = escape.status === ESCAPE_STATUS_CANCELLED;
   const leadName = lead?.name ?? `Escape #${escape.uid}`;
 
   return (
@@ -80,7 +81,7 @@ export function EscapeSummaryCard({
         <img
           src={resolveFileUrl(cover)}
           alt={escapePoint?.name ?? leadName}
-          className="aspect-[16/9] w-full object-cover"
+          className="aspect-[16/9] w-full object-cover rounded-lg"
           onError={() => setImageFailed(true)}
         />
       ) : (
@@ -94,7 +95,9 @@ export function EscapeSummaryCard({
         <Section title="Escape information">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-sm font-semibold text-foreground">{leadName}</span>
-            <Badge tone={isCancelled ? "danger" : escape.status === "Completed" ? "success" : "neutral"}>{escape.status}</Badge>
+            <Badge tone={escapeStatusTone(escape.status)} icon={escapeStatusIcon(escape.status)}>
+              {escape.status}
+            </Badge>
           </div>
           <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
             <PiTagFill className="h-3 w-3" /> Escape #{escape.uid}
@@ -103,7 +106,7 @@ export function EscapeSummaryCard({
           {escapePoint ? (
             <>
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                <span className="text-xs font-medium text-foreground">{escapePoint.name}</span>
+                <FaLocationArrow className="h-3 w-3 text-muted-foreground" /><span className="text-xs font-medium text-foreground">{escapePoint.name}</span>
                 {extraEscapePoints > 0 && <Badge>+{extraEscapePoints} more</Badge>}
               </div>
               {escapePoint.locationLabel && (
@@ -124,18 +127,21 @@ export function EscapeSummaryCard({
         <Section title="Traveller information">
           {lead ? (
             <>
-              <div className="flex flex-col gap-0.5">
-                <span className="text-xs font-medium text-foreground">{lead.name}</span>
-                {lead.email && (
-                  <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <IoMailOutline className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{lead.email}</span>
-                  </span>
-                )}
-                {lead.phone && (
-                  <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <IoCallOutline className="h-3.5 w-3.5 shrink-0" /> {lead.phone}
-                  </span>
-                )}
+              <div className="flex items-start gap-2">
+                <Avatar name={lead.name} />
+                <div className="flex min-w-0 flex-col gap-0.5 pt-0.5">
+                  <span className="text-xs font-medium text-foreground">{lead.name}</span>
+                  {lead.email && (
+                    <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <IoMailOutline className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{lead.email}</span>
+                    </span>
+                  )}
+                  {lead.phone && (
+                    <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <IoCallOutline className="h-3.5 w-3.5 shrink-0" /> {lead.phone}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-x-2 gap-y-2 pt-1">
                 <InfoRow icon={PiUsersFill} label="Travellers" value={lead.numberOfPeople != null ? String(lead.numberOfPeople) : null} />
