@@ -156,15 +156,15 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+    <div className="flex flex-col gap-8">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {integrations.map((integration) => {
           const provider = PROVIDER_META[integration.channelCode] ?? DEFAULT_PROVIDER_META;
           const ProviderIcon = provider.icon;
           const isConnected = integration.status === "connected";
 
           return (
-            <Card key={integration.channelCode} variant="elevated" className={`group flex flex-col gap-4 border-border/70 p-4 transition-colors duration-200 hover:border-primary/30 hover:shadow-md ${!integration.available ? "bg-muted/20" : ""}`}>
+            <Card key={integration.channelCode} variant="elevated" className={`group flex min-h-[232px] flex-col gap-4 border-border/70 p-4 transition-colors duration-200 hover:border-primary/30 hover:shadow-md ${!integration.available ? "bg-muted/20" : ""}`}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-start gap-3">
                   <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/50 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground ${!integration.available ? "text-muted-foreground" : ""}`}>
@@ -211,7 +211,7 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
                 <div className="flex flex-col gap-3">
                   {integration.status !== "connected" ? (
                     connecting === integration.channelCode ? (
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-3">
                         <fieldset disabled={busy} className="flex flex-col gap-3">
                           {META_CHANNELS.has(integration.channelCode) ? (
                             <div className="flex flex-col gap-3">

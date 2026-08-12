@@ -140,7 +140,12 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <header className="flex justify-end gap-5 sm:flex-row sm:items-end sm:justify-end">
+      <header className="flex flex-col gap-5 border-b border-border/70 pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-2">
+          <Caption className="font-semibold uppercase tracking-[0.18em] text-primary">Organization finance</Caption>
+          <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Bank accounts</h1>
+          <Body className="max-w-2xl text-muted-foreground">Manage settlement accounts and keep your organization&apos;s banking details organized in one secure place.</Body>
+        </div>
         <Button className="shrink-0" onClick={openAddModal}>
           <FaPlus /> Add bank account
         </Button>
@@ -183,12 +188,7 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
 
                 <div className="rounded-xl border border-border/70 bg-muted/30 p-4"><Caption className="uppercase tracking-wider text-muted-foreground">Account number</Caption><Body className="mt-1 font-mono text-lg font-semibold tracking-widest">{maskAccountNumber(account.accountNumber)}</Body></div>
                 <div className="grid grid-cols-2 gap-4"><OptionalDetail label="Account holder" value={account.accountName} /><OptionalDetail label="IFSC" value={account.ifsc} /><OptionalDetail label="SWIFT" value={account.swiftCode} /><OptionalDetail label="MICR" value={account.micrCode} /></div>
-                <div className="mt-auto flex items-end justify-between gap-4 border-t border-border/70 pt-4"><div className="flex min-w-0 items-center gap-2 text-muted-foreground"><FaMapMarkerAlt className="size-3.5 shrink-0" /><Caption className="truncate">
-                  <div>
-                    <div>{account.branchAddress}</div>
-                    {account.branchCity}, {account.country} · {account.currency}
-                  </div>
-                </Caption></div>{isActive ? <Button variant="danger" size="sm" disabled={updatingId === account.uid} onClick={() => handleSetStatus(account.uid, "deactivate")}>Deactivate</Button> : <Button variant="secondary" size="sm" disabled={updatingId === account.uid} onClick={() => handleSetStatus(account.uid, "reactivate")}>Reactivate</Button>}</div>
+                <div className="mt-auto flex items-end justify-between gap-4 border-t border-border/70 pt-4"><div className="flex min-w-0 items-center gap-2 text-muted-foreground"><FaMapMarkerAlt className="size-3.5 shrink-0" /><Caption className="truncate">{account.branchCity}, {account.country} · {account.currency}</Caption></div>{isActive ? <Button variant="danger" size="sm" disabled={updatingId === account.uid} onClick={() => handleSetStatus(account.uid, "deactivate")}>Deactivate</Button> : <Button variant="secondary" size="sm" disabled={updatingId === account.uid} onClick={() => handleSetStatus(account.uid, "reactivate")}>Reactivate</Button>}</div>
               </Card>
             );
           })}
