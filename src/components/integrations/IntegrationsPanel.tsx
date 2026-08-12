@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react";
 import type { IconType } from "react-icons";
-import { PiFacebookLogoFill, PiInstagramLogoFill, PiLinkSimpleBold, PiPlugsConnectedBold } from "react-icons/pi";
+import {
+  PiFacebookLogoFill,
+  PiGoogleLogoFill,
+  PiInstagramLogoFill,
+  PiLinkSimpleBold,
+  PiPlugsConnectedBold,
+  PiWhatsappLogoFill,
+  PiYoutubeLogoFill,
+} from "react-icons/pi";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
@@ -24,6 +32,10 @@ const PROVIDER_META: Record<string, { icon: IconType; description: string }> = {
   facebook: { icon: PiFacebookLogoFill, description: "Capture leads from your Facebook Pages automatically." },
   instagram: { icon: PiInstagramLogoFill, description: "Bring Instagram Business inquiries into your workspace." },
   webhook: { icon: PiLinkSimpleBold, description: "Connect any source that can send lead events securely." },
+  whatsapp: { icon: PiWhatsappLogoFill, description: "Capture conversations and leads from WhatsApp Business." },
+  youtube: { icon: PiYoutubeLogoFill, description: "Bring audience and lead activity from your YouTube channel." },
+  google_ads: { icon: PiGoogleLogoFill, description: "Keep campaign lead activity connected to your workspace." },
+  googleads: { icon: PiGoogleLogoFill, description: "Keep campaign lead activity connected to your workspace." },
 };
 
 const DEFAULT_PROVIDER_META = { icon: PiPlugsConnectedBold, description: "Connect this channel to keep your lead workflow in sync." };
@@ -152,10 +164,10 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
           const isConnected = integration.status === "connected";
 
           return (
-          <Card key={integration.channelCode} variant="elevated" className="group flex min-h-[280px] flex-col gap-5 border-border/70 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
+          <Card key={integration.channelCode} variant="elevated" className={`group flex min-h-[232px] flex-col gap-4 border-border/70 p-4 transition-colors duration-200 hover:border-primary/30 hover:shadow-md ${!integration.available ? "bg-muted/20" : ""}`}>
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 items-start gap-3">
-                <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/50 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/50 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground ${!integration.available ? "text-muted-foreground" : ""}`}>
                   <ProviderIcon className="size-5" aria-hidden="true" />
                 </div>
                 <div className="flex min-w-0 flex-col gap-1">
@@ -172,7 +184,7 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
               )}
             </div>
 
-            <Body className="min-h-12 text-sm leading-6 text-muted-foreground">{provider.description}</Body>
+            <Body className={`text-sm leading-6 text-muted-foreground ${!integration.available ? "opacity-75" : ""}`}>{provider.description}</Body>
 
             {integration.available && integration.channelCode === "webhook" && integration.status === "connected" && (
               <div className="rounded-lg border border-border bg-muted/30 p-3">
@@ -244,10 +256,10 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
                       </div>
                     </div>
                   ) : (
-                    <Button size="sm" className="w-full" onClick={() => startConnecting(integration.channelCode)}>Connect</Button>
+                    <Button size="sm" className="h-10 w-full rounded-xl" onClick={() => startConnecting(integration.channelCode)}>Connect</Button>
                   )
                 ) : (
-                  <Button size="sm" variant="danger" className="w-full" disabled={busy} onClick={() => handleDisconnect(integration.channelCode)}>
+                  <Button size="sm" variant="danger" className="h-10 w-full rounded-xl" disabled={busy} onClick={() => handleDisconnect(integration.channelCode)}>
                     Disconnect
                   </Button>
                 )}
