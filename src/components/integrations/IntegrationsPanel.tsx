@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { IconType } from "react-icons";
+import { PiFacebookLogoFill, PiInstagramLogoFill, PiLinkSimpleBold, PiPlugsConnectedBold } from "react-icons/pi";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
@@ -17,6 +19,14 @@ import { selectIntegrations, selectIntegrationsStatus, selectIntegrationsError }
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/sss";
 
 const META_CHANNELS = new Set(["facebook", "instagram"]);
+
+const PROVIDER_META: Record<string, { icon: IconType; description: string }> = {
+  facebook: { icon: PiFacebookLogoFill, description: "Capture leads from your Facebook Pages automatically." },
+  instagram: { icon: PiInstagramLogoFill, description: "Bring Instagram Business inquiries into your workspace." },
+  webhook: { icon: PiLinkSimpleBold, description: "Connect any source that can send lead events securely." },
+};
+
+const DEFAULT_PROVIDER_META = { icon: PiPlugsConnectedBold, description: "Connect this channel to keep your lead workflow in sync." };
 
 const emptyMetaForm = {
   accessToken: "",
@@ -136,22 +146,33 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
   return (
     <div className="flex flex-col gap-8">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {integrations.map((integration) => (
-          <Card key={integration.channelCode} variant="elevated" className="flex flex-col gap-4">
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col gap-1">
-                <Body className="font-semibold">{integration.label}</Body>
-                <Caption className="text-muted-foreground">{integration.channelCode}</Caption>
+        {integrations.map((integration) => {
+          const provider = PROVIDER_META[integration.channelCode] ?? DEFAULT_PROVIDER_META;
+          const ProviderIcon = provider.icon;
+          const isConnected = integration.status === "connected";
+
+          return (
+          <Card key={integration.channelCode} variant="elevated" className="group flex min-h-[280px] flex-col gap-5 border-border/70 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/50 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                  <ProviderIcon className="size-5" aria-hidden="true" />
+                </div>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <Body className="truncate text-base font-semibold">{integration.label}</Body>
+                  <Caption className="uppercase tracking-wider text-muted-foreground">{integration.channelCode}</Caption>
+                </div>
               </div>
-              <div>
-                {!integration.available && <Badge tone="neutral">Coming soon</Badge>}
-                {integration.available && (
-                  <Badge tone={integration.status === "connected" ? "success" : "neutral"}>
-                    {integration.status === "connected" ? "Connected" : "Disconnected"}
-                  </Badge>
-                )}
-              </div>
+              {!integration.available && <Badge tone="neutral">Coming soon</Badge>}
+              {integration.available && (
+                <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <span className={isConnected ? "size-2 rounded-full bg-success" : "size-2 rounded-full bg-muted-foreground/50"} aria-hidden="true" />
+                  {isConnected ? "Connected" : "Not connected"}
+                </span>
+              )}
             </div>
+
+            <Body className="min-h-12 text-sm leading-6 text-muted-foreground">{provider.description}</Body>
 
             {integration.available && integration.channelCode === "webhook" && integration.status === "connected" && (
               <div className="rounded-lg border border-border bg-muted/30 p-3">
@@ -233,7 +254,8 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
               </div>
             )}
           </Card>
-        ))}
+          );
+        })}
       </div>
       {formError && (
         <Alert tone="danger" autoClose={false}>
