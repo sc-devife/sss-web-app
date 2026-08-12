@@ -1,4 +1,5 @@
 import { backendJson } from "@/lib/backend";
+import type { LogoShape } from "@/lib/organization";
 
 export interface CurrentUser {
   seqp: number;
@@ -13,6 +14,7 @@ export interface CurrentUser {
   roles: { role: { name: string; label: string } }[];
   organizationName: string | null;
   organizationLogo: string | null;
+  organizationLogoShape: LogoShape | null;
 }
 
 export async function getCurrentUser(): Promise<CurrentUser> {

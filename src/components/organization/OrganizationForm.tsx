@@ -16,7 +16,14 @@ import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { mobileField, runValidators } from "@/lib/validators";
 import { useAppDispatch } from "@/store/hooks";
 import { updateOrganization, uploadOrganizationLogo, fetchMyOrganization } from "@/features/organization/organizationThunks";
-import type { Organization } from "@/features/organization/types";
+import type { Organization, LogoShape } from "@/features/organization/types";
+import { cn } from "@/lib/cn";
+
+const LOGO_SHAPES: { value: LogoShape; label: string }[] = [
+  { value: "round", label: "Round" },
+  { value: "square", label: "Square" },
+  { value: "rectangle", label: "Rectangle" },
+];
 
 export function OrganizationForm({
   organization,
@@ -37,6 +44,7 @@ export function OrganizationForm({
   const [logoFile, setLogoFile] = useState<string[]>(
     organization.logo_file ? [organization.logo_file] : []
   );
+  const [logoShape, setLogoShape] = useState<LogoShape>(organization.logo_shape ?? "round");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -99,6 +107,7 @@ export function OrganizationForm({
         registered_name: registeredName,
         support_ph_num: supportPhone,
         logo_file: logoFile[0] ?? null,
+        logo_shape: logoShape,
       })).unwrap();
 
       setSaved(true);
@@ -120,7 +129,13 @@ export function OrganizationForm({
 
         {/* Preview */}
         <div className="flex flex-col items-center">
-          <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl border shadow-sm bg-muted">
+          <div
+            className={cn(
+              "flex items-center justify-center overflow-hidden border shadow-sm bg-muted",
+              logoShape === "rectangle" ? "h-20 w-40 rounded-xl" : "h-28 w-28 rounded-2xl",
+              logoShape === "round" && "rounded-full",
+            )}
+          >
             {logoPreviewUrl ? (
               <img
                 src={logoPreviewUrl}
@@ -135,6 +150,24 @@ export function OrganizationForm({
           <Caption className="mt-3 font-medium">
             Organization Logo
           </Caption>
+
+          <div className="mt-2 flex gap-1 rounded-lg border border-border bg-muted/30 p-1">
+            {LOGO_SHAPES.map((shape) => (
+              <button
+                key={shape.value}
+                type="button"
+                onClick={() => setLogoShape(shape.value)}
+                className={cn(
+                  "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                  logoShape === shape.value
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {shape.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Upload */}

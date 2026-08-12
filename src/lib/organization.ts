@@ -1,5 +1,7 @@
 import { backendJson } from "@/lib/backend";
 
+export type LogoShape = "round" | "square" | "rectangle";
+
 export interface Organization {
   seqp: number;
   uid: string;
@@ -10,6 +12,7 @@ export interface Organization {
   country_code: string | null;
   default_currency_code: string | null;
   logo_file: string | null;
+  logo_shape: LogoShape;
   status: "ACTIVE" | "SUSPENDED";
   quote_template_id: string | null;
   invoice_template_id: string | null;

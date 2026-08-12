@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import type { LogoShape } from "@/lib/organization";
 
 // Single source of truth for the logged-in user's identity — populated from
 // the login response on sign-in, and re-derived from the server-resolved
@@ -17,6 +18,7 @@ export interface LoggedInUser {
   role: string;
   organizationLogo: string | null;
   organizationName?: string | null;
+  organizationLogoShape?: LogoShape | null;
   profilePicture?: string | null;
 }
 

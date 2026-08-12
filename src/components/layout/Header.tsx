@@ -8,6 +8,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { toggleMobile } from "@/features/ui/uiSlice";
 import { selectLoggedInUser } from "@/features/auth/authSelectors";
 import { resolveFileUrl } from "@/lib/files";
+import { cn } from "@/lib/cn";
 
 // First letter of first + last name (e.g. "John Doe" -> "JD"); just the
 // first letter of the first name when there's no last name on file.
@@ -20,11 +21,19 @@ function userInitials(user: { firstName?: string; lastName?: string; name: strin
   return user.name.trim().charAt(0).toUpperCase() || "?";
 }
 
+// 24px tall regardless of shape, so it sits flush with the org-name text.
+const LOGO_SHAPE_CLASS: Record<string, string> = {
+  round: "h-6 w-6 rounded-full",
+  square: "h-6 w-6 rounded-md",
+  rectangle: "h-6 w-auto max-w-[84px] rounded-sm",
+};
+
 export function Header() {
   const pathname = usePathname();
   const route = findRouteByPath(pathname);
   const dispatch = useAppDispatch();
   const user = useAppSelector(selectLoggedInUser);
+  const shapeClass = LOGO_SHAPE_CLASS[user?.organizationLogoShape ?? "round"] ?? LOGO_SHAPE_CLASS.round;
 
   return (
     <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-card px-4 md:px-5">
@@ -54,13 +63,13 @@ export function Header() {
             className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             title={user.organizationName}
           >
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
+            <div className={cn("flex shrink-0 items-center justify-center overflow-hidden bg-muted", shapeClass)}>
               {user.organizationLogo ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={resolveFileUrl(user.organizationLogo)}
                   alt={user.organizationName}
-                  className="h-full w-full object-cover"
+                  className={user.organizationLogoShape === "rectangle" ? "h-full w-full object-contain" : "h-full w-full object-cover"}
                 />
               ) : (
                 <PiBuildingsFill className="h-3.5 w-3.5" />
