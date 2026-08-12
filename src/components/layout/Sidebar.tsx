@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { dashboardRoute, visibleGroupsForRoles, type RouteGroup } from "@/lib/nav-config";
 import { cn } from "@/lib/cn";
-import { FaChevronLeft, FaChevronRight, FaPowerOff } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight, FaChevronDown, FaPowerOff } from "react-icons/fa";
 import { PiBellFill } from "react-icons/pi";
 import { clientApi } from "@/lib/axios/clientClient";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -68,19 +68,37 @@ function CollapsedGroupIcon({ group, onExpand }: { group: RouteGroup; onExpand: 
 }
 
 // Full rendering of one group: title header + its routes listed underneath,
-// indented as children. Used inside the overlay panel only.
-function ExpandedGroup({ group }: { group: RouteGroup }) {
+// indented as children. Used inside the overlay panel only. Each group's
+// open/closed state is independent — clicking a header toggles just that
+// group, and it stays open until the user collapses it again.
+function ExpandedGroup({
+  group,
+  isOpen,
+  onToggle,
+}: {
+  group: RouteGroup;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
   return (
     <div className="mt-4">
-      <div className="mb-2 flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        className="mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      >
         <group.icon className="size-4 shrink-0" aria-hidden="true" />
-        <span>{group.title}</span>
-      </div>
-      <div className="flex flex-col gap-1">
-        {group.routes.map((route) => (
-          <NavLink key={route.path} path={route.path} title={route.title} Icon={route.icon} collapsed={false} indent />
-        ))}
-      </div>
+        <span className="flex-1 text-left">{group.title}</span>
+        <FaChevronDown className={cn("h-2.5 w-2.5 shrink-0 transition-transform", isOpen && "rotate-180")} aria-hidden="true" />
+      </button>
+      {isOpen && (
+        <div className="flex flex-col gap-1">
+          {group.routes.map((route) => (
+            <NavLink key={route.path} path={route.path} title={route.title} Icon={route.icon} collapsed={false} indent />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -184,6 +202,26 @@ export function Sidebar({ roles }: { roles: string[] }) {
   // temporary panel on top of the page, not a permanent layout mode, so
   // there's nothing to remember across page loads.
   const [expanded, setExpanded] = useState(false);
+  // Which groups' routes show in the overlay panel — each toggled
+  // independently by clicking its header (or opened by clicking its icon on
+  // the collapsed rail), and stays open until the user collapses it again.
+  const [openGroupIds, setOpenGroupIds] = useState<Set<string>>(new Set());
+
+  function toggleGroup(groupId: string) {
+    setOpenGroupIds((current) => {
+      const next = new Set(current);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  }
+
+  function openGroup(groupId: string) {
+    setOpenGroupIds((current) => new Set(current).add(groupId));
+  }
 
   const groups = visibleGroupsForRoles(roles).filter((group) => ["sales", "library", "organization"].includes(group.id));
 
@@ -192,6 +230,15 @@ export function Sidebar({ roles }: { roles: string[] }) {
     setExpanded(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
+
+  // Whenever the overlay panel is fully closed — navigation, Escape, backdrop
+  // click, or the collapse handle — forget which groups were open, so the
+  // next time a rail icon is clicked only that group's submenu shows.
+  useEffect(() => {
+    if (!expanded && !mobileOpen) {
+      setOpenGroupIds(new Set());
+    }
+  }, [expanded, mobileOpen]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -247,7 +294,14 @@ export function Sidebar({ roles }: { roles: string[] }) {
           </div>
           <div className="mt-4 flex flex-col items-center gap-2">
             {groups.map((group) => (
-              <CollapsedGroupIcon key={group.id} group={group} onExpand={() => setExpanded(true)} />
+              <CollapsedGroupIcon
+                key={group.id}
+                group={group}
+                onExpand={() => {
+                  openGroup(group.id);
+                  setExpanded(true);
+                }}
+              />
             ))}
           </div>
         </div>
@@ -293,7 +347,12 @@ export function Sidebar({ roles }: { roles: string[] }) {
             <NavLink path={dashboardRoute.path} title={dashboardRoute.title} Icon={dashboardRoute.icon} collapsed={false} />
           </div>
           {groups.map((group) => (
-            <ExpandedGroup key={group.id} group={group} />
+            <ExpandedGroup
+              key={group.id}
+              group={group}
+              isOpen={openGroupIds.has(group.id)}
+              onToggle={() => toggleGroup(group.id)}
+            />
           ))}
         </div>
         <SidebarFooter collapsed={false} loggingOut={loggingOut} onLogout={handleLogout} />
