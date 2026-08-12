@@ -16,11 +16,11 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
   return (
     <>
       <AuthHydrator user={user} roles={roles} />
-      <div className="flex h-full">
+      <div className="flex min-h-screen w-full overflow-x-hidden">
         <Sidebar roles={roles} />
-        <div className="flex flex-1 flex-col min-w-0">
+        <div className="flex min-w-0 flex-1 flex-col">
           <Header />
-          <main className="flex-1 overflow-y-auto p-2">{children}</main>
+          <main className="min-h-0 flex-1 overflow-y-auto p-2">{children}</main>
         </div>
       </div>
     </>

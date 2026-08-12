@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { dashboardRoute, visibleGroupsForRoles } from "@/lib/nav-config";
 import { cn } from "@/lib/cn";
@@ -53,8 +53,11 @@ export function Sidebar({ roles }: { roles: string[] }) {
   const collapsed = useAppSelector((state) => state.ui.collapsed);
   const mobileOpen = useAppSelector((state) => state.ui.mobileOpen);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [desktopExpanded, setDesktopExpanded] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
 
   const groups = visibleGroupsForRoles(roles);
+  const isExpanded = !collapsed || desktopExpanded;
 
   useEffect(() => {
     const saved = localStorage.getItem(COLLAPSED_STORAGE_KEY);
@@ -64,10 +67,34 @@ export function Sidebar({ roles }: { roles: string[] }) {
 
   useEffect(() => {
     dispatch(closeMobileAction());
+    setDesktopExpanded(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      if (desktopExpanded && sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        setDesktopExpanded(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setDesktopExpanded(false);
+        dispatch(closeMobileAction());
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [desktopExpanded, dispatch]);
+
   function setCollapsed(value: boolean) {
+    setDesktopExpanded(false);
     dispatch(setCollapsedAction(value));
     localStorage.setItem(COLLAPSED_STORAGE_KEY, String(value));
   }
@@ -91,14 +118,19 @@ export function Sidebar({ roles }: { roles: string[] }) {
       )}
 
       <aside
+        ref={sidebarRef}
+        onMouseEnter={() => collapsed && setDesktopExpanded(true)}
+        onMouseLeave={() => collapsed && setDesktopExpanded(false)}
+        onFocusCapture={() => collapsed && setDesktopExpanded(true)}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r bg-card transition-transform duration-300 md:static md:z-auto md:translate-x-0 md:transition-[width] md:duration-200",
+          "fixed inset-y-0 left-0 z-50 flex w-[min(19rem,calc(100vw-2rem))] flex-col border-r bg-card shadow-xl transition-transform duration-300 md:static md:z-30 md:translate-x-0 md:shadow-none md:transition-[width,box-shadow] md:duration-200",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
           collapsed ? "md:w-20" : "md:w-72",
+          collapsed && desktopExpanded && "md:absolute md:w-72 md:shadow-2xl",
         )}
       >
         {/* Brand */}
-        <div className={cn("flex items-center justify-between border-b h-14 px-3 py-1 pb-2", collapsed && "md:justify-center md:px-2")}>
+        <div className={cn("flex items-center justify-between border-b h-14 px-3 py-1 pb-2", !isExpanded && "md:justify-center md:px-2")}>
           <div className="flex items-center gap-3 overflow-hidden">
             <div className="flex size-10 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/50">
               <img
@@ -107,7 +139,7 @@ export function Sidebar({ roles }: { roles: string[] }) {
                 className="h-full w-full object-contain"
               />
             </div>
-            <div className={cn("min-w-0", collapsed && "md:hidden")}>
+            <div className={cn("min-w-0", !isExpanded && "md:hidden")}>
               <h2 className="truncate text-lg font-bold">Travel CRM</h2>
               <p className="truncate text-xs text-muted-foreground">Travel Management Platform</p>
             </div>
@@ -118,13 +150,13 @@ export function Sidebar({ roles }: { roles: string[] }) {
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             className={cn(
               "hidden shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:flex",
-              collapsed && "md:hidden",
+              !isExpanded && "md:hidden",
             )}
             title={collapsed ? "Maximize sidebar" : "Minimize sidebar"}
           >
             <FaChevronLeft className="h-4 w-4" />
           </button>
-          {collapsed && (
+          {collapsed && !desktopExpanded && (
             <button
               type="button"
               onClick={() => setCollapsed(false)}
@@ -140,18 +172,18 @@ export function Sidebar({ roles }: { roles: string[] }) {
         {/* Navigation */}
         <div className="flex-1 overflow-y-auto px-3 py-4">
           <div className="space-y-1">
-            <NavLink path={dashboardRoute.path} title={dashboardRoute.title} Icon={dashboardRoute.icon} collapsed={collapsed} />
+            <NavLink path={dashboardRoute.path} title={dashboardRoute.title} Icon={dashboardRoute.icon} collapsed={!isExpanded} />
           </div>
 
           {groups.map((group) => (
             <div key={group.id} className="mt-4">
-              <div className={cn("mb-3 px-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground", collapsed && "md:hidden")}>
+              <div className={cn("mb-3 px-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground", !isExpanded && "md:hidden")}>
                 {group.title}
               </div>
-              {collapsed && <div className="mx-3 mb-3 hidden border-t border-border md:block" aria-hidden="true" />}
+              {!isExpanded && <div className="mx-3 mb-3 hidden border-t border-border md:block" aria-hidden="true" />}
               <div className="space-y-1">
                 {group.routes.map((route) => (
-                  <NavLink key={route.path} path={route.path} title={route.title} Icon={route.icon} collapsed={collapsed} />
+                  <NavLink key={route.path} path={route.path} title={route.title} Icon={route.icon} collapsed={!isExpanded} />
                 ))}
               </div>
             </div>
@@ -163,17 +195,17 @@ export function Sidebar({ roles }: { roles: string[] }) {
           <button
             onClick={handleLogout}
             disabled={loggingOut}
-            title={collapsed ? "Logout" : undefined}
+            title={!isExpanded ? "Logout" : undefined}
             className={cn(
               "flex w-full items-center justify-center gap-3 rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm font-medium text-danger transition hover:bg-danger/10 disabled:opacity-50",
-              collapsed && "md:px-2",
+              !isExpanded && "md:px-2",
             )}
           >
             <FaPowerOff className="h-4 w-4 shrink-0" />
-            <span className={cn(collapsed && "md:hidden")}>{loggingOut ? "Logging out…" : "Logout"}</span>
+            <span className={cn(!isExpanded && "md:hidden")}>{loggingOut ? "Logging out…" : "Logout"}</span>
           </button>
 
-          <p className={cn("mt-1 text-center text-xs text-muted-foreground", collapsed && "md:hidden")}>
+          <p className={cn("mt-1 text-center text-xs text-muted-foreground", !isExpanded && "md:hidden")}>
             Travel CRM v{pkg.version}
           </p>
         </div>
