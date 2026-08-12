@@ -86,6 +86,12 @@ export function LeadsPanel({
     return undefined;
   }
 
+  const durationDaysNumber = Number(form.durationDays);
+  const durationInfoMessage =
+    Number.isInteger(durationDaysNumber) && durationDaysNumber >= 1
+      ? `${durationDaysNumber} Night${durationDaysNumber === 1 ? "" : "s"}, ${durationDaysNumber + 1} Days`
+      : "";
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const err = validate();
@@ -208,7 +214,12 @@ export function LeadsPanel({
 
           <div className="grid grid-cols-2 gap-4">
             <TextInput label="Travellers" type="number" min={1} value={form.numberOfPeople} onChange={(e) => update("numberOfPeople", e.target.value)} />
-            <TextInput label="Duration (days)" type="number" min={1} value={form.durationDays} onChange={(e) => update("durationDays", e.target.value)} />
+            <div>
+              <TextInput label="No. of Nights" type="number" min={1} value={form.durationDays} onChange={(e) => update("durationDays", e.target.value)} />
+              {durationInfoMessage ? (
+                <p className="mt-1 text-xs text-muted-foreground">{durationInfoMessage}</p>
+              ) : null}
+            </div>
             <TextInput label="Travel date" type="date" value={form.travelDate} onChange={(e) => update("travelDate", e.target.value)} />
             <TextInput label="Budget" type="number" min={0} value={form.budget} onChange={(e) => update("budget", e.target.value)} />
             <TextInput label="Origin city" value={form.originCity} onChange={(e) => update("originCity", e.target.value)} placeholder="e.g. Mumbai" />
