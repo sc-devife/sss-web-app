@@ -14,7 +14,7 @@ import { accountNumberField, ifscField, pattern, required, runValidators, swiftF
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchBankAccounts, createBankAccount, setBankAccountStatus } from "@/features/bankAccounts/bankAccountsThunks";
 import { selectBankAccounts, selectBankAccountsStatus, selectBankAccountsError } from "@/features/bankAccounts/bankAccountsSelectors";
-import { FaPlus } from "react-icons/fa";
+import { FaMapMarkerAlt, FaPlus, FaUniversity } from "react-icons/fa";
 
 const emptyForm = {
   accountName: "",
@@ -33,6 +33,21 @@ const emptyForm = {
 };
 
 type BankAccountFormState = typeof emptyForm;
+
+function maskAccountNumber(value: string) {
+  if (value.length <= 4) return value;
+  return `•••• ${value.slice(-4)}`;
+}
+
+function OptionalDetail({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null;
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <Caption className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</Caption>
+      <Body className="truncate text-sm">{value}</Body>
+    </div>
+  );
+}
 
 // No dirty-check here — this form is Add-only (no Edit/Update flow exists
 // for bank accounts today, confirmed via the feature module's thunks).
@@ -126,39 +141,59 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-
-      <Button className="self-end" onClick={openAddModal}>
-        <FaPlus /> Add bank account
-      </Button>
+    <div className="flex flex-col gap-8">
+      <header className="flex flex-col gap-5 border-b border-border/70 pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-2">
+          <Caption className="font-semibold uppercase tracking-[0.18em] text-primary">Organization finance</Caption>
+          <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Bank accounts</h1>
+          <Body className="max-w-2xl text-muted-foreground">Manage settlement accounts and keep your organization&apos;s banking details organized in one secure place.</Body>
+        </div>
+        <Button className="shrink-0" onClick={openAddModal}>
+          <FaPlus /> Add bank account
+        </Button>
+      </header>
 
       {status === "loading" && accounts.length === 0 ? (
-        <LoadingState label="Loading bank accounts…" />
-      ) : status === "failed" ? (
-        <Body className="text-danger">{error}</Body>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {accounts.length === 0 && <Body muted>No bank accounts added yet.</Body>}
-          {accounts.map((account) => (
-            <Card key={account.uid} className="flex items-center justify-between">
-              <div>
-                <Body className="font-medium">
-                  {account.bankName} · {account.accountName}{" "}
-                  <Badge tone={account.status === "active" ? "success" : "neutral"}>{account.status}</Badge>
-                </Body>
-                <Caption>{account.accountNumber} · {account.branchCity}, {account.country} · {account.currency}</Caption>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Loading bank accounts">
+          {[1, 2, 3].map((item) => (
+            <Card key={item} className="flex min-h-[280px] flex-col gap-5 border-border/70 p-5">
+              <div className="flex items-center gap-3">
+                <div className="size-11 rounded-xl bg-muted" />
+                <div className="flex flex-1 flex-col gap-2"><div className="h-4 w-32 rounded bg-muted" /><div className="h-3 w-20 rounded bg-muted" /></div>
               </div>
-              {account.status === "active" ? (
-                <Button variant="danger" size="sm" disabled={updatingId === account.uid} onClick={() => handleSetStatus(account.uid, "deactivate")}>
-                  Deactivate
-                </Button>
-              ) : (
-                <Button variant="secondary" size="sm" disabled={updatingId === account.uid} onClick={() => handleSetStatus(account.uid, "reactivate")}>
-                  Reactivate
-                </Button>
-              )}
+              <div className="h-16 rounded-lg bg-muted/70" />
+              <div className="mt-auto h-10 rounded-lg bg-muted" />
             </Card>
           ))}
+        </div>
+      ) : status === "failed" ? (
+        <Body className="text-danger">{error}</Body>
+      ) : accounts.length === 0 ? (
+        <Card className="flex min-h-[280px] flex-col items-center justify-center gap-4 border-dashed border-border/80 bg-muted/20 p-8 text-center">
+          <div className="flex size-14 items-center justify-center rounded-2xl border border-border bg-background text-primary shadow-sm"><FaUniversity className="size-6" /></div>
+          <div className="flex flex-col gap-1"><Body className="font-semibold">No bank accounts yet</Body><Caption>Add your first settlement account to get started.</Caption></div>
+          <Button variant="secondary" size="sm" onClick={openAddModal}><FaPlus /> Add bank account</Button>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {accounts.map((account) => {
+            const isActive = account.status === "active";
+            return (
+              <Card key={account.uid} className="group flex min-h-[280px] flex-col gap-5 border-border/70 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/50 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground"><FaUniversity className="size-5" /></div>
+                    <div className="flex min-w-0 flex-col gap-1"><Body className="truncate font-semibold">{account.bankName}</Body><Caption className="truncate text-muted-foreground">{account.bankShortName} · {account.branchName}</Caption></div>
+                  </div>
+                  <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground"><span className={isActive ? "size-2 rounded-full bg-success" : "size-2 rounded-full bg-muted-foreground/50"} />{isActive ? "Active" : "Inactive"}</span>
+                </div>
+
+                <div className="rounded-xl border border-border/70 bg-muted/30 p-4"><Caption className="uppercase tracking-wider text-muted-foreground">Account number</Caption><Body className="mt-1 font-mono text-lg font-semibold tracking-widest">{maskAccountNumber(account.accountNumber)}</Body></div>
+                <div className="grid grid-cols-2 gap-4"><OptionalDetail label="Account holder" value={account.accountName} /><OptionalDetail label="IFSC" value={account.ifsc} /><OptionalDetail label="SWIFT" value={account.swiftCode} /><OptionalDetail label="MICR" value={account.micrCode} /></div>
+                <div className="mt-auto flex items-end justify-between gap-4 border-t border-border/70 pt-4"><div className="flex min-w-0 items-center gap-2 text-muted-foreground"><FaMapMarkerAlt className="size-3.5 shrink-0" /><Caption className="truncate">{account.branchCity}, {account.country} · {account.currency}</Caption></div>{isActive ? <Button variant="danger" size="sm" disabled={updatingId === account.uid} onClick={() => handleSetStatus(account.uid, "deactivate")}>Deactivate</Button> : <Button variant="secondary" size="sm" disabled={updatingId === account.uid} onClick={() => handleSetStatus(account.uid, "reactivate")}>Reactivate</Button>}</div>
+              </Card>
+            );
+          })}
         </div>
       )}
 
