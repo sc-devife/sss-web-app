@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { dashboardRoute, visibleGroupsForRoles } from "@/lib/nav-config";
 import { cn } from "@/lib/cn";
 import { FaChevronLeft, FaChevronRight, FaPowerOff } from "react-icons/fa";
-import { PiAirplaneTiltFill } from "react-icons/pi";
 import { clientApi } from "@/lib/axios/clientClient";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setCollapsed as setCollapsedAction, closeMobile as closeMobileAction } from "@/features/ui/uiSlice";
@@ -101,8 +100,12 @@ export function Sidebar({ roles }: { roles: string[] }) {
         {/* Brand */}
         <div className={cn("flex items-center justify-between border-b h-14 px-3 py-1 pb-2", collapsed && "md:justify-center md:px-2")}>
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="shrink-0 rounded-xl bg-primary/10 p-2 ring-1 ring-primary/20">
-              <PiAirplaneTiltFill className="h-5 w-5 text-primary" />
+            <div className="flex size-10 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/50">
+              <img
+                src="/logo.jpg"
+                alt="Travel Online Agency"
+                className="h-full w-full object-contain"
+              />
             </div>
             <div className={cn("min-w-0", collapsed && "md:hidden")}>
               <h2 className="truncate text-lg font-bold">Travel CRM</h2>

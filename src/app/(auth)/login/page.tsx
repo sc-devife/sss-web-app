@@ -134,7 +134,7 @@ function LoginForm() {
         <div className="flex size-16 items-center justify-center overflow-hidden rounded-2xl border border-border bg-muted/50 p-2 shadow-sm">
 
           <img
-            src="/logo.png"
+            src="/logo.jpg"
             alt="Travel Online Agency"
             className="h-full w-full object-contain"
           />

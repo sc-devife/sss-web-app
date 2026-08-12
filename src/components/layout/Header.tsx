@@ -34,16 +34,18 @@ export function Header() {
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
           title="View Profile"
         >
-          {user?.organizationLogo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={resolveFileUrl(user.organizationLogo)}
-              alt="Organization logo"
-              className="h-8 w-8 shrink-0 rounded-full object-cover"
-            />
-          ) : (
-            <PiBuildings className="h-8 w-8 shrink-0" />
-          )}
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted border border-border ring-1 ring-border/20">
+            {user?.organizationLogo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={resolveFileUrl(user.organizationLogo)}
+                alt="Organization logo"
+                className="h-8 w-8 shrink-0 rounded-full object-cover"
+              />
+            ) : (
+              <PiBuildings className="h-8 w-8 shrink-0" />
+            )}
+          </div>
           {user && (
             <div className="hidden text-left leading-tight sm:block">
               <div className="text-sm font-medium text-foreground">{user.userId}</div>
