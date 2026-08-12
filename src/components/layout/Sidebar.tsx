@@ -123,10 +123,9 @@ export function Sidebar({ roles }: { roles: string[] }) {
         onMouseLeave={() => collapsed && setDesktopExpanded(false)}
         onFocusCapture={() => collapsed && setDesktopExpanded(true)}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[min(19rem,calc(100vw-2rem))] flex-col border-r bg-card shadow-xl transition-transform duration-300 md:static md:z-30 md:translate-x-0 md:shadow-none md:transition-[width,box-shadow] md:duration-200",
+          "fixed inset-y-0 left-0 z-50 flex w-[min(19rem,calc(100vw-2rem))] flex-col border-r bg-card shadow-xl transition-transform duration-300 md:static md:z-30 md:translate-x-0 md:shadow-none md:transition-[width] md:duration-200",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
-          collapsed ? "md:w-20" : "md:w-72",
-          collapsed && desktopExpanded && "md:absolute md:w-72 md:shadow-2xl",
+          collapsed && !desktopExpanded ? "md:w-20" : "md:w-72",
         )}
       >
         {/* Brand */}
@@ -177,11 +176,11 @@ export function Sidebar({ roles }: { roles: string[] }) {
 
           {groups.map((group) => (
             <div key={group.id} className="mt-4">
-              <div className={cn("mb-3 px-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground", !isExpanded && "md:hidden")}>
-                {group.title}
+              <div className={cn("mb-2 flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground", !isExpanded && "md:justify-center md:px-2")}>
+                <group.icon className="size-4 shrink-0" aria-hidden="true" />
+                <span className={cn(!isExpanded && "md:hidden")}>{group.title}</span>
               </div>
-              {!isExpanded && <div className="mx-3 mb-3 hidden border-t border-border md:block" aria-hidden="true" />}
-              <div className="space-y-1">
+              <div className="flex flex-col gap-1">
                 {group.routes.map((route) => (
                   <NavLink key={route.path} path={route.path} title={route.title} Icon={route.icon} collapsed={!isExpanded} />
                 ))}
