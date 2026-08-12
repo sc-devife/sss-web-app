@@ -16,6 +16,7 @@ export interface LoggedInUser {
   lastName?: string;
   role: string;
   organizationLogo: string | null;
+  organizationName?: string | null;
   profilePicture?: string | null;
 }
 

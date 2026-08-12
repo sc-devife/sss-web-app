@@ -2,22 +2,25 @@ import type { IconType } from "react-icons";
 import { RxDashboard } from "react-icons/rx";
 import { LiaUserSolid } from "react-icons/lia";
 import {
-  PiUserPlusFill,
+  PiFunnelFill,
+  PiGitForkFill,
   PiAirplaneTiltFill,
   PiMapPinFill,
-  PiSuitcaseRollingFill,
+  PiStorefrontFill,
+  PiBedFill,
+  PiBooksFill,
   PiBuildingOfficeFill,
   PiUsersThreeFill,
   //PiShieldCheckFill,
-  PiCreditCardFill,
+  PiIdentificationCardFill,
+  PiBankFill,
   PiFileTextFill,
   PiGearSixFill,
   PiGlobeFill,
-  PiStackSimpleFill,
   PiHandshakeFill,
   PiScrollFill,
 } from "react-icons/pi";
-import { TbHotelService, TbKayak, TbBusFilled, TbRoute, TbPlug } from "react-icons/tb";
+import { TbKayak, TbBusFilled, TbRoute, TbPlug } from "react-icons/tb";
 
 // Nav is a plain data structure — the sidebar renders from it, and each
 // `path` maps 1:1 onto an `app/(protected)/<path>/page.tsx` route. Adding a
@@ -50,21 +53,21 @@ export const routeGroups: RouteGroup[] = [
     title: "Sales",
     icon: PiHandshakeFill,
     routes: [
-      { path: "/leads", title: "Leads", icon: PiUserPlusFill },
-      { path: "/leads/sources", title: "Lead Sources", icon: TbPlug },
+      { path: "/leads", title: "Leads", icon: PiFunnelFill },
+      { path: "/leads/sources", title: "Lead Sources", icon: PiGitForkFill },
       { path: "/escapes", title: "Escapes", icon: PiAirplaneTiltFill },
     ],
   },
   {
     id: "library",
     title: "Library",
-    icon: PiStackSimpleFill,
+    icon: PiBooksFill,
     routes: [
-      { path: "/library/hotels", title: "Hotels", icon: TbHotelService },
+      { path: "/library/hotels", title: "Hotels", icon: PiBedFill },
       { path: "/library/escape-points", title: "Escape Points", icon: PiMapPinFill },
       { path: "/library/activities", title: "Activities", icon: TbKayak },
       { path: "/library/transport", title: "Transport", icon: TbBusFilled },
-      { path: "/library/service-providers", title: "Service Providers", icon: PiSuitcaseRollingFill },
+      { path: "/library/service-providers", title: "Service Providers", icon: PiStorefrontFill },
       { path: "/library/terms-inclusions", title: "Terms, Inclusions & Exclusions", icon: PiScrollFill },
     ],
   },
@@ -74,10 +77,10 @@ export const routeGroups: RouteGroup[] = [
     icon: PiBuildingOfficeFill,
     visibleToRoles: ["SUPER_ADMIN", "ADMIN"],
     routes: [
-      { path: "/organization/profile", title: "Profile", icon: PiBuildingOfficeFill },
+      { path: "/organization/profile", title: "Profile", icon: PiIdentificationCardFill },
       { path: "/organization/users", title: "Users", icon: PiUsersThreeFill },
       //{ path: "/organization/roles", title: "Roles", icon: PiShieldCheckFill },
-      { path: "/organization/bank-accounts", title: "Bank Accounts", icon: PiCreditCardFill },
+      { path: "/organization/bank-accounts", title: "Bank Accounts", icon: PiBankFill },
       { path: "/organization/assignment-rules", title: "Assignment Rules", icon: TbRoute },
       { path: "/organization/integrations", title: "Integrations", icon: TbPlug },
       { path: "/organization/templates", title: "Quote/Invoice Templates", icon: PiFileTextFill },

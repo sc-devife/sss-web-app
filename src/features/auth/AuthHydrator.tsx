@@ -21,6 +21,7 @@ export function AuthHydrator({ user, roles }: { user: CurrentUser; roles: string
         lastName: user.last_name,
         role: roles.join(","),
         organizationLogo: user.organizationLogo,
+        organizationName: user.organizationName,
         profilePicture: user.profile_picture,
       }),
     );

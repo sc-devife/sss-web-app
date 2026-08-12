@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { findRouteByPath, profileRoute } from "@/lib/nav-config";
 import Link from "next/link";
-import { PiListFill, PiHouseFill } from "react-icons/pi";
+import { PiListFill, PiHouseFill, PiBuildingsFill, PiCaretDownFill } from "react-icons/pi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { toggleMobile } from "@/features/ui/uiSlice";
 import { selectLoggedInUser } from "@/features/auth/authSelectors";
@@ -48,10 +48,33 @@ export function Header() {
         {route?.icon && <route.icon className="h-4 w-4 text-black" />}
         <h1 className="text-base font-semibold text-foreground">{route?.title ?? "Dashboard"}</h1>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        {user?.organizationName && (
+          <div
+            className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            title={user.organizationName}
+          >
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
+              {user.organizationLogo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={resolveFileUrl(user.organizationLogo)}
+                  alt={user.organizationName}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <PiBuildingsFill className="h-3.5 w-3.5" />
+              )}
+            </div>
+            <span className="hidden max-w-[8rem] truncate text-sm font-medium text-foreground sm:inline">
+              {user.organizationName}
+            </span>
+            <PiCaretDownFill className="hidden h-2.5 w-2.5 sm:block" aria-hidden="true" />
+          </div>
+        )}
         <Link
           href={profileRoute.path}
-          className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-primary/15 text-sm font-semibold text-primary ring-1 ring-border/20 transition-colors hover:ring-primary/40"
+          className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-[11px] font-semibold text-primary transition-opacity hover:opacity-80"
           title="View Profile"
         >
           {user?.profilePicture ? (

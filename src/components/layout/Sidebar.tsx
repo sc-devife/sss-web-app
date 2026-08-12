@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { dashboardRoute, visibleGroupsForRoles, type RouteGroup } from "@/lib/nav-config";
+import { dashboardRoute, protectedRoutes, visibleGroupsForRoles, type RouteGroup } from "@/lib/nav-config";
 import { cn } from "@/lib/cn";
 import { FaChevronLeft, FaChevronRight, FaChevronDown, FaPowerOff } from "react-icons/fa";
 import { PiBellFill } from "react-icons/pi";
@@ -29,7 +29,14 @@ function NavLink({
   indent?: boolean;
 }) {
   const pathname = usePathname();
-  const active = pathname === path || pathname.startsWith(`${path}/`);
+  // Plain `pathname === path || pathname.startsWith(path + "/")` would mark
+  // both "/leads" and "/leads/sources" active while on "/leads/sources",
+  // since "/leads" is a real sibling route, not a detail-child of "/leads".
+  // Resolve the single longest-matching registered route instead — same
+  // logic as findRouteByPath — so only the most specific one lights up.
+  const matches = protectedRoutes.filter((r) => pathname === r.path || pathname.startsWith(`${r.path}/`));
+  const bestMatch = matches.sort((a, b) => b.path.length - a.path.length)[0];
+  const active = bestMatch?.path === path;
 
   return (
     <Link
