@@ -1,3 +1,4 @@
+import { Card } from "@/components/ui/Card";
 import { BankAccountsPanel } from "@/components/organization/BankAccountsPanel";
 import { getMyOrganization } from "@/lib/organization";
 
@@ -5,8 +6,8 @@ export default async function BankAccountsPage() {
   const organization = await getMyOrganization();
 
   return (
-    <div className="flex flex-col gap-5">
+    <Card variant="page" className="flex min-h-full flex-col gap-5">
       <BankAccountsPanel orgId={organization.uid} />
-    </div>
+    </Card>
   );
 }

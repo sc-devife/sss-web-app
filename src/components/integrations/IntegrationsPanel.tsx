@@ -162,6 +162,11 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
           const provider = PROVIDER_META[integration.channelCode] ?? DEFAULT_PROVIDER_META;
           const ProviderIcon = provider.icon;
           const isConnected = integration.status === "connected";
+          console.log("integration", integration);
+
+
+
+
 
           return (
             <Card key={integration.channelCode} variant="elevated" className={`group flex flex-col gap-4 border-border/70 p-4 transition-colors duration-200 hover:border-primary/30 hover:shadow-md ${!integration.available ? "bg-muted/20" : ""}`}>

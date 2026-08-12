@@ -1,3 +1,4 @@
+import { Card } from "@/components/ui/Card";
 import { LeadsPanel } from "@/components/leads/LeadsPanel";
 import { getOrgUsers } from "@/lib/users";
 import { getEscapePoints } from "@/lib/escape-points";
@@ -10,8 +11,8 @@ export default async function Page() {
   const [users, escapePoints] = await Promise.all([getOrgUsers(), getEscapePoints()]);
 
   return (
-    <div className="flex flex-col gap-5">
+    <Card variant="page" className="flex min-h-full flex-col gap-5">
       <LeadsPanel users={users} escapePoints={escapePoints} />
-    </div>
+    </Card>
   );
 }

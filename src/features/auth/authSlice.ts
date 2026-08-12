@@ -10,8 +10,13 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 export interface LoggedInUser {
   userId: string;
   name: string;
+  // Populated from AuthHydrator's server-resolved current user; absent on
+  // the initial optimistic set from the login response (see login/page.tsx).
+  firstName?: string;
+  lastName?: string;
   role: string;
   organizationLogo: string | null;
+  profilePicture?: string | null;
 }
 
 interface AuthState {

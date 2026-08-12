@@ -9,6 +9,7 @@ export interface CurrentUser {
   first_name: string;
   last_name: string;
   contact_number: string | null;
+  profile_picture: string | null;
   roles: { role: { name: string; label: string } }[];
   organizationName: string | null;
   organizationLogo: string | null;

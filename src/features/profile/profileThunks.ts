@@ -26,3 +26,17 @@ export const updateMyProfile = createAsyncThunk<MyProfile, UpdateMyProfilePayloa
     }
   },
 );
+
+export const uploadProfilePicture = createAsyncThunk<string, File, { rejectValue: string }>(
+  "profile/uploadProfilePicture",
+  async (file, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await clientApi.postForm<{ url: string }>("/files/upload", formData);
+      return res.data.url;
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Upload failed"));
+    }
+  },
+);

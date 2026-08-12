@@ -14,10 +14,12 @@ export interface MyProfile {
   roles: MyProfileRole[];
   organizationName: string | null;
   organizationLogo: string | null;
+  profile_picture: string | null;
 }
 
 export interface UpdateMyProfilePayload {
   first_name: string;
   last_name: string;
   contact_number: string;
+  profile_picture?: string | null;
 }

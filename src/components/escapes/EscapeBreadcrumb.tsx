@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { IoChevronBackOutline } from "react-icons/io5";
+import { IoChevronBackOutline, IoHomeOutline } from "react-icons/io5";
 import { Badge } from "@/components/ui/Badge";
 import { escapeStatusTone, escapeStatusIcon } from "@/lib/escape-status";
 import type { Escape } from "@/lib/escapes";
@@ -13,6 +13,14 @@ export function EscapeBreadcrumb({ escape }: { escape: Escape }) {
 
   return (
     <nav aria-label="Breadcrumb" className="mb-2 flex flex-wrap items-center gap-1.5 text-sm">
+      <Link
+        href="/dashboard"
+        aria-label="Dashboard"
+        className="inline-flex items-center text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <IoHomeOutline size={14} />
+      </Link>
+      <span className="text-muted-foreground">|</span>
       <Link
         href="/escapes"
         className="inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"

@@ -5,7 +5,7 @@
 /* Design tokens — HSL triplets (no hsl() wrapper) so Tailwind's <alpha-value>
    opacity modifiers work. Dark values are tuned overrides, not an invert. */
 :root {
-  --background: 42 33% 97%;
+  --background: 240 13% 95%;
   --foreground: 218 31% 15%;
   --muted: 40 20% 93%;
   --muted-foreground: 218 12% 45%;

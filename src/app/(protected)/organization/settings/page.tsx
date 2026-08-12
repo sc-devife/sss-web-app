@@ -1,10 +1,11 @@
+import { Card } from "@/components/ui/Card";
 import { Heading, Body } from "@/components/ui/Typography";
 import { TaxProfilesPanel } from "@/components/organization/TaxProfilesPanel";
 import { ReminderRulesPanel } from "@/components/organization/ReminderRulesPanel";
 
 export default function OrganizationSettingsPage() {
   return (
-    <div className="flex flex-col gap-6">
+    <Card variant="page" className="flex min-h-full flex-col gap-6">
 
       <div className="flex flex-col gap-3">
         <div>
@@ -21,6 +22,6 @@ export default function OrganizationSettingsPage() {
         </div>
         <ReminderRulesPanel />
       </div>
-    </div>
+    </Card>
   );
 }

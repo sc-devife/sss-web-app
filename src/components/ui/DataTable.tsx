@@ -21,6 +21,7 @@ interface DataTableProps<T> {
   searchPlaceholder?: string;
   emptyMessage?: string;
   actions?: (row: T) => ReactNode;
+  onRowClick?: (row: T) => void;
 }
 
 type SortDir = "asc" | "desc";
@@ -37,6 +38,7 @@ export function DataTable<T>({
   searchPlaceholder = "Search…",
   emptyMessage = "Nothing here yet.",
   actions,
+  onRowClick,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -82,13 +84,13 @@ export function DataTable<T>({
   return (
     <div className="flex flex-col gap-3">
       {columns.some((c) => c.filterValue) && (
-        <div className="relative max-w-xs">
-          <IoSearchOutline className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <div className="relative max-w-[240px]">
+          <IoSearchOutline className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
           <input
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder={searchPlaceholder}
-            className="h-9 w-full rounded border border-border bg-background pl-8 pr-3 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+            className="h-7 w-full rounded-full border border-transparent bg-[#f8f8fa] pl-7 pr-3 text-sm text-foreground placeholder:text-[#9da3af] transition-colors focus-visible:border-primary/40 focus-visible:bg-background focus-visible:outline-none"
           />
         </div>
       )}
@@ -98,17 +100,17 @@ export function DataTable<T>({
       ) : (
         <>
           {/* Table: sm and up */}
-          <div className="hidden overflow-x-auto rounded border border-border sm:block">
-            <table className="w-full text-sm">
+          <div className="hidden overflow-x-auto rounded border border-[#e1e1e6] sm:block">
+            <table className="w-full text-[13px]">
               <thead>
-                <tr className="border-b border-border bg-muted/40">
+                <tr className="border-b border-[#e1e1e6] bg-[#f2f2f5]">
                   {columns.map((col) => (
                     <th
                       key={col.key}
                       onClick={() => handleSort(col)}
                       className={cn(
-                        "px-3 py-2 text-left font-medium text-muted-foreground",
-                        col.sortValue && "cursor-pointer select-none hover:text-foreground",
+                        "px-3 py-2 text-left font-medium text-black",
+                        col.sortValue && "cursor-pointer select-none",
                       )}
                     >
                       <span className="inline-flex items-center gap-1">
@@ -117,12 +119,19 @@ export function DataTable<T>({
                       </span>
                     </th>
                   ))}
-                  {actions && <th className="px-3 py-2 text-right font-medium text-muted-foreground">Actions</th>}
+                  {actions && <th className="px-3 py-2 text-right font-medium text-black">Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {pageRows.map((row) => (
-                  <tr key={rowKey(row)} className="border-b border-border last:border-0 hover:bg-muted/20">
+                  <tr
+                    key={rowKey(row)}
+                    onClick={onRowClick ? () => onRowClick(row) : undefined}
+                    className={cn(
+                      "border-b border-[#f2f2f2] last:border-0 hover:bg-[#f2f2f5]",
+                      onRowClick && "cursor-pointer",
+                    )}
+                  >
                     {columns.map((col) => (
                       <td key={col.key} className="px-3 py-2 text-foreground">
                         {col.render(row)}
@@ -138,7 +147,11 @@ export function DataTable<T>({
           {/* Stacked cards: below sm */}
           <div className="flex flex-col gap-2 sm:hidden">
             {pageRows.map((row) => (
-              <div key={rowKey(row)} className="rounded border border-border bg-card p-3">
+              <div
+                key={rowKey(row)}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                className={cn("rounded border border-border bg-card p-3", onRowClick && "cursor-pointer")}
+              >
                 {columns.map((col) => (
                   <div key={col.key} className="flex justify-between gap-3 py-0.5 text-sm">
                     <span className="text-muted-foreground">{col.header}</span>

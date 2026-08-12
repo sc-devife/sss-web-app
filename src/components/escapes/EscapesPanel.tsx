@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/Button";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { Body } from "@/components/ui/Typography";
@@ -75,9 +74,7 @@ export function EscapesPanel() {
       rowKey={(t) => t.uid}
       searchPlaceholder="Search escapes…"
       emptyMessage="No escapes yet — convert a qualified lead to get started."
-      actions={(t) => (
-        <Button variant="secondary" size="sm" onClick={() => router.push(`/escapes/${t.uid}`)}>View</Button>
-      )}
+      onRowClick={(t) => router.push(`/escapes/${t.uid}`)}
     />
   );
 }

@@ -9,6 +9,7 @@ import {
   PiShieldCheck,
   PiUser,
   PiPhone,
+  PiCameraFill,
 } from "react-icons/pi";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -23,13 +24,15 @@ import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
 import { mobileField, required, runValidators } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchMyProfile, updateMyProfile } from "@/features/profile/profileThunks";
+import { fetchMyProfile, updateMyProfile, uploadProfilePicture } from "@/features/profile/profileThunks";
 import {
   selectMyProfile,
   selectMyProfileStatus,
   selectMyProfileError,
   selectMyProfileUpdateStatus,
 } from "@/features/profile/profileSelectors";
+import { selectLoggedInUser } from "@/features/auth/authSelectors";
+import { setLoggedInUser } from "@/features/auth/authSlice";
 
 type ProfileFormState = { firstName: string; lastName: string; mobileNumber: string };
 
@@ -63,6 +66,7 @@ export function ProfilePanel() {
   const status = useAppSelector(selectMyProfileStatus);
   const error = useAppSelector(selectMyProfileError);
   const updateStatus = useAppSelector(selectMyProfileUpdateStatus);
+  const loggedInUser = useAppSelector(selectLoggedInUser);
 
   const [editing, setEditing] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -72,6 +76,10 @@ export function ProfilePanel() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | undefined>();
   const [saved, setSaved] = useState(false);
+
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string>();
   // Guards against a double-submit landing two PUTs in flight: the backend
   // rotates the session token per request, so a second request racing on the
   // stale token gets a 401 and the client's response interceptor treats any
@@ -106,6 +114,43 @@ export function ProfilePanel() {
     setOriginal(null);
     setErrors({});
     setFormError(undefined);
+  }
+
+  async function handlePhotoUpload(file: File) {
+    if (!profile) return;
+    setPhotoError(undefined);
+
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      setPhotoError("Only PNG, JPG and WEBP images are allowed.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError("Image size must be less than 5 MB.");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const url = await dispatch(uploadProfilePicture(file)).unwrap();
+      await dispatch(
+        updateMyProfile({
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          contact_number: profile.contact_number ?? "",
+          profile_picture: url,
+        }),
+      ).unwrap();
+      if (loggedInUser) {
+        dispatch(setLoggedInUser({ ...loggedInUser, profilePicture: url }));
+      }
+    } catch (err) {
+      setPhotoError(typeof err === "string" ? err : extractErrorMessage(err, "Upload failed"));
+    } finally {
+      setUploadingPhoto(false);
+      if (photoInputRef.current) {
+        photoInputRef.current.value = "";
+      }
+    }
   }
 
   const isDirty = useIsDirty(original, { firstName, lastName, mobileNumber });
@@ -151,13 +196,51 @@ export function ProfilePanel() {
   const roleLabel = profile.roles.length > 0 ? profile.roles.map((r) => r.role.label).join(", ") : "—";
   const orgName = profile.organizationName || "—";
   const logoUrl = profile.organizationLogo ? resolveFileUrl(profile.organizationLogo) : null;
+  const photoUrl = profile.profile_picture ? resolveFileUrl(profile.profile_picture) : null;
+  const initials =
+    (profile.first_name?.[0] ?? "").toUpperCase() +
+    (profile.last_name?.[0] ?? "").toUpperCase() ||
+    profile.name.trim().charAt(0).toUpperCase() ||
+    "?";
   const saving = updateStatus === "loading";
 
   return (
     <div className="w-full">
       <Card variant="elevated" className="overflow-hidden p-0">
-        {/* Header band: org logo, user name, org name, role badges */}
+        {/* Header band: personal photo, org logo, user name, org name, role badges */}
         <div className="flex flex-col items-center gap-4 border-b border-border bg-muted/30 p-6 text-center sm:flex-row sm:text-left">
+          <div className="flex shrink-0 items-center gap-3">
+            <div className="relative">
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handlePhotoUpload(file);
+                }}
+              />
+              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-border bg-primary/15 text-xl font-semibold text-primary shadow-sm">
+                {photoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={photoUrl} alt="Profile" className="h-full w-full object-cover" />
+                ) : (
+                  initials
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                aria-label="Change profile photo"
+                title="Change profile photo"
+                className="absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+              >
+                <PiCameraFill className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
           <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-card shadow-sm">
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -184,6 +267,14 @@ export function ProfilePanel() {
             </div>
           </div>
         </div>
+
+        {photoError && (
+          <div className="px-6 pt-4">
+            <Alert tone="danger" autoClose={false}>
+              {photoError}
+            </Alert>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6 p-6">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">

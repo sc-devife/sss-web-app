@@ -1,3 +1,4 @@
+import { Card } from "@/components/ui/Card";
 import { Heading, Body } from "@/components/ui/Typography";
 import { TemplatesPanel } from "@/components/organization/TemplatesPanel";
 import { InvoiceTemplatesPanel } from "@/components/organization/InvoiceTemplatesPanel";
@@ -7,7 +8,7 @@ export default async function Page() {
   const organization = await getMyOrganization();
 
   return (
-    <div className="flex flex-col gap-6">
+    <Card variant="page" className="flex min-h-full flex-col gap-6">
       <div className="flex flex-col gap-4">
         <div>
           <Heading as="h2">Quote Templates</Heading>
@@ -23,6 +24,6 @@ export default async function Page() {
         </div>
         <InvoiceTemplatesPanel organization={organization} />
       </div>
-    </div>
+    </Card>
   );
 }
