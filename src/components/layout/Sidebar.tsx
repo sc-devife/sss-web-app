@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { dashboardRoute, visibleGroupsForRoles, type RouteGroup } from "@/lib/nav-config";
 import { cn } from "@/lib/cn";
 import { FaChevronLeft, FaChevronRight, FaPowerOff } from "react-icons/fa";
+import { PiBellFill } from "react-icons/pi";
 import { clientApi } from "@/lib/axios/clientClient";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { closeMobile as closeMobileAction } from "@/features/ui/uiSlice";
@@ -43,7 +44,7 @@ function NavLink({
           : "text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
-      <Icon className={cn("h-5 w-5 shrink-0", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+      <Icon className={cn("h-4 w-4 shrink-0", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
       {!collapsed && <span className="truncate font-medium">{title}</span>}
     </Link>
   );
@@ -122,16 +123,47 @@ function SidebarBrand({
   );
 }
 
+// TODO: no notifications backend/feed exists yet — this is a UI placeholder.
+// Wire `hasUnread` to a real unread-count selector once that feature lands.
+function NotificationsLink({ collapsed }: { collapsed: boolean }) {
+  const pathname = usePathname();
+  const active = pathname === "/notifications" || pathname.startsWith("/notifications/");
+  const hasUnread = false;
+
+  return (
+    <Link
+      href="/notifications"
+      title={collapsed ? "Notifications" : undefined}
+      className={cn(
+        "relative flex items-center gap-3 rounded-xl p-2.5 text-sm font-medium transition-colors",
+        collapsed ? "w-auto justify-center" : "w-full",
+        active
+          ? "bg-primary/10 text-primary"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+      )}
+    >
+      <span className="relative shrink-0">
+        <PiBellFill className="h-4 w-4" />
+        {hasUnread && (
+          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-danger ring-2 ring-card" aria-hidden="true" />
+        )}
+      </span>
+      {!collapsed && <span>Notifications</span>}
+    </Link>
+  );
+}
+
 function SidebarFooter({ collapsed, loggingOut, onLogout }: { collapsed: boolean; loggingOut: boolean; onLogout: () => void }) {
   return (
-    <div className={cn("border-t p-4", collapsed && "p-2")}>
+    <div className={cn("p-4", collapsed && "flex flex-col items-center gap-1 p-2")}>
+      <NotificationsLink collapsed={collapsed} />
       <button
         onClick={onLogout}
         disabled={loggingOut}
         title={collapsed ? "Logout" : undefined}
         className={cn(
-          "flex w-full items-center justify-center gap-3 rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm font-medium text-danger transition hover:bg-danger/10 disabled:opacity-50",
-          collapsed && "px-2",
+          "flex w-full items-center gap-3 rounded-xl p-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50",
+          collapsed && "w-auto justify-center",
         )}
       >
         <FaPowerOff className="h-4 w-4 shrink-0" />
@@ -198,14 +230,14 @@ export function Sidebar({ roles }: { roles: string[] }) {
       {/* Permanently-reserved icon rail — desktop only, fixed w-20 always.
           This is what keeps the main layout from ever shifting: its width
           never changes, regardless of the overlay's open/closed state. */}
-      <aside className="relative hidden shrink-0 md:static md:flex md:w-14 md:flex-col md:border-r md:bg-card">
+      <aside className="relative hidden shrink-0 md:flex md:w-14 md:flex-col md:border-r md:bg-card">
         <SidebarBrand collapsed showToggle={false} onToggle={() => setExpanded(true)} />
         <button
           type="button"
           onClick={() => setExpanded(true)}
           aria-label="Expand sidebar"
           title="Expand sidebar"
-          className="absolute right-0 top-1/2 z-10 hidden -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full border border-border bg-card p-1 text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground md:flex"
+          className="absolute right-0 top-1/2 z-10 hidden h-8 w-5 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-r-md border border-l-0 border-border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground md:flex"
         >
           <FaChevronRight className="h-3 w-3" />
         </button>
@@ -235,11 +267,27 @@ export function Sidebar({ roles }: { roles: string[] }) {
       >
         <SidebarBrand
           collapsed={false}
+          showToggle={false}
           onToggle={() => {
             setExpanded(false);
             dispatch(closeMobileAction());
           }}
         />
+        <button
+          type="button"
+          onClick={() => {
+            setExpanded(false);
+            dispatch(closeMobileAction());
+          }}
+          aria-label="Collapse sidebar"
+          title="Collapse sidebar"
+          className={cn(
+            "absolute right-0 top-1/2 z-10 hidden h-8 w-5 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-r-md border border-l-0 border-border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground",
+            expanded && "md:flex",
+          )}
+        >
+          <FaChevronLeft className="h-3 w-3" />
+        </button>
         <div className="flex-1 overflow-y-auto px-3 py-4">
           <div className="flex flex-col gap-1">
             <NavLink path={dashboardRoute.path} title={dashboardRoute.title} Icon={dashboardRoute.icon} collapsed={false} />
