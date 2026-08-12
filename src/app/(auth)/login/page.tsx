@@ -128,10 +128,11 @@ function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-[520px] rounded-[16px] px-6 py-8 shadow-[0_4px_20px_rgba(0,0,0,0.08)] sm:px-8 sm:py-8">
+    <Card className="w-full max-w-[440px] rounded-2xl border-border/70 bg-card/95 px-6 py-8 shadow-xl shadow-primary/10 backdrop-blur sm:px-9 sm:py-9">
       {/* Logo */}
-      <div className="mb-5 flex justify-center">
-        <div className="flex h-[80px] w-[80px] items-center justify-center overflow-hidden rounded-[10px] bg-[#c8dcff]">
+      <div className="mb-6 flex justify-center">
+        <div className="flex size-16 items-center justify-center overflow-hidden rounded-2xl border border-border bg-muted/50 p-2 shadow-sm">
+
           <img
             src="/logo.png"
             alt="Travel Online Agency"
@@ -143,7 +144,7 @@ function LoginForm() {
       {/* Heading */}
       <Heading
         as="h1"
-        className="mb-2 text-center text-[26px] font-bold text-black"
+        className="mb-2 text-center text-2xl font-semibold tracking-tight text-foreground sm:text-3xl"
       >
         Welcome Back
       </Heading>
@@ -151,7 +152,7 @@ function LoginForm() {
       {/* Subtitle */}
       <Body
         muted
-        className="mb-7 text-center text-[16px]"
+        className="mb-8 text-center text-sm leading-6"
       >
         Sign in to access your workspace.
       </Body>
@@ -165,7 +166,7 @@ function LoginForm() {
         <div className="w-full">
           <label
             htmlFor="email"
-            className="mb-2 block text-[16px] text-[#171717]"
+            className="mb-2 block text-sm font-medium text-foreground"
           >
             Email Address
           </label>
@@ -195,7 +196,7 @@ function LoginForm() {
               autoComplete="username"
               placeholder="Enter your email"
               disabled={loading}
-              className="h-[50px] w-full rounded-[10px] border border-[#c8c8c8] bg-transparent px-14 text-[16px] text-black outline-none transition placeholder:text-[#aaa] focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:bg-gray-50"
+              className="h-11 w-full rounded-xl border border-border bg-background px-12 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted"
             />
           </div>
 
@@ -211,7 +212,7 @@ function LoginForm() {
         <div className="w-full">
           <label
             htmlFor="password"
-            className="mb-2 block text-[16px] text-[#171717]"
+            className="mb-2 block text-sm font-medium text-foreground"
           >
             Password
           </label>
@@ -245,7 +246,7 @@ function LoginForm() {
               autoComplete="current-password"
               placeholder="Enter your password"
               disabled={loading}
-              className="h-[50px] w-full rounded-[10px] border border-[#c8c8c8] bg-transparent px-14 pr-14 text-[16px] text-black outline-none transition placeholder:text-[#aaa] focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:bg-gray-50"
+              className="h-11 w-full rounded-xl border border-border bg-background px-12 pr-12 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted"
             />
 
             {/* Password Visibility */}
@@ -262,7 +263,7 @@ function LoginForm() {
                   ? "Hide password"
                   : "Show password"
               }
-              className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-[21px] text-[#6f6f6f] transition hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+              className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
             >
               {showPassword ? (
                 <FaEyeSlash />
@@ -283,7 +284,7 @@ function LoginForm() {
         <div className="flex justify-end">
           <Link
             href="/forgot-password"
-            className="text-[16px] text-[#6f6f6f] transition hover:text-black hover:underline"
+            className="text-sm font-medium text-primary transition hover:text-primary/80 hover:underline"
           >
             Forgot Password?
           </Link>
@@ -301,7 +302,7 @@ function LoginForm() {
           type="submit"
           loading={loading}
           loadingText="Signing in…"
-          className="mt-1 h-[48px] rounded-[8px] bg-[#c8ff32] text-[18px] font-bold text-black transition hover:bg-[#bafa20]"
+          className="mt-1 h-11 rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 hover:shadow-md"
         >
           Sign In
         </Button>
@@ -312,9 +313,11 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-white">
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-background">
+      <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-1/2 bg-primary/[0.035] lg:block" />
+      <div className="pointer-events-none absolute -left-24 -top-24 size-72 rounded-full border border-accent/20 lg:block" />
       {/* Main Content */}
-      <main className="flex flex-1 items-center justify-center px-4 py-6">
+      <main className="relative flex flex-1 items-center justify-center px-4 py-8 sm:px-6">
         <Suspense>
           <LoginForm />
         </Suspense>
