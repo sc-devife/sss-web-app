@@ -134,106 +134,107 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      {integrations.map((integration) => (
-        <Card key={integration.channelCode} className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <Body className="font-medium">{integration.label}</Body>
-              <Caption>{integration.channelCode}</Caption>
+    <div className="flex flex-col gap-8">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {integrations.map((integration) => (
+          <Card key={integration.channelCode} variant="elevated" className="flex flex-col gap-4">
+            <div className="flex items-start justify-between">
+              <div className="flex flex-col gap-1">
+                <Body className="font-semibold">{integration.label}</Body>
+                <Caption className="text-muted-foreground">{integration.channelCode}</Caption>
+              </div>
+              <div>
+                {!integration.available && <Badge tone="neutral">Coming soon</Badge>}
+                {integration.available && (
+                  <Badge tone={integration.status === "connected" ? "success" : "neutral"}>
+                    {integration.status === "connected" ? "Connected" : "Disconnected"}
+                  </Badge>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              {!integration.available && <Badge tone="neutral">Coming soon</Badge>}
-              {integration.available && (
-                <Badge tone={integration.status === "connected" ? "success" : "neutral"}>
-                  {integration.status}
-                </Badge>
-              )}
-            </div>
-          </div>
 
-          {integration.available && integration.channelCode === "webhook" && integration.status === "connected" && (
-            <div className="rounded border border-border bg-muted/20 p-2 text-xs">
-              <Caption>Webhook URL</Caption>
-              <code className="block break-all text-foreground">{webhookUrl}</code>
-              <Caption>Send POST requests here with header X-Webhook-Secret set to your connected secret.</Caption>
-              {integration.lastSyncedAt && (
-                <Caption>Last received: {new Date(integration.lastSyncedAt).toLocaleString()}</Caption>
-              )}
-            </div>
-          )}
+            {integration.available && integration.channelCode === "webhook" && integration.status === "connected" && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                <Caption className="mb-2 block font-medium">Webhook URL</Caption>
+                <code className="block break-all rounded bg-background px-2 py-1.5 text-xs text-foreground">{webhookUrl}</code>
+                <Body className="mt-2 text-xs">Send POST requests with header <code className="bg-muted px-1">X-Webhook-Secret</code></Body>
+                {integration.lastSyncedAt && (
+                  <Body className="mt-1 text-xs">Last: {new Date(integration.lastSyncedAt).toLocaleString()}</Body>
+                )}
+              </div>
+            )}
 
-          {integration.available && META_CHANNELS.has(integration.channelCode) && integration.status === "connected" && (
-            <div className="rounded border border-border bg-muted/20 p-2 text-xs">
-              {integration.pageName && <Caption>Connected account: {integration.pageName}</Caption>}
-              <Caption>{integration.channelCode === "facebook" ? "Page ID" : "IG Account ID"}: {integration.pageId ?? integration.igAccountId}</Caption>
-              {integration.lastSyncedAt && (
-                <Caption>Last lead received: {new Date(integration.lastSyncedAt).toLocaleString()}</Caption>
-              )}
-            </div>
-          )}
+            {integration.available && META_CHANNELS.has(integration.channelCode) && integration.status === "connected" && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                {integration.pageName && <Body className="text-xs font-medium">Account: {integration.pageName}</Body>}
+                <Caption className="mt-1 block">{integration.channelCode === "facebook" ? "Page ID" : "IG Account ID"}: {integration.pageId ?? integration.igAccountId}</Caption>
+                {integration.lastSyncedAt && (
+                  <Body className="mt-1 text-xs">Last lead: {new Date(integration.lastSyncedAt).toLocaleString()}</Body>
+                )}
+              </div>
+            )}
 
-          {integration.available && (
-            <div className="flex flex-col gap-2">
-              {integration.status !== "connected" ? (
-                connecting === integration.channelCode ? (
-                  <div className="flex flex-col gap-2">
-                    <fieldset disabled={busy} className="contents">
-                    {META_CHANNELS.has(integration.channelCode) ? (
-                      <div className="grid grid-cols-2 gap-2">
-                        <TextInput
-                          label={integration.channelCode === "facebook" ? "Facebook Page ID" : "Instagram Business Account ID"}
-                          value={integration.channelCode === "facebook" ? metaForm.pageId : metaForm.igAccountId}
-                          onChange={(e) => updateMetaForm(integration.channelCode === "facebook" ? "pageId" : "igAccountId", e.target.value)}
-                          error={integration.channelCode === "facebook" ? errors.pageId : errors.igAccountId}
-                        />
-                        <TextInput
-                          label="Page/Account name"
-                          value={metaForm.pageName}
-                          onChange={(e) => updateMetaForm("pageName", e.target.value)}
-                          placeholder="Display label only"
-                        />
-                        <TextInput
-                          label="Long-lived access token"
-                          value={metaForm.accessToken}
-                          onChange={(e) => updateMetaForm("accessToken", e.target.value)}
-                          error={errors.accessToken}
-                          className="col-span-2"
-                          placeholder="Paste the token from Graph API Explorer"
-                        />
+            {integration.available && (
+              <div className="flex flex-col gap-3">
+                {integration.status !== "connected" ? (
+                  connecting === integration.channelCode ? (
+                    <div className="flex flex-col gap-3">
+                      <fieldset disabled={busy} className="flex flex-col gap-3">
+                        {META_CHANNELS.has(integration.channelCode) ? (
+                          <div className="flex flex-col gap-3">
+                            <TextInput
+                              label={integration.channelCode === "facebook" ? "Facebook Page ID" : "Instagram Business Account ID"}
+                              value={integration.channelCode === "facebook" ? metaForm.pageId : metaForm.igAccountId}
+                              onChange={(e) => updateMetaForm(integration.channelCode === "facebook" ? "pageId" : "igAccountId", e.target.value)}
+                              error={integration.channelCode === "facebook" ? errors.pageId : errors.igAccountId}
+                            />
+                            <TextInput
+                              label="Page/Account name"
+                              value={metaForm.pageName}
+                              onChange={(e) => updateMetaForm("pageName", e.target.value)}
+                              placeholder="Display label only"
+                            />
+                            <TextInput
+                              label="Long-lived access token"
+                              value={metaForm.accessToken}
+                              onChange={(e) => updateMetaForm("accessToken", e.target.value)}
+                              error={errors.accessToken}
+                              placeholder="Paste the token from Graph API Explorer"
+                            />
+                          </div>
+                        ) : (
+                          <TextInput
+                            label="Shared secret"
+                            value={secret}
+                            onChange={(e) => {
+                              setSecret(e.target.value);
+                              setErrors((p) => ({ ...p, secret: "" }));
+                            }}
+                            error={errors.secret}
+                            placeholder="Choose a secret for this channel"
+                          />
+                        )}
+                      </fieldset>
+                      <div className="flex gap-2 pt-2">
+                        <Button size="sm" disabled={busy} loading={busy} loadingText="Connecting…" onClick={() => handleConnect(integration.channelCode)}>
+                          Save
+                        </Button>
+                        <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConnecting(null)}>Cancel</Button>
                       </div>
-                    ) : (
-                      <TextInput
-                        label="Shared secret"
-                        value={secret}
-                        onChange={(e) => {
-                          setSecret(e.target.value);
-                          setErrors((p) => ({ ...p, secret: "" }));
-                        }}
-                        error={errors.secret}
-                        placeholder="Choose a secret for this channel"
-                      />
-                    )}
-                    </fieldset>
-                    <div className="flex gap-2">
-                      <Button size="sm" disabled={busy} loading={busy} loadingText="Connecting…" onClick={() => handleConnect(integration.channelCode)}>
-                        Save
-                      </Button>
-                      <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConnecting(null)}>Cancel</Button>
                     </div>
-                  </div>
+                  ) : (
+                    <Button size="sm" className="w-full" onClick={() => startConnecting(integration.channelCode)}>Connect</Button>
+                  )
                 ) : (
-                  <Button size="sm" className="self-start" onClick={() => startConnecting(integration.channelCode)}>Connect</Button>
-                )
-              ) : (
-                <Button size="sm" variant="danger" className="self-start" disabled={busy} onClick={() => handleDisconnect(integration.channelCode)}>
-                  Disconnect
-                </Button>
-              )}
-            </div>
-          )}
-        </Card>
-      ))}
+                  <Button size="sm" variant="danger" className="w-full" disabled={busy} onClick={() => handleDisconnect(integration.channelCode)}>
+                    Disconnect
+                  </Button>
+                )}
+              </div>
+            )}
+          </Card>
+        ))}
+      </div>
       {formError && (
         <Alert tone="danger" autoClose={false}>
           {formError}
