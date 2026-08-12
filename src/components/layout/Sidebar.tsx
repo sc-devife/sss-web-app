@@ -170,11 +170,11 @@ export function Sidebar({ roles }: { roles: string[] }) {
 
         {/* Navigation */}
         <div className="flex-1 overflow-y-auto px-3 py-4">
-          <div className="space-y-1">
+          <div className="flex flex-col gap-1">
             <NavLink path={dashboardRoute.path} title={dashboardRoute.title} Icon={dashboardRoute.icon} collapsed={!isExpanded} />
           </div>
 
-          {groups.map((group) => (
+          {groups.filter((group) => ["sales", "library", "organization"].includes(group.id)).map((group) => (
             <div key={group.id} className="mt-4">
               <div className={cn("mb-2 flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground", !isExpanded && "md:justify-center md:px-2")}>
                 <group.icon className="size-4 shrink-0" aria-hidden="true" />
