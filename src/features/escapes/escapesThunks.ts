@@ -9,6 +9,7 @@ import type {
   AddEscapeTravellerPayload,
   UpdateTravellerPayload,
   DeleteTravellerPayload,
+  UpdateEscapeDurationPayload,
 } from "@/features/escapes/types";
 
 export const fetchEscapes = createAsyncThunk<Escape[], void, { rejectValue: string }>(
@@ -98,6 +99,17 @@ export const deleteTraveller = createAsyncThunk<void, DeleteTravellerPayload, { 
       await clientApi.delete(`/escapes/${escapeUid}/travellers/${travellerUid}`);
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to delete traveller"));
+    }
+  },
+);
+
+export const updateEscapeDuration = createAsyncThunk<void, UpdateEscapeDurationPayload, { rejectValue: string }>(
+  "escapes/updateEscapeDuration",
+  async ({ escapeUid, ...payload }, { rejectWithValue }) => {
+    try {
+      await clientApi.put(`/escapes/${escapeUid}`, payload);
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to update escape duration"));
     }
   },
 );

@@ -27,6 +27,8 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchItinerariesForEscape } from "@/features/itineraries/itinerariesThunks";
 import { selectItineraries, selectItinerariesStatus } from "@/features/itineraries/itinerariesSelectors";
 import { addEscapeTraveller, updateTraveller, deleteTraveller, fetchEscapeById } from "@/features/escapes/escapesThunks";
+import { fetchQuotesForItinerary } from "@/features/quotes/quotesThunks";
+import { selectQuotesForItinerary } from "@/features/quotes/quotesSelectors";
 
 const TABS = [
   { id: "planning", label: "Planning" },
@@ -410,9 +412,36 @@ export function EscapeWorkspaceTabs({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeItinerary]);
 
+  // Quotes for whichever itinerary is selected — only needed here to show
+  // its name alongside the itinerary's own, next to the top-level tabs
+  // (scoped to the selection, not to ItineraryCard's own inner sub-tabs).
+  const quotes = useAppSelector((s) => (activeItinerary ? selectQuotesForItinerary(s, activeItinerary.uid) : []));
+  useEffect(() => {
+    if (activeItinerary) dispatch(fetchQuotesForItinerary(activeItinerary.uid));
+  }, [dispatch, activeItinerary]);
+  const latestQuote = quotes.slice().sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0))[0];
+
+  const selectionAside = activeItinerary && (
+    <div className="flex items-start gap-4">
+      <div className="flex min-w-0 max-w-[9rem] flex-col" title={activeItinerary.name}>
+        <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Itinerary</span>
+        <span className="truncate text-sm font-semibold text-foreground">{activeItinerary.name}</span>
+      </div>
+      <div
+        className="flex min-w-0 max-w-[9rem] flex-col"
+        title={latestQuote ? latestQuote.name ?? `Quote ${latestQuote.version}` : "No quotes yet"}
+      >
+        <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Quote</span>
+        <span className="truncate text-sm font-semibold text-foreground">
+          {latestQuote ? latestQuote.name ?? `Quote ${latestQuote.version}` : "No quotes yet"}
+        </span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-2 lg:h-full lg:min-h-0">
-      <Tabs tabs={TABS} defaultTab="planning">
+      <Tabs tabs={TABS} defaultTab="planning" aside={selectionAside}>
         {(active) => {
           if (active === "planning") {
             if (itinerariesStatus === "loading" && itineraries.length === 0) {

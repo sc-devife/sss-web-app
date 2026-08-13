@@ -2,10 +2,14 @@ import type { IconType } from "react-icons";
 import { PiCarFill, PiTaxiFill, PiBedFill, PiMountainsFill, PiBinocularsFill, PiForkKnifeFill, PiSunFill, PiDotsThreeCircleFill } from "react-icons/pi";
 import type { PlanningItemType } from "@/lib/itinerary-items";
 
+// "hotel" is deliberately excluded here — this list only drives the Add
+// Activity form's Type select, and hotels aren't added through it. The
+// value still exists in PlanningItemType/PLANNING_ITEM_ICON/etc. below so
+// existing hotel-type items (created before this change) keep rendering
+// correctly in the day timeline.
 export const PLANNING_ITEM_TYPES: { value: PlanningItemType; label: string }[] = [
   { value: "transport", label: "Transport" },
   { value: "pickup_drop", label: "Pickup / Drop" },
-  { value: "hotel", label: "Hotel" },
   { value: "activity", label: "Activity" },
   { value: "sightseeing", label: "Sightseeing" },
   { value: "meal", label: "Meal" },

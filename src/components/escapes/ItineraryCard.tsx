@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { PiCopyFill, PiTrashFill, PiPlusFill } from "react-icons/pi";
 import { cn } from "@/lib/cn";
 import type { Itinerary } from "@/lib/itineraries";
@@ -11,10 +11,9 @@ import type { ServiceProvider } from "@/lib/service-providers";
 import { QuotesPanel } from "@/components/escapes/QuotesPanel";
 import { ItineraryContentSection } from "@/components/escapes/ItineraryContentSection";
 import { ItineraryDayPlanner } from "@/components/escapes/ItineraryDayPlanner";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppDispatch } from "@/store/hooks";
 import { deleteItinerary, duplicateItinerary } from "@/features/itineraries/itinerariesThunks";
 import { createQuote, fetchQuotesForItinerary } from "@/features/quotes/quotesThunks";
-import { selectQuotesForItinerary } from "@/features/quotes/quotesSelectors";
 
 type SubTab = "itinerary" | "terms" | "inclusions" | "quote";
 
@@ -86,15 +85,8 @@ export function ItineraryCard({
   onDealChanged?: () => void;
 }) {
   const dispatch = useAppDispatch();
-  const quotes = useAppSelector((s) => selectQuotesForItinerary(s, itinerary.uid));
   const [busy, setBusy] = useState(false);
   const [subTab, setSubTab] = useState<SubTab>("itinerary");
-
-  useEffect(() => {
-    dispatch(fetchQuotesForItinerary(itinerary.uid));
-  }, [dispatch, itinerary.uid]);
-
-  const latestQuote = quotes.slice().sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0))[0];
 
   async function handleDuplicate() {
     setBusy(true);
@@ -128,31 +120,25 @@ export function ItineraryCard({
 
   return (
     <div className="flex flex-col gap-2 lg:h-full lg:min-h-0">
-      <div className="flex shrink-0 items-center justify-between gap-3 rounded-lg border border-border bg-card p-3 shadow-sm">
-        <div className="inline-flex items-center gap-0.5 rounded-full bg-muted p-1">
-          {SUB_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setSubTab(tab.id)}
-              className={cn(
-                "whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold transition-colors",
-                subTab === tab.id
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-3">
-          <span className="truncate text-sm font-semibold text-foreground">
-            {subTab === "quote"
-              ? latestQuote ? latestQuote.name ?? `Quote ${latestQuote.version}` : "No quotes yet"
-              : itinerary.name}
-          </span>
+      <div className="flex shrink-0 flex-col gap-3 rounded-lg border border-border bg-card p-3 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div className="inline-flex items-center gap-0.5 rounded-full bg-muted p-1">
+            {SUB_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setSubTab(tab.id)}
+                className={cn(
+                  "whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+                  subTab === tab.id
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
           <div className="flex shrink-0 items-center gap-0.5">
             {subTab === "itinerary" && (

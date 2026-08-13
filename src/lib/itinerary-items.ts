@@ -17,6 +17,7 @@ export interface ItineraryItem {
   itemType: PlanningItemType;
   referenceId: string | null;
   referenceLabel: string;
+  source: "library" | "custom";
   title: string | null;
   startTime: string | null;
   notes: string | null;

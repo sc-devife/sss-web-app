@@ -2,12 +2,12 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { IoChevronUpOutline, IoChevronDownOutline, IoPencilOutline, IoTrashOutline } from "react-icons/io5";
-import { PiPlusFill } from "react-icons/pi";
+import { PiPlusFill, PiPlusBold } from "react-icons/pi";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
-import { Heading, Body, Caption } from "@/components/ui/Typography";
+import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import type { Hotel } from "@/lib/hotels";
@@ -28,16 +28,18 @@ import { cn } from "@/lib/cn";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchItineraryItems,
-  createItineraryItem,
   updateItineraryItem,
   deleteItineraryItem,
   reorderItineraryItems,
 } from "@/features/itineraryItems/itineraryItemsThunks";
 import { selectItineraryItems, selectItineraryItemsStatus } from "@/features/itineraryItems/itineraryItemsSelectors";
+import { fetchEscapeById, updateEscapeDuration } from "@/features/escapes/escapesThunks";
+import { selectCurrentEscape } from "@/features/escapes/escapesSelectors";
+import { AddActivityModal } from "@/components/escapes/AddActivityModal";
 
 interface ModalState {
   open: boolean;
-  editingUid: string | null;
+  editingUid: string;
   dayNumber: string;
   itemType: PlanningItemType;
   referenceId: string;
@@ -45,20 +47,6 @@ interface ModalState {
   titleAutoFilled: boolean;
   startTime: string;
   notes: string;
-}
-
-function blankModalState(dayNumber: number): ModalState {
-  return {
-    open: true,
-    editingUid: null,
-    dayNumber: String(dayNumber),
-    itemType: "hotel",
-    referenceId: "",
-    title: "",
-    titleAutoFilled: false,
-    startTime: "",
-    notes: "",
-  };
 }
 
 function editModalState(item: ItineraryItem): ModalState {
@@ -166,13 +154,17 @@ export function ItineraryDayPlanner({
   const dispatch = useAppDispatch();
   const items = useAppSelector((s) => selectItineraryItems(s, itineraryUid));
   const itemsStatus = useAppSelector((s) => selectItineraryItemsStatus(s, itineraryUid));
+  const escape = useAppSelector(selectCurrentEscape);
 
-  const [extraDays, setExtraDays] = useState(0);
   const [deletingUid, setDeletingUid] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState | null>(null);
+  const [addingActivity, setAddingActivity] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
   const [openDay, setOpenDay] = useState(1);
+  const [confirmingAddDay, setConfirmingAddDay] = useState(false);
+  const [addingDay, setAddingDay] = useState(false);
+  const [addDayError, setAddDayError] = useState<string | undefined>();
 
   useEffect(() => {
     if (itemsStatus === "idle") {
@@ -186,7 +178,31 @@ export function ItineraryDayPlanner({
   }
 
   const maxItemDay = items.length ? Math.max(...items.map((i) => i.dayNumber)) : 0;
-  const dayCount = Math.max(numberOfDays ?? 1, maxItemDay, 1) + extraDays;
+  const dayCount = Math.max(numberOfDays ?? 1, maxItemDay, 1);
+
+  async function handleConfirmAddDay() {
+    if (!escape?.lead) return;
+    setAddingDay(true);
+    setAddDayError(undefined);
+    try {
+      const nextDay = dayCount + 1;
+      await dispatch(
+        updateEscapeDuration({
+          escapeUid: escape.uid,
+          leadUid: escape.lead.uid,
+          startDate: escape.startDate,
+          numberOfDays: nextDay,
+        }),
+      ).unwrap();
+      await dispatch(fetchEscapeById(escape.uid));
+      setOpenDay(nextDay);
+      setConfirmingAddDay(false);
+    } catch (err) {
+      setAddDayError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to extend escape duration"));
+    } finally {
+      setAddingDay(false);
+    }
+  }
 
   const itemsByDay = items.reduce<Record<number, ItineraryItem[]>>((acc, item) => {
     (acc[item.dayNumber] ??= []).push(item);
@@ -249,26 +265,30 @@ export function ItineraryDayPlanner({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!modal) return;
-    if (!modal.title.trim() && !modal.referenceId) {
+    const isActivity = modal.itemType === "activity";
+    if (isActivity && !modal.referenceId) {
+      setFormError("Pick an activity from the library");
+      return;
+    }
+    if (!isActivity && !modal.title.trim() && !modal.referenceId) {
       setFormError("Enter a title or pick a library item");
       return;
     }
     setSaving(true);
     setFormError(undefined);
     try {
-      const payload = {
-        dayNumber: Number(modal.dayNumber),
-        itemType: modal.itemType,
-        referenceId: modal.referenceId || undefined,
-        title: modal.title.trim() || undefined,
-        startTime: modal.startTime || undefined,
-        notes: modal.notes.trim() || undefined,
-      };
-      if (modal.editingUid) {
-        await dispatch(updateItineraryItem({ uid: modal.editingUid, itineraryUid, ...payload })).unwrap();
-      } else {
-        await dispatch(createItineraryItem({ itineraryUid, ...payload })).unwrap();
-      }
+      await dispatch(
+        updateItineraryItem({
+          uid: modal.editingUid,
+          itineraryUid,
+          dayNumber: Number(modal.dayNumber),
+          itemType: modal.itemType,
+          referenceId: modal.referenceId || undefined,
+          title: isActivity ? undefined : modal.title.trim() || undefined,
+          startTime: modal.startTime || undefined,
+          notes: modal.notes.trim() || undefined,
+        }),
+      ).unwrap();
       loadItems();
       setModal(null);
     } catch (err) {
@@ -283,11 +303,10 @@ export function ItineraryDayPlanner({
   }
 
   const activeDayItems = (itemsByDay[openDay] ?? []).slice().sort((a, b) => a.sortOrder - b.sortOrder);
-  const activeDate = dayNumberToDate(escapeStartDate, openDay);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto pb-1">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="relative z-10 flex shrink-0 items-center gap-1.5 overflow-x-auto">
         {Array.from({ length: dayCount }, (_, i) => i + 1).map((day) => {
           const isActive = openDay === day;
           const date = dayNumberToDate(escapeStartDate, day);
@@ -297,10 +316,10 @@ export function ItineraryDayPlanner({
               type="button"
               onClick={() => setOpenDay(day)}
               className={cn(
-                "flex shrink-0 flex-col items-center rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
+                "flex shrink-0 flex-col items-center rounded-t-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
                 isActive
-                  ? "border-primary bg-primary/5 text-foreground shadow-sm"
-                  : "border-border/60 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                  ? "-mb-px border-primary border-b-card bg-card text-foreground shadow-sm"
+                  : "rounded-b-lg border-border/60 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
               )}
             >
               Day {day}
@@ -312,8 +331,8 @@ export function ItineraryDayPlanner({
         <button
           type="button"
           onClick={() => {
-            setExtraDays((n) => n + 1);
-            setOpenDay(dayCount + 1);
+            setAddDayError(undefined);
+            setConfirmingAddDay(true);
           }}
           className="flex shrink-0 items-center gap-1 rounded-lg border border-dashed border-border/70 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
         >
@@ -322,14 +341,26 @@ export function ItineraryDayPlanner({
         </button>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-        <div className="flex shrink-0 items-baseline gap-2 border-b border-border pb-2">
-          <Heading as="h4">Day {openDay}</Heading>
-          {activeDate && <Caption>{formatDayDateWithWeekday(activeDate)}</Caption>}
-        </div>
-        <div className="show-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-sm">
+        <div
+          className={cn(
+            "show-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto",
+            activeDayItems.length === 0 && "items-center justify-center text-center",
+          )}
+        >
           {activeDayItems.length === 0 ? (
-            <Body muted>No items planned for this day yet.</Body>
+            <>
+              <Body muted>No items planned for this day yet.</Body>
+              <button
+                type="button"
+                onClick={() => setAddingActivity(true)}
+                aria-label="Add Activity"
+                title="Add Activity"
+                className="flex h-7 w-16 shrink-0 items-center justify-center rounded-full border border-primary bg-transparent text-primary shadow-sm transition-colors hover:bg-primary hover:text-primary-foreground"
+              >
+                <PiPlusBold className="h-3.5 w-3.5" />
+              </button>
+            </>
           ) : (
             activeDayItems.map((item, i) => (
               <TimelineRow
@@ -345,30 +376,37 @@ export function ItineraryDayPlanner({
             ))
           )}
         </div>
-        <Button type="button" variant="secondary" size="sm" className="shrink-0 self-start" onClick={() => setModal(blankModalState(openDay))}>
-          + Add planning item
-        </Button>
+        {activeDayItems.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setAddingActivity(true)}
+            aria-label="Add Activity"
+            title="Add Activity"
+            className="flex h-7 w-16 shrink-0 items-center justify-center self-start rounded-full border border-primary bg-transparent text-primary shadow-sm transition-colors hover:bg-primary hover:text-primary-foreground"
+          >
+            <PiPlusBold className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
 
-      <Modal open={!!modal} onClose={() => setModal(null)} title={modal?.editingUid ? "Edit planning item" : "Add planning item"}>
+      <AddActivityModal
+        open={addingActivity}
+        onClose={() => setAddingActivity(false)}
+        itineraryUid={itineraryUid}
+        dayNumber={openDay}
+        activities={activities}
+        onCreated={loadItems}
+      />
+
+      <Modal open={!!modal} onClose={() => setModal(null)} title="Edit planning item">
         {modal && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            <div className="grid grid-cols-2 gap-3">
-              <TextInput
-                label="Day"
-                type="number"
-                min={1}
-                value={modal.dayNumber}
-                onChange={(e) => setModal((m) => (m ? { ...m, dayNumber: e.target.value } : m))}
-                required
-              />
-              <TextInput
-                label="Start time"
-                type="time"
-                value={modal.startTime}
-                onChange={(e) => setModal((m) => (m ? { ...m, startTime: e.target.value } : m))}
-              />
-            </div>
+            <TextInput
+              label="Start time"
+              type="time"
+              value={modal.startTime}
+              onChange={(e) => setModal((m) => (m ? { ...m, startTime: e.target.value } : m))}
+            />
             <Select
               label="Type"
               options={PLANNING_ITEM_TYPES}
@@ -377,20 +415,22 @@ export function ItineraryDayPlanner({
             />
             {referenceOptions.length > 0 && (
               <Select
-                label="Select from library (optional)"
+                label={modal.itemType === "activity" ? "Select from library" : "Select from library (optional)"}
                 options={referenceOptions}
                 value={modal.referenceId}
                 onChange={(e) => handleReferenceChange(e.target.value)}
                 placeholder="Not linked to a library item"
               />
             )}
-            <TextInput
-              label="Title"
-              value={modal.title}
-              onChange={(e) => handleTitleChange(e.target.value)}
-              placeholder="e.g. Airport Pickup"
-              required={!modal.referenceId}
-            />
+            {modal.itemType !== "activity" && (
+              <TextInput
+                label="Title"
+                value={modal.title}
+                onChange={(e) => handleTitleChange(e.target.value)}
+                placeholder="e.g. Airport Pickup"
+                required={!modal.referenceId}
+              />
+            )}
             <TextInput
               label="Notes"
               value={modal.notes}
@@ -408,6 +448,30 @@ export function ItineraryDayPlanner({
             </div>
           </form>
         )}
+      </Modal>
+
+      <Modal
+        open={confirmingAddDay}
+        onClose={() => !addingDay && setConfirmingAddDay(false)}
+        title="Extend escape duration"
+      >
+        <div className="flex flex-col items-center gap-3 text-center">
+          <Body>
+            Adding a day extends this escape&apos;s duration from{" "}
+            <span className="font-medium text-foreground">{dayCount} days</span> to{" "}
+            <span className="font-medium text-foreground">{dayCount + 1} days</span> and updates its end date. Do you
+            want to continue?
+          </Body>
+          {addDayError && <p className="text-sm text-danger">{addDayError}</p>}
+          <div className="flex justify-center gap-2">
+            <Button type="button" variant="ghost" disabled={addingDay} onClick={() => setConfirmingAddDay(false)}>
+              Cancel
+            </Button>
+            <Button type="button" disabled={addingDay} loading={addingDay} loadingText="Extending…" onClick={handleConfirmAddDay}>
+              Continue
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
