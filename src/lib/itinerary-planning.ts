@@ -69,6 +69,14 @@ export function formatDayDate(date: Date | null): string {
   return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase().replace(/,/g, "");
 }
 
+// "THU, 20 AUG 2026" — same date format prefixed with the short weekday, for
+// spots (like the day tab strip) where the day-of-week matters at a glance.
+export function formatDayDateWithWeekday(date: Date | null): string {
+  if (!date) return "";
+  const weekday = date.toLocaleDateString("en-GB", { weekday: "short" }).toUpperCase();
+  return `${weekday}, ${formatDayDate(date)}`;
+}
+
 // "HH:mm:ss" (backend LocalTime JSON) -> "HH:mm" for display.
 export function formatStartTime(startTime: string | null): string | null {
   return startTime ? startTime.slice(0, 5) : null;

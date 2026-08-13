@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { Itinerary } from "@/features/itineraries/types";
-import { fetchItinerariesForEscape, createItinerary, deleteItinerary, newItineraryVersion } from "@/features/itineraries/itinerariesThunks";
+import { fetchItinerariesForEscape, createItinerary, updateItinerary, deleteItinerary, duplicateItinerary } from "@/features/itineraries/itinerariesThunks";
 
 type RequestStatus = "idle" | "loading" | "succeeded" | "failed";
 
@@ -15,8 +15,8 @@ interface ItinerariesState {
   deleteStatus: RequestStatus;
   deleteError: string | null;
 
-  newVersionStatus: RequestStatus;
-  newVersionError: string | null;
+  duplicateStatus: RequestStatus;
+  duplicateError: string | null;
 }
 
 const initialState: ItinerariesState = {
@@ -27,8 +27,8 @@ const initialState: ItinerariesState = {
   saveError: null,
   deleteStatus: "idle",
   deleteError: null,
-  newVersionStatus: "idle",
-  newVersionError: null,
+  duplicateStatus: "idle",
+  duplicateError: null,
 };
 
 const itinerariesSlice = createSlice({
@@ -67,6 +67,11 @@ const itinerariesSlice = createSlice({
         state.saveError = action.payload ?? "Failed to create itinerary";
       })
 
+      .addCase(updateItinerary.fulfilled, (state, action) => {
+        const idx = state.items.findIndex((i) => i.uid === action.payload.uid);
+        if (idx !== -1) state.items[idx] = action.payload;
+      })
+
       .addCase(deleteItinerary.pending, (state) => {
         state.deleteStatus = "loading";
         state.deleteError = null;
@@ -79,16 +84,16 @@ const itinerariesSlice = createSlice({
         state.deleteError = action.payload ?? "Failed to delete itinerary";
       })
 
-      .addCase(newItineraryVersion.pending, (state) => {
-        state.newVersionStatus = "loading";
-        state.newVersionError = null;
+      .addCase(duplicateItinerary.pending, (state) => {
+        state.duplicateStatus = "loading";
+        state.duplicateError = null;
       })
-      .addCase(newItineraryVersion.fulfilled, (state) => {
-        state.newVersionStatus = "succeeded";
+      .addCase(duplicateItinerary.fulfilled, (state) => {
+        state.duplicateStatus = "succeeded";
       })
-      .addCase(newItineraryVersion.rejected, (state, action) => {
-        state.newVersionStatus = "failed";
-        state.newVersionError = action.payload ?? "Failed to create new version";
+      .addCase(duplicateItinerary.rejected, (state, action) => {
+        state.duplicateStatus = "failed";
+        state.duplicateError = action.payload ?? "Failed to duplicate itinerary";
       });
   },
 });

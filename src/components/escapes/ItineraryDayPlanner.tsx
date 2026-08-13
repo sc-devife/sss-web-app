@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { IoChevronUpOutline, IoChevronDownOutline, IoPencilOutline, IoTrashOutline } from "react-icons/io5";
-import { Card } from "@/components/ui/Card";
+import { PiPlusFill } from "react-icons/pi";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
@@ -21,7 +21,7 @@ import {
   PLANNING_ITEM_BADGE_CLASS,
   PLANNING_ITEM_REF_KIND,
   dayNumberToDate,
-  formatDayDate,
+  formatDayDateWithWeekday,
   formatStartTime,
 } from "@/lib/itinerary-planning";
 import { cn } from "@/lib/cn";
@@ -172,6 +172,7 @@ export function ItineraryDayPlanner({
   const [modal, setModal] = useState<ModalState | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
+  const [openDay, setOpenDay] = useState(1);
 
   useEffect(() => {
     if (itemsStatus === "idle") {
@@ -281,45 +282,73 @@ export function ItineraryDayPlanner({
     return <LoadingState label="Loading day plan…" />;
   }
 
-  return (
-    <div className="flex flex-col gap-4">
-      {Array.from({ length: dayCount }, (_, i) => i + 1).map((day) => {
-        const dayItems = (itemsByDay[day] ?? []).slice().sort((a, b) => a.sortOrder - b.sortOrder);
-        const date = dayNumberToDate(escapeStartDate, day);
-        return (
-          <Card key={day} variant="elevated" className="flex flex-col gap-3">
-            <div className="flex items-baseline justify-between border-b border-border pb-2">
-              <Heading as="h4">Day {day}</Heading>
-              {date && <Caption>{formatDayDate(date)}</Caption>}
-            </div>
-            <div className="flex flex-col gap-2">
-              {dayItems.length === 0 ? (
-                <Body muted>No items planned for this day yet.</Body>
-              ) : (
-                dayItems.map((item, i) => (
-                  <TimelineRow
-                    key={item.uid}
-                    item={item}
-                    isFirst={i === 0}
-                    isLast={i === dayItems.length - 1}
-                    onMove={(direction) => handleMove(item, direction)}
-                    onEdit={() => setModal(editModalState(item))}
-                    onDelete={() => handleDeleteItem(item.uid)}
-                    deleting={deletingUid === item.uid}
-                  />
-                ))
-              )}
-            </div>
-            <Button type="button" variant="secondary" size="sm" className="self-start" onClick={() => setModal(blankModalState(day))}>
-              + Add planning item
-            </Button>
-          </Card>
-        );
-      })}
+  const activeDayItems = (itemsByDay[openDay] ?? []).slice().sort((a, b) => a.sortOrder - b.sortOrder);
+  const activeDate = dayNumberToDate(escapeStartDate, openDay);
 
-      <Button type="button" variant="ghost" size="sm" className="self-start" onClick={() => setExtraDays((n) => n + 1)}>
-        + Add day
-      </Button>
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto pb-1">
+        {Array.from({ length: dayCount }, (_, i) => i + 1).map((day) => {
+          const isActive = openDay === day;
+          const date = dayNumberToDate(escapeStartDate, day);
+          return (
+            <button
+              key={day}
+              type="button"
+              onClick={() => setOpenDay(day)}
+              className={cn(
+                "flex shrink-0 flex-col items-center rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
+                isActive
+                  ? "border-primary bg-primary/5 text-foreground shadow-sm"
+                  : "border-border/60 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
+              )}
+            >
+              Day {day}
+              {date && <span className="text-[8px] font-normal text-muted-foreground">{formatDayDateWithWeekday(date)}</span>}
+            </button>
+          );
+        })}
+
+        <button
+          type="button"
+          onClick={() => {
+            setExtraDays((n) => n + 1);
+            setOpenDay(dayCount + 1);
+          }}
+          className="flex shrink-0 items-center gap-1 rounded-lg border border-dashed border-border/70 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+        >
+          <PiPlusFill className="h-3 w-3" />
+          Add day
+        </button>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
+        <div className="flex shrink-0 items-baseline gap-2 border-b border-border pb-2">
+          <Heading as="h4">Day {openDay}</Heading>
+          {activeDate && <Caption>{formatDayDateWithWeekday(activeDate)}</Caption>}
+        </div>
+        <div className="show-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+          {activeDayItems.length === 0 ? (
+            <Body muted>No items planned for this day yet.</Body>
+          ) : (
+            activeDayItems.map((item, i) => (
+              <TimelineRow
+                key={item.uid}
+                item={item}
+                isFirst={i === 0}
+                isLast={i === activeDayItems.length - 1}
+                onMove={(direction) => handleMove(item, direction)}
+                onEdit={() => setModal(editModalState(item))}
+                onDelete={() => handleDeleteItem(item.uid)}
+                deleting={deletingUid === item.uid}
+              />
+            ))
+          )}
+        </div>
+        <Button type="button" variant="secondary" size="sm" className="shrink-0 self-start" onClick={() => setModal(blankModalState(openDay))}>
+          + Add planning item
+        </Button>
+      </div>
 
       <Modal open={!!modal} onClose={() => setModal(null)} title={modal?.editingUid ? "Edit planning item" : "Add planning item"}>
         {modal && (

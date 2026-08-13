@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type { IconType } from "react-icons";
 import { PiPulseFill, PiUsersFill } from "react-icons/pi";
 import { IoMailOutline, IoCallOutline, IoCheckmarkCircle } from "react-icons/io5";
@@ -361,6 +361,8 @@ export function EscapeWorkspaceTabs({
   leadTravellerCount,
   auditLog,
   onDealChanged,
+  selectedItineraryUid,
+  onSelectItinerary,
 }: {
   escapeUid: string;
   hotels: Hotel[];
@@ -381,6 +383,12 @@ export function EscapeWorkspaceTabs({
   leadTravellerCount: number | null;
   auditLog: EscapeAuditLogEntry[] | null;
   onDealChanged?: () => void;
+  /** Which itinerary the Planning tab renders — same selection the right
+   * rail's Itineraries list drives, so only one itinerary's day-plan/terms/
+   * quotes show at a time instead of every itinerary on the escape stacked
+   * on top of each other. */
+  selectedItineraryUid: string | null;
+  onSelectItinerary: (uid: string) => void;
 }) {
   const dispatch = useAppDispatch();
   const itineraries = useAppSelector(selectItineraries);
@@ -392,8 +400,18 @@ export function EscapeWorkspaceTabs({
 
   const sortedItineraries = itineraries.slice().sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0));
 
+  const activeItinerary =
+    sortedItineraries.find((i) => i.uid === selectedItineraryUid) ?? sortedItineraries[0] ?? null;
+
+  useEffect(() => {
+    if (activeItinerary && activeItinerary.uid !== selectedItineraryUid) {
+      onSelectItinerary(activeItinerary.uid);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeItinerary]);
+
   return (
-    <Card variant="elevated" className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 lg:h-full lg:min-h-0">
       <Tabs tabs={TABS} defaultTab="planning">
         {(active) => {
           if (active === "planning") {
@@ -409,24 +427,21 @@ export function EscapeWorkspaceTabs({
                 />
               );
             }
+            if (!activeItinerary) return null;
             return (
-              <div className="flex flex-col gap-2">
-                {sortedItineraries.map((itinerary) => (
-                  <ItineraryCard
-                    key={itinerary.uid}
-                    itinerary={itinerary}
-                    escapeUid={escapeUid}
-                    hotels={hotels}
-                    activities={activities}
-                    transports={transports}
-                    serviceProviders={serviceProviders}
-                    escapeStartDate={escapeStartDate}
-                    numberOfDays={numberOfDays}
-                    onChanged={refreshItineraries}
-                    onDealChanged={onDealChanged}
-                  />
-                ))}
-              </div>
+              <ItineraryCard
+                key={activeItinerary.uid}
+                itinerary={activeItinerary}
+                escapeUid={escapeUid}
+                hotels={hotels}
+                activities={activities}
+                transports={transports}
+                serviceProviders={serviceProviders}
+                escapeStartDate={escapeStartDate}
+                numberOfDays={numberOfDays}
+                onChanged={refreshItineraries}
+                onDealChanged={onDealChanged}
+              />
             );
           }
 
@@ -498,6 +513,6 @@ export function EscapeWorkspaceTabs({
           );
         }}
       </Tabs>
-    </Card>
+    </div>
   );
 }

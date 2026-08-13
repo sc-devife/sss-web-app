@@ -3,6 +3,7 @@ import { backendJson } from "@/lib/backend";
 export interface Quote {
   uid: string;
   itineraryUid: string;
+  name: string | null;
   version: number;
   status: string;
   currencyCode: string | null;

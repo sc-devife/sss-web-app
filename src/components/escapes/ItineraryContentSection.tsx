@@ -7,6 +7,7 @@ import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
 import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
+import { cn } from "@/lib/cn";
 import type { ItineraryContentItem } from "@/lib/itinerary-content-items";
 import type { InclusionExclusionType } from "@/lib/inclusion-exclusions";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
@@ -205,7 +206,16 @@ function TypeBlock({
   );
 }
 
-export function ItineraryContentSection({ itineraryUid }: { itineraryUid: string }) {
+export function ItineraryContentSection({
+  itineraryUid,
+  types = TYPES.map((t) => t.value),
+}: {
+  itineraryUid: string;
+  /** Restrict which of Terms/Inclusions/Exclusions render — lets the
+   * Itinerary card's Terms tab and Inclusions & Exclusions tab each show
+   * just their own slice instead of always all three together. */
+  types?: InclusionExclusionType[];
+}) {
   const dispatch = useAppDispatch();
   const items = useAppSelector((s) => selectItineraryContentItems(s, itineraryUid));
   const status = useAppSelector((s) => selectItineraryContentItemsStatus(s, itineraryUid));
@@ -218,25 +228,24 @@ export function ItineraryContentSection({ itineraryUid }: { itineraryUid: string
     dispatch(fetchItineraryContentItems(itineraryUid));
   }
 
+  const visibleTypes = TYPES.filter((t) => types.includes(t.value));
+
+  if (status === "loading" && items.length === 0) {
+    return <LoadingState />;
+  }
+
   return (
-    <div className="flex flex-col gap-2 border-t border-border pt-3">
-      <Caption>Terms, Inclusions &amp; Exclusions</Caption>
-      {status === "loading" && items.length === 0 ? (
-        <LoadingState />
-      ) : (
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-          {TYPES.map((t) => (
-            <TypeBlock
-              key={t.value}
-              itineraryUid={itineraryUid}
-              type={t.value}
-              label={t.label}
-              items={items.filter((i) => i.type === t.value)}
-              onChanged={load}
-            />
-          ))}
-        </div>
-      )}
+    <div className={cn("grid grid-cols-1 gap-3", visibleTypes.length > 1 && "lg:grid-cols-2")}>
+      {visibleTypes.map((t) => (
+        <TypeBlock
+          key={t.value}
+          itineraryUid={itineraryUid}
+          type={t.value}
+          label={t.label}
+          items={items.filter((i) => i.type === t.value)}
+          onChanged={load}
+        />
+      ))}
     </div>
   );
 }

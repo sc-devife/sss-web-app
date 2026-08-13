@@ -1,7 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
-import type { Itinerary, CreateItineraryPayload } from "@/features/itineraries/types";
+import type { Itinerary, CreateItineraryPayload, UpdateItineraryPayload } from "@/features/itineraries/types";
 
 export const fetchItinerariesForEscape = createAsyncThunk<Itinerary[], string, { rejectValue: string }>(
   "itineraries/fetchItinerariesForEscape",
@@ -26,6 +26,18 @@ export const createItinerary = createAsyncThunk<void, CreateItineraryPayload, { 
   },
 );
 
+export const updateItinerary = createAsyncThunk<Itinerary, UpdateItineraryPayload, { rejectValue: string }>(
+  "itineraries/updateItinerary",
+  async ({ uid, name }, { rejectWithValue }) => {
+    try {
+      const res = await clientApi.put<Itinerary>(`/itineraries/${uid}`, { name });
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to rename itinerary"));
+    }
+  },
+);
+
 export const deleteItinerary = createAsyncThunk<void, string, { rejectValue: string }>(
   "itineraries/deleteItinerary",
   async (uid, { rejectWithValue }) => {
@@ -37,13 +49,13 @@ export const deleteItinerary = createAsyncThunk<void, string, { rejectValue: str
   },
 );
 
-export const newItineraryVersion = createAsyncThunk<void, string, { rejectValue: string }>(
-  "itineraries/newItineraryVersion",
+export const duplicateItinerary = createAsyncThunk<void, string, { rejectValue: string }>(
+  "itineraries/duplicateItinerary",
   async (uid, { rejectWithValue }) => {
     try {
-      await clientApi.post(`/itineraries/${uid}/new-version`);
+      await clientApi.post(`/itineraries/${uid}/duplicate`);
     } catch (err) {
-      return rejectWithValue(extractErrorMessage(err, "Failed to create new version"));
+      return rejectWithValue(extractErrorMessage(err, "Failed to duplicate itinerary"));
     }
   },
 );

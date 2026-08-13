@@ -5,6 +5,7 @@ import type {
   Quote,
   SupportedCurrency,
   CreateQuotePayload,
+  RenameQuotePayload,
   SetQuoteTemplatePayload,
   ComputeQuotePayload,
   ComputeQuoteResult,
@@ -44,6 +45,17 @@ export const createQuote = createAsyncThunk<void, CreateQuotePayload, { rejectVa
       await clientApi.post("/quotes", payload);
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to create quote"));
+    }
+  },
+);
+
+export const renameQuote = createAsyncThunk<void, RenameQuotePayload, { rejectValue: string }>(
+  "quotes/renameQuote",
+  async ({ uid, name }, { rejectWithValue }) => {
+    try {
+      await clientApi.put(`/quotes/${uid}`, { name });
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to rename quote"));
     }
   },
 );

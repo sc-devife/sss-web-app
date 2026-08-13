@@ -5,7 +5,14 @@ export type { Quote, SupportedCurrency };
 
 export interface CreateQuotePayload {
   itineraryUid: string;
+  name?: string;
   validUntil: string | null;
+}
+
+export interface RenameQuotePayload {
+  uid: string;
+  itineraryUid: string;
+  name: string;
 }
 
 export interface SetQuoteTemplatePayload {

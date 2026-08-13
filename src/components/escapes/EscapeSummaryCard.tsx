@@ -3,10 +3,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { IconType } from "react-icons";
 import { IoMailOutline, IoCallOutline } from "react-icons/io5";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import {
   PiMapPinFill,
   PiImageFill,
-  PiTagFill,
   PiUsersFill,
   PiCalendarBlankFill,
   PiClockFill,
@@ -15,10 +15,10 @@ import {
   PiSuitcaseFill,
   PiUserCircleFill,
 } from "react-icons/pi";
-import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Caption } from "@/components/ui/Typography";
+import { cn } from "@/lib/cn";
 import { resolveFileUrl } from "@/lib/files";
 import { escapeStatusTone, escapeStatusIcon } from "@/lib/escape-status";
 import type { Escape } from "@/lib/escapes";
@@ -35,22 +35,33 @@ import { FaLocationArrow } from "react-icons/fa";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-1.5 border-t border-border pt-2.5 first:border-t-0 first:pt-0">
-      <Caption className="font-semibold">{title}</Caption>
+    <div className="flex flex-col gap-2 border-t border-border pt-3 first:border-t-0 first:pt-0">
+      <Caption className="font-semibold tracking-wide">{title}</Caption>
       {children}
     </div>
+  );
+}
+
+// Every icon+text line in this card uses the same pattern: inline-flex with
+// items-center so the icon sits on the text's visual center regardless of
+// the SVG's own baseline, plus one shared icon size so nothing looks
+// mismatched line to line.
+function IconLine({ icon: Icon, children, className }: { icon: IconType; children: ReactNode; className?: string }) {
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 text-[11px] text-muted-foreground", className)}>
+      <Icon className="h-3.5 w-3.5 shrink-0" />
+      <span className="truncate">{children}</span>
+    </span>
   );
 }
 
 function InfoRow({ icon: Icon, label, value }: { icon: IconType; label: string; value: string | null | undefined }) {
   if (!value) return null;
   return (
-    <div className="flex items-start gap-1.5 rounded-lg border border-border/60 bg-muted/40 p-2">
-      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-      <div className="min-w-0">
-        <span className="block text-[11px] leading-tight text-muted-foreground">{label}</span>
-        <span className="block truncate text-xs font-medium text-foreground">{value}</span>
-      </div>
+    <div className="flex min-w-0 items-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 px-2.5 py-2">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      <span className="truncate text-[11px] text-muted-foreground">{label}</span>
+      <span className="truncate text-xs font-semibold text-foreground">{value}</span>
     </div>
   );
 }
@@ -58,9 +69,13 @@ function InfoRow({ icon: Icon, label, value }: { icon: IconType; label: string; 
 export function EscapeSummaryCard({
   escape,
   auditLog,
+  collapsed = false,
+  onToggleCollapsed,
 }: {
   escape: Escape;
   auditLog: EscapeAuditLogEntry[] | null;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }) {
   const escapePoint = escape.escapePoints[0];
   const extraEscapePoints = Math.max(escape.escapePoints.length - 1, 0);
@@ -75,22 +90,46 @@ export function EscapeSummaryCard({
   const leadName = lead?.name ?? `Escape #${escape.uid}`;
 
   return (
-    <Card variant="elevated" className="overflow-hidden p-0">
-      {cover && !imageFailed ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={resolveFileUrl(cover)}
-          alt={escapePoint?.name ?? leadName}
-          className="aspect-[16/9] w-full object-cover rounded-lg"
-          onError={() => setImageFailed(true)}
-        />
-      ) : (
-        <div className="flex aspect-[16/9] w-full items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
-          <PiImageFill className="h-8 w-8 text-muted-foreground/40" />
-        </div>
+    <div
+      className={cn(
+        "relative rounded-none border border-border bg-card text-card-foreground shadow-sm lg:flex lg:flex-col",
+        // Collapsed keeps the *same* full height as expanded (a slim tall
+        // rail, matching the right EscapeSidePanel's collapsed behavior) —
+        // only the width shrinks, driven by the parent grid column. 8rem
+        // (not 7rem) — EscapeDetailPanel's outer Card now nests a second
+        // padded wrapper around its content, adding another 0.5rem top +
+        // 0.5rem bottom that this offset has to account for, or the card's
+        // bottom edge gets clipped by the ancestor's lg:overflow-hidden
+        // instead of leaving room to breathe.
+        collapsed ? "lg:h-[calc(100vh-8rem)]" : "lg:max-h-[calc(100vh-8rem)]",
+      )}
+    >
+      {onToggleCollapsed && (
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          aria-label={collapsed ? "Expand summary" : "Collapse summary"}
+          title={collapsed ? "Expand summary" : "Collapse summary"}
+          className="absolute -right-2.5 top-1/2 z-10 hidden h-8 w-5 -translate-y-1/2 items-center justify-center rounded-r-md border border-l-0 border-border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground lg:flex"
+        >
+          {collapsed ? <FaChevronRight className="h-3 w-3" /> : <FaChevronLeft className="h-3 w-3" />}
+        </button>
       )}
 
-      <div className="flex flex-col gap-2.5 p-3">
+      <div className={cn("show-scrollbar flex flex-col gap-3 p-3.5 lg:overflow-y-auto", collapsed && "lg:hidden")}>
+        {cover && !imageFailed ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={resolveFileUrl(cover)}
+            alt={escapePoint?.name ?? leadName}
+            className="aspect-[16/9] w-full rounded-none border border-border object-cover"
+            onError={() => setImageFailed(true)}
+          />
+        ) : (
+          <div className="flex aspect-[16/9] w-full items-center justify-center rounded-none border border-border bg-gradient-to-br from-primary/10 to-accent/10">
+            <PiImageFill className="h-8 w-8 text-muted-foreground/40" />
+          </div>
+        )}
         {/* Escape information */}
         <Section title="Escape information">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -99,25 +138,18 @@ export function EscapeSummaryCard({
               {escape.status}
             </Badge>
           </div>
-          <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-            <PiTagFill className="h-3 w-3" /> Escape #{escape.uid}
-          </span>
-
           {escapePoint ? (
-            <>
-              <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                <FaLocationArrow className="h-3 w-3 text-muted-foreground" /><span className="text-xs font-medium text-foreground">{escapePoint.name}</span>
+            <div className="flex flex-col gap-1.5 border-t border-border pt-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <FaLocationArrow className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <span className="text-xs font-medium text-foreground">{escapePoint.name}</span>
                 {extraEscapePoints > 0 && <Badge>+{extraEscapePoints} more</Badge>}
               </div>
-              {escapePoint.locationLabel && (
-                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                  <PiMapPinFill className="h-3 w-3 shrink-0" /> {escapePoint.locationLabel}
-                </span>
-              )}
+              {escapePoint.locationLabel && <IconLine icon={PiMapPinFill}>{escapePoint.locationLabel}</IconLine>}
               {escapePoint.description && (
                 <span className="text-[11px] leading-snug text-muted-foreground">{escapePoint.description}</span>
               )}
-            </>
+            </div>
           ) : (
             <span className="text-xs text-muted-foreground">No escape point selected</span>
           )}
@@ -129,21 +161,13 @@ export function EscapeSummaryCard({
             <>
               <div className="flex items-start gap-2">
                 <Avatar name={lead.name} />
-                <div className="flex min-w-0 flex-col gap-0.5 pt-0.5">
+                <div className="flex min-w-0 flex-col gap-1 pt-0.5">
                   <span className="text-xs font-medium text-foreground">{lead.name}</span>
-                  {lead.email && (
-                    <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                      <IoMailOutline className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{lead.email}</span>
-                    </span>
-                  )}
-                  {lead.phone && (
-                    <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                      <IoCallOutline className="h-3.5 w-3.5 shrink-0" /> {lead.phone}
-                    </span>
-                  )}
+                  {lead.email && <IconLine icon={IoMailOutline}>{lead.email}</IconLine>}
+                  {lead.phone && <IconLine icon={IoCallOutline}>{lead.phone}</IconLine>}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-x-2 gap-y-2 pt-1">
+              <div className="grid grid-cols-2 gap-2 pt-1">
                 <InfoRow icon={PiUsersFill} label="Travellers" value={lead.numberOfPeople != null ? String(lead.numberOfPeople) : null} />
                 <InfoRow icon={PiCalendarBlankFill} label="Travel date" value={lead.travelDate} />
                 <InfoRow icon={PiMapPinLineFill} label="Origin city" value={lead.originCity} />
@@ -162,7 +186,7 @@ export function EscapeSummaryCard({
 
         {/* Escape schedule */}
         <Section title="Escape schedule">
-          <div className="grid grid-cols-2 gap-x-2 gap-y-2">
+          <div className="grid grid-cols-2 gap-2">
             <InfoRow icon={PiCalendarBlankFill} label="Start date" value={escape.startDate} />
             <InfoRow icon={PiCalendarBlankFill} label="End date" value={escape.endDate} />
             <InfoRow icon={PiClockFill} label="Duration" value={escape.numberOfDays ? `${escape.numberOfDays} days` : null} />
@@ -188,6 +212,6 @@ export function EscapeSummaryCard({
           </Section>
         )}
       </div>
-    </Card>
+    </div>
   );
 }

@@ -9,10 +9,14 @@ export interface TabItem {
 }
 
 // Generic tab primitive — render-prop content so each caller controls what
-// shows per tab without a separate TabPanel abstraction. Active tab reads in
-// the app's primary color with a small bottom accent bar; the tablist itself
-// sits on a subtle border-b divider, matching the rest of the design system's
-// use of border-border for section dividers (e.g. Card sub-sections).
+// shows per tab without a separate TabPanel abstraction. Pills sit centered
+// in a row, each its own separately-bordered/filled button (not a
+// continuous underlined strip) — the active pill fills solid, inactive ones
+// stay plain outlined so the row reads as a segmented control. On desktop
+// the content box fills the rest of the available height and scrolls
+// internally (lg:flex-1 + overflow-y-auto) so the page itself never needs
+// to scroll; below lg it just sizes to content and the page scrolls as
+// usual, since there's no fixed-height ancestor to fill on mobile.
 export function Tabs({
   tabs,
   defaultTab,
@@ -25,8 +29,8 @@ export function Tabs({
   const [active, setActive] = useState(defaultTab ?? tabs[0]?.id);
 
   return (
-    <div className="flex flex-col">
-      <div role="tablist" className="flex items-center gap-4 border-b border-border">
+    <div className="flex flex-col gap-3 lg:h-full lg:min-h-0">
+      <div role="tablist" className="flex items-center justify-center gap-2">
         {tabs.map((tab) => {
           const isActive = active === tab.id;
           return (
@@ -37,17 +41,20 @@ export function Tabs({
               aria-selected={isActive}
               onClick={() => setActive(tab.id)}
               className={cn(
-                "relative px-1 py-2 text-sm font-medium transition-colors",
-                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                "rounded-full border px-4 py-1.5 text-sm font-medium transition-colors",
+                isActive
+                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                  : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
               )}
             >
               {tab.label}
-              {isActive && <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />}
             </button>
           );
         })}
       </div>
-      <div className="pt-3">{children(active)}</div>
+      <div className="show-scrollbar rounded-lg border border-border bg-[#f2f2f5] p-3 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-y-auto">
+        {children(active)}
+      </div>
     </div>
   );
 }
