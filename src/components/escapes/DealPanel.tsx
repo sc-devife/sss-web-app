@@ -9,6 +9,7 @@ import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import type { Deal } from "@/lib/deals";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { formatDisplayDate } from "@/lib/date";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchMilestonesForDeal, createPaymentMilestone, recordPayment, deletePaymentMilestone } from "@/features/paymentMilestones/paymentMilestonesThunks";
 import { selectPaymentMilestones, selectPaymentMilestonesStatus, selectPaymentMilestonesError } from "@/features/paymentMilestones/paymentMilestonesSelectors";
@@ -126,7 +127,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
                     </Badge>{" "}
                     <span className="font-medium text-foreground">{m.label}</span>{" "}
                     <span className="text-muted-foreground">
-                      due {m.dueDate} · ${m.amountPaidUsd.toFixed(2)} / ${m.amountUsd.toFixed(2)} USD
+                      due {formatDisplayDate(m.dueDate)} · ${m.amountPaidUsd.toFixed(2)} / ${m.amountUsd.toFixed(2)} USD
                     </span>
                   </span>
                   {m.status !== "paid" && (

@@ -9,6 +9,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { formatDisplayDate } from "@/lib/date";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchQuotesForItinerary,
@@ -197,7 +198,7 @@ export function QuotesPanel({
                     v{q.version} · {q.status}
                   </Badge>{" "}
                   {q.totalUsd != null ? `$${q.totalUsd.toFixed(2)} USD` : "Not priced yet"}
-                  {q.validUntil && <span className="text-muted-foreground"> · valid until {q.validUntil}</span>}
+                  {q.validUntil && <span className="text-muted-foreground"> · valid until {formatDisplayDate(q.validUntil)}</span>}
                 </span>
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={() => openCompute(q.uid)} disabled={busy} className="text-primary hover:underline">Compute pricing</button>

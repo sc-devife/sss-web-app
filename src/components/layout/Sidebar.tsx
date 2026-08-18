@@ -187,8 +187,8 @@ function SidebarFooter({ collapsed, loggingOut, onLogout }: { collapsed: boolean
         disabled={loggingOut}
         title={collapsed ? "Logout" : undefined}
         className={cn(
-          "flex w-full items-center gap-3 rounded-xl p-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50",
-          collapsed && "w-auto justify-center",
+          "flex items-center gap-3 rounded-xl p-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-red-400 hover:text-white disabled:opacity-50",
+          collapsed ? "w-auto justify-center px-3 py-2.5" : "w-full",
         )}
       >
         <FaPowerOff className="h-4 w-4 shrink-0" />

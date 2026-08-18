@@ -8,6 +8,7 @@ import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Body } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import type { LeadImportAttempt } from "@/lib/leadSources";
+import { formatDisplayDateTime } from "@/lib/date";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchImportAttempts, resyncImportAttempt } from "@/features/integrations/integrationsThunks";
 import { selectImportAttempts, selectImportAttemptsStatus, selectImportAttemptsError } from "@/features/integrations/integrationsSelectors";
@@ -42,7 +43,7 @@ export function SyncHistoryModal({ channelCode, onClose }: { channelCode: string
   const attempts = page?.content ?? [];
 
   const columns: DataTableColumn<LeadImportAttempt>[] = [
-    { key: "receivedAt", header: "Received", render: (a) => new Date(a.lastAttemptedAt).toLocaleString() },
+    { key: "receivedAt", header: "Received", render: (a) => formatDisplayDateTime(a.lastAttemptedAt) },
     { key: "form", header: "Form", render: (a) => a.formId ?? "—" },
     { key: "campaign", header: "Campaign", render: (a) => a.campaignId ?? "—" },
     { key: "status", header: "Status", render: (a) => <Badge tone={STATUS_TONE[a.status]}>{a.status}</Badge> },

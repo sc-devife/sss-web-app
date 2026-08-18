@@ -19,6 +19,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { formatDisplayDateTime } from "@/lib/date";
 import { required, runValidators } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchIntegrations, connectIntegration, disconnectIntegration } from "@/features/integrations/integrationsThunks";
@@ -197,7 +198,7 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
                   <code className="block break-all rounded bg-background px-2 py-1.5 text-xs text-foreground">{webhookUrl}</code>
                   <Body className="mt-2 text-xs">Send POST requests with header <code className="bg-muted px-1">X-Webhook-Secret</code></Body>
                   {integration.lastSyncedAt && (
-                    <Body className="mt-1 text-xs">Last: {new Date(integration.lastSyncedAt).toLocaleString()}</Body>
+                    <Body className="mt-1 text-xs">Last: {formatDisplayDateTime(integration.lastSyncedAt)}</Body>
                   )}
                 </div>
               )}
@@ -207,7 +208,7 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
                   {integration.pageName && <Body className="text-xs font-medium">Account: {integration.pageName}</Body>}
                   <Caption className="mt-1 block">{integration.channelCode === "facebook" ? "Page ID" : "IG Account ID"}: {integration.pageId ?? integration.igAccountId}</Caption>
                   {integration.lastSyncedAt && (
-                    <Body className="mt-1 text-xs">Last lead: {new Date(integration.lastSyncedAt).toLocaleString()}</Body>
+                    <Body className="mt-1 text-xs">Last lead: {formatDisplayDateTime(integration.lastSyncedAt)}</Body>
                   )}
                 </div>
               )}

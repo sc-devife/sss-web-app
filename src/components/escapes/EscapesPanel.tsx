@@ -6,6 +6,7 @@ import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { Body } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
+import { formatDisplayDate } from "@/lib/date";
 import type { Escape } from "@/lib/escapes";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchEscapes } from "@/features/escapes/escapesThunks";
@@ -43,7 +44,7 @@ export function EscapesPanel() {
     {
       key: "dates",
       header: "Dates",
-      render: (t) => (t.startDate ? `${t.startDate} (${t.numberOfDays ?? "?"}d)` : "—"),
+      render: (t) => (t.startDate ? `${formatDisplayDate(t.startDate)} (${t.numberOfDays ?? "?"}d)` : "—"),
     },
     {
       key: "travellers",

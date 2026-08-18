@@ -316,7 +316,7 @@ export function ItineraryDayPlanner({
               type="button"
               onClick={() => setOpenDay(day)}
               className={cn(
-                "flex shrink-0 flex-col items-center rounded-t-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
+                "flex h-11 min-w-[100px] shrink-0 flex-col items-center justify-center rounded-t-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
                 isActive
                   ? "-mb-px border-primary border-b-card bg-card text-foreground shadow-sm"
                   : "rounded-b-lg border-border/60 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
@@ -334,7 +334,7 @@ export function ItineraryDayPlanner({
             setAddDayError(undefined);
             setConfirmingAddDay(true);
           }}
-          className="flex shrink-0 items-center gap-1 rounded-lg border border-dashed border-border/70 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+          className="flex h-11 min-w-[100px] shrink-0 items-center justify-center gap-1 rounded-lg border border-dashed border-border/70 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
         >
           <PiPlusFill className="h-3 w-3" />
           Add day

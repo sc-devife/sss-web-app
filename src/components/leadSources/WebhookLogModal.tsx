@@ -7,6 +7,7 @@ import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Body } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import type { WebhookEvent } from "@/lib/leadSources";
+import { formatDisplayDateTime } from "@/lib/date";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchWebhookEvents } from "@/features/integrations/integrationsThunks";
 import { selectWebhookEvents, selectWebhookEventsStatus, selectWebhookEventsError } from "@/features/integrations/integrationsSelectors";
@@ -32,7 +33,7 @@ export function WebhookLogModal({ channelCode, onClose }: { channelCode: string;
   const events = page?.content ?? [];
 
   const columns: DataTableColumn<WebhookEvent>[] = [
-    { key: "receivedAt", header: "Received", render: (e) => new Date(e.receivedAt).toLocaleString() },
+    { key: "receivedAt", header: "Received", render: (e) => formatDisplayDateTime(e.receivedAt) },
     { key: "signature", header: "Signature", render: (e) => <Badge tone={e.signatureValid ? "success" : "danger"}>{e.signatureValid ? "valid" : "invalid"}</Badge> },
     { key: "status", header: "Status", render: (e) => <Badge tone={STATUS_TONE[e.processingStatus] ?? "neutral"}>{e.processingStatus}</Badge> },
     { key: "form", header: "Form", render: (e) => e.formId ?? "—" },

@@ -9,6 +9,7 @@ import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { required, runValidators } from "@/lib/validators";
+import { formatDisplayDate } from "@/lib/date";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchPriorityCalendarEntries,
@@ -110,7 +111,7 @@ export function PriorityCalendarPanel() {
             <Card key={entry.uid} className="flex items-center justify-between">
               <div>
                 <Body className="font-medium">{entry.label}</Body>
-                <Caption>{entry.startDate} – {entry.endDate}</Caption>
+                <Caption>{formatDisplayDate(entry.startDate)} – {formatDisplayDate(entry.endDate)}</Caption>
               </div>
               <Button variant="danger" size="sm" disabled={deletingUid === entry.uid} onClick={() => handleDelete(entry.uid)}>Remove</Button>
             </Card>

@@ -17,6 +17,7 @@ import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import { ItineraryCard } from "@/components/escapes/ItineraryCard";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { formatDisplayDateTime } from "@/lib/date";
 import type { Hotel } from "@/lib/hotels";
 import type { Activity } from "@/lib/activities";
 import type { Transport } from "@/lib/transports";
@@ -534,7 +535,7 @@ export function EscapeWorkspaceTabs({
                   </span>
                   <div className="min-w-0 flex-1 rounded-lg border border-border/60 bg-muted/40 p-2.5">
                     <Body className="font-medium">{entry.action}</Body>
-                    <Caption>{new Date(entry.createdAt).toLocaleString()}</Caption>
+                    <Caption>{formatDisplayDateTime(entry.createdAt)}</Caption>
                   </div>
                 </div>
               ))}

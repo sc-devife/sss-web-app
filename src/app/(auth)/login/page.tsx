@@ -2,6 +2,7 @@
 
 import {
   Suspense,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
@@ -60,11 +61,18 @@ function LoginForm() {
   >();
 
   const [loading, setLoading] = useState(false);
+  // `loading` state can't gate re-entrancy by itself — setState is
+  // asynchronous, so a second Enter/click fired before React re-renders the
+  // disabled button would still read `loading === false`. A ref is updated
+  // synchronously, so it actually blocks an overlapping submit.
+  const submittingRef = useRef(false);
 
   async function handleSubmit(
     e: FormEvent<HTMLFormElement>,
   ) {
     e.preventDefault();
+
+    if (submittingRef.current) return;
 
     setFormError(undefined);
 
@@ -86,6 +94,7 @@ function LoginForm() {
       return;
     }
 
+    submittingRef.current = true;
     setLoading(true);
 
     try {
@@ -103,7 +112,9 @@ function LoginForm() {
         searchParams.get("from") ??
         "/dashboard";
 
-      router.push(destination);
+      // replace, not push — the login page shouldn't stay in history once
+      // authenticated, so the back button doesn't return to it.
+      router.replace(destination);
     } catch (err) {
       if (axios.isAxiosError(err) && err.response) {
         if (err.response.status === 503) {
@@ -123,6 +134,7 @@ function LoginForm() {
         toast.error("Unable to connect to the server. Please try again later.");
       }
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }

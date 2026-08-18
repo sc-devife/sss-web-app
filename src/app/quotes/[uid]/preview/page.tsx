@@ -6,6 +6,7 @@ import { getEscapeById } from "@/lib/escapes";
 import { getMyOrganization } from "@/lib/organization";
 import { getQuoteTemplates } from "@/lib/quote-templates";
 import { resolveFileUrl } from "@/lib/files";
+import { formatDisplayDate } from "@/lib/date";
 import { PrintButton } from "@/components/quotes/PrintButton";
 
 export default async function QuotePreviewPage({ params }: { params: { uid: string } }) {
@@ -60,7 +61,7 @@ export default async function QuotePreviewPage({ params }: { params: { uid: stri
           </div>
           <div className={isModern ? "text-right text-sm opacity-90" : "text-right text-sm text-gray-500"}>
             <p>Quote v{quote.version}</p>
-            {quote.validUntil && <p>Valid until {quote.validUntil}</p>}
+            {quote.validUntil && <p>Valid until {formatDisplayDate(quote.validUntil)}</p>}
           </div>
         </div>
 
@@ -70,7 +71,7 @@ export default async function QuotePreviewPage({ params }: { params: { uid: stri
           </h1>
           <p className="text-sm text-gray-600">
             {trip.escapePoints.map((d) => d.name).join(", ")}
-            {trip.startDate && ` · ${trip.startDate}`}
+            {trip.startDate && ` · ${formatDisplayDate(trip.startDate)}`}
             {trip.numberOfDays && ` · ${trip.numberOfDays} days`}
           </p>
         </div>

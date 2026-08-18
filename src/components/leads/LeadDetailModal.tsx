@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { formatDisplayDate, formatDisplayDateTime } from "@/lib/date";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
@@ -118,7 +119,7 @@ export function LeadDetailModal({
           <div><Caption>Phone</Caption><Body>{lead.phone || "—"}</Body></div>
           <div><Caption>Escape Point</Caption><Body>{lead.destination || "—"}</Body></div>
           <div><Caption>Travellers</Caption><Body>{lead.numberOfPeople ?? "—"}</Body></div>
-          <div><Caption>Travel date</Caption><Body>{lead.travelDate ?? "—"}</Body></div>
+          <div><Caption>Travel date</Caption><Body>{formatDisplayDate(lead.travelDate) ?? "—"}</Body></div>
           <div><Caption>Duration</Caption><Body>{lead.durationDays ? `${lead.durationDays} days` : "—"}</Body></div>
           <div><Caption>Budget</Caption><Body>{lead.budget ?? "—"}</Body></div>
           <div><Caption>Origin city</Caption><Body>{lead.originCity || "—"}</Body></div>
@@ -206,7 +207,7 @@ export function LeadDetailModal({
               {auditLog.map((entry, i) => (
                 <div key={i} className="text-sm">
                   <span className="font-medium text-foreground">{entry.action}</span>{" "}
-                  <span className="text-muted-foreground">{new Date(entry.createdAt).toLocaleString()}</span>
+                  <span className="text-muted-foreground">{formatDisplayDateTime(entry.createdAt)}</span>
                 </div>
               ))}
             </div>

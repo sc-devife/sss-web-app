@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Heading, Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
+import { formatDisplayDate } from "@/lib/date";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchDashboard } from "@/features/dashboard/dashboardThunks";
 import { selectDashboard, selectDashboardStatus, selectDashboardError } from "@/features/dashboard/dashboardSelectors";
@@ -96,7 +97,7 @@ export function DashboardPanel() {
             <Card key={milestone.uid} className="flex items-center justify-between">
               <div>
                 <Body className="font-medium">{milestone.label}</Body>
-                <Caption>Due {milestone.dueDate}</Caption>
+                <Caption>Due {formatDisplayDate(milestone.dueDate)}</Caption>
               </div>
               <div className="text-right">
                 <Badge tone={milestone.status === "overdue" ? "danger" : milestone.status === "partially_paid" ? "warning" : "neutral"}>

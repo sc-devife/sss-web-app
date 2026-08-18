@@ -6,6 +6,7 @@ import { getMilestonesForDeal } from "@/lib/payment-milestones";
 import { getMyOrganization } from "@/lib/organization";
 import { getInvoiceTemplates } from "@/lib/invoice-templates";
 import { resolveFileUrl } from "@/lib/files";
+import { formatDisplayDate } from "@/lib/date";
 import { PrintButton } from "@/components/quotes/PrintButton";
 
 export default async function InvoicePreviewPage({ params }: { params: { uid: string } }) {
@@ -56,7 +57,7 @@ export default async function InvoicePreviewPage({ params }: { params: { uid: st
           </h1>
           <p className="text-sm text-gray-600">
             {trip.escapePoints.map((d) => d.name).join(", ")}
-            {trip.startDate && ` · ${trip.startDate}`}
+            {trip.startDate && ` · ${formatDisplayDate(trip.startDate)}`}
             {trip.numberOfDays && ` · ${trip.numberOfDays} days`}
           </p>
         </div>
@@ -76,7 +77,7 @@ export default async function InvoicePreviewPage({ params }: { params: { uid: st
             <div key={m.uid} className="flex items-center justify-between rounded border border-gray-200 p-3 text-sm">
               <div>
                 <p className="font-medium">{m.label}</p>
-                <p className="text-gray-500">Due {m.dueDate}</p>
+                <p className="text-gray-500">Due {formatDisplayDate(m.dueDate)}</p>
               </div>
               <div className="text-right">
                 <p className="capitalize text-gray-500">{m.status.replace("_", " ")}</p>

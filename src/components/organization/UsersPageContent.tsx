@@ -39,28 +39,28 @@ export function UsersPageContent() {
   }, [dispatch]);
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-4">
+    <div className="mx-auto w-full max-w-7xl space-y-3">
       <div className="flex items-center justify-end">
         <InviteUserForm roles={roles} />
       </div>
 
       <Card variant="elevated">
-        <div className="border-b px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-primary/10 p-2 text-primary">
-              <PiUsersThree className="h-5 w-5" />
+        <div className="border-b px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <div className="rounded-lg bg-primary/10 p-1.5 text-primary">
+              <PiUsersThree className="h-4 w-4" />
             </div>
             <div>
-              <Heading as="h3" className="text-xl font-semibold">
+              <Heading as="h3" className="text-base font-semibold">
                 Active Members
               </Heading>
-              <Body muted>
+              <Body muted className="text-xs">
                 {users.length} {users.length === 1 ? "member" : "members"} in your organization
               </Body>
             </div>
           </div>
         </div>
-        <div className="px-6 py-4">
+        <div className="px-4 py-3">
           {usersStatus === "loading" && users.length === 0 ? (
             <LoadingState label="Loading members…" />
           ) : usersStatus === "failed" ? (
@@ -71,28 +71,30 @@ export function UsersPageContent() {
         </div>
       </Card>
 
-      {invitationsStatus !== "loading" && invitations.length > 0 && (
-        <Card variant="elevated" className="border-warning/20 bg-warning/5">
-          <div className="border-b border-warning/20 px-6 py-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-warning/15 p-2 text-warning">
-                <PiClock className="h-5 w-5" />
-              </div>
-              <div>
-                <Heading as="h3" className="text-xl font-semibold">
-                  Pending Invitations
-                </Heading>
-                <Body muted>
-                  {invitations.length} {invitations.length === 1 ? "invitation" : "invitations"} awaiting response
-                </Body>
-              </div>
+      <Card variant="elevated" className="border-warning/20 bg-warning/5">
+        <div className="border-b border-warning/20 px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <div className="rounded-lg bg-warning/15 p-1.5 text-warning">
+              <PiClock className="h-4 w-4" />
+            </div>
+            <div>
+              <Heading as="h3" className="text-base font-semibold">
+                Pending Invitations
+              </Heading>
+              <Body muted className="text-xs">
+                {invitations.length} {invitations.length === 1 ? "invitation" : "invitations"} awaiting response
+              </Body>
             </div>
           </div>
-          <div className="px-6 py-4">
+        </div>
+        <div className="px-4 py-3">
+          {invitationsStatus === "loading" && invitations.length === 0 ? (
+            <LoadingState label="Loading invitations…" />
+          ) : (
             <UnverifiedUsersList invitations={invitations} />
-          </div>
-        </Card>
-      )}
+          )}
+        </div>
+      </Card>
     </div>
   );
 }

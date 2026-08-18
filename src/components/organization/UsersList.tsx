@@ -85,7 +85,7 @@ export function UsersList({ users, roles }: { users: AppUser[]; roles: AppRole[]
     return (
       <EmptyState
         icon={PiUsersThree}
-        title="No users yet"
+        title="No Active Members"
         description="Invite someone to get started."
       />
     );
@@ -96,7 +96,7 @@ export function UsersList({ users, roles }: { users: AppUser[]; roles: AppRole[]
       {users.map((user) => (
         <div
           key={user.uid}
-          className="group rounded-xl border border-border bg-card p-4 transition-all duration-200 hover:border-primary/30 hover:shadow-md"
+          className="group rounded-xl border border-border bg-card p-3 transition-all duration-200 hover:border-primary/30 hover:shadow-md"
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1">

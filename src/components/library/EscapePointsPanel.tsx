@@ -24,6 +24,7 @@ import { fetchEscapePoints, createEscapePoint, updateEscapePoint, deleteEscapePo
 import { selectEscapePoints, selectEscapePointsStatus, selectEscapePointsError } from "@/features/escapePoints/escapePointsSelectors";
 import { FaPlus } from "react-icons/fa";
 import { LuImport } from "react-icons/lu";
+import { FaLocationDot } from "react-icons/fa6";
 
 const emptyForm = {
   id: "",
@@ -224,60 +225,163 @@ export function EscapePointsPanel() {
         />
       )}
 
-      <Modal open={!!viewing} onClose={() => setViewing(null)} title={viewing?.name ?? "Escape Point"}>
+      <Modal
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title={viewing?.name ?? "Escape Point"}
+      >
         {viewing && (
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Caption>Escape Point Code</Caption>
-                <Body className="font-medium">{viewing.id}</Body>
-              </div>
-              <div>
-                <Caption>Name</Caption>
-                <Body className="font-medium">{viewing.name}</Body>
-              </div>
-              <div className="col-span-2">
-                <Caption>Address</Caption>
-                <Body className="font-medium">{viewing.locationLabel || "—"}</Body>
-              </div>
-              <div>
-                <Caption>Status</Caption>
-                <div className="mt-0.5">
-                  <Badge tone={viewing.status === "archived" ? "danger" : "success"}>{viewing.status ?? "active"}</Badge>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <Caption>Description</Caption>
-              <Body className="mt-0.5 whitespace-pre-wrap">{viewing.description || "—"}</Body>
-            </div>
-
-            <div>
-              <Caption>Images</Caption>
+          <div className="flex max-h-[65vh] flex-col">
+            {/* Content */}
+            <div className="overflow-y-auto pr-1">
+              {/* Hero Image */}
               {viewing.images && viewing.images.length > 0 ? (
-                <div className="mt-1.5 flex flex-wrap gap-2">
-                  {viewing.images.map((url) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      key={url}
-                      src={resolveFileUrl(url)}
-                      alt={viewing.name}
-                      className="h-20 w-20 rounded border border-border object-cover"
-                    />
-                  ))}
+                <div className="relative overflow-hidden rounded-xl">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={resolveFileUrl(viewing.images[0])}
+                    alt={viewing.name}
+                    className="h-56 w-full object-cover"
+                  />
+
+                  {/* Image count */}
+                  {viewing.images.length > 1 && (
+                    <div className="absolute bottom-3 right-3 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                      {viewing.images.length} images
+                    </div>
+                  )}
                 </div>
               ) : (
-                <Body muted className="mt-0.5">No images uploaded.</Body>
+                <div className="flex h-56 items-center justify-center rounded-xl border border-border bg-muted/30">
+                  <div className="text-center">
+                    <div className="text-sm font-medium text-muted-foreground">
+                      No image available
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground/70">
+                      No images uploaded
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Header */}
+              <div className="mt-4 flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <h2 className="text-xl font-semibold tracking-tight text-foreground">
+                    {viewing.name}
+                  </h2>
+
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      Escape Point
+                    </span>
+
+                    <span className="text-muted-foreground/40">•</span>
+
+                    <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {viewing.id}
+                    </span>
+                  </div>
+                </div>
+
+                <Badge
+                  tone={viewing.status === "archived" ? "danger" : "success"}
+                >
+                  {viewing.status ?? "active"}
+                </Badge>
+              </div>
+
+              {/* Location */}
+              <div className="mt-4 rounded-xl border border-border bg-muted/20 p-4">
+                <div className="mt-1 flex items-start gap-2">
+                  <span className="mt-0.5 text-muted-foreground"><FaLocationDot /></span>
+
+                  <Body className="font-medium">
+                    {viewing.locationLabel || "No location available"}
+                  </Body>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="mt-4">
+                <Caption>About this Escape Point</Caption>
+
+                <Body className="mt-1 whitespace-pre-wrap leading-6">
+                  {viewing.description || "No description available."}
+                </Body>
+              </div>
+
+              {/* Details */}
+              <div className="mt-4">
+                <Caption>Details</Caption>
+
+                <div className="mt-1 grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-border bg-background p-3">
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Escape Point Code
+                    </div>
+
+                    <div className="mt-1 text-sm font-semibold text-foreground">
+                      {viewing.id}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-border bg-background p-3">
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Status
+                    </div>
+
+                    <div className="mt-1">
+                      <Badge
+                        tone={
+                          viewing.status === "archived"
+                            ? "danger"
+                            : "success"
+                        }
+                      >
+                        {viewing.status ?? "active"}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Gallery */}
+              {viewing.images && viewing.images.length > 1 && (
+                <div className="mt-4">
+                  <Caption>Gallery</Caption>
+
+                  <div className="mt-1 grid grid-cols-4 gap-2">
+                    {viewing.images.map((url) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={url}
+                        src={resolveFileUrl(url)}
+                        alt={viewing.name}
+                        className="aspect-square w-full rounded-lg border border-border object-cover transition-transform hover:scale-[1.02]"
+                      />
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
 
-            <div className="flex justify-end">
+            {/* Footer */}
+            <div className="mt-4 flex shrink-0 justify-end gap-2 border-t border-border pt-4">
               <Button
                 variant="secondary"
-                onClick={() => { setViewing(null); openEdit(viewing); }}
+                onClick={() => setViewing(null)}
               >
-                Edit
+                Close
+              </Button>
+
+              <Button
+                onClick={() => {
+                  setViewing(null);
+                  openEdit(viewing);
+                }}
+              >
+                Edit Escape Point
               </Button>
             </div>
           </div>

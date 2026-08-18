@@ -121,7 +121,7 @@ export function EscapeDetailPanel({
         <div
           className={cn(
             "grid grid-cols-1 gap-2 transition-[grid-template-columns] duration-200 lg:min-h-0 lg:flex-1",
-            summaryCollapsed ? "lg:grid-cols-[3.5rem_1fr]" : "lg:grid-cols-[0.8fr_3.2fr]",
+            summaryCollapsed ? "lg:grid-cols-[3.5rem_1fr]" : "lg:grid-cols-[1.2fr_3.4fr]",
           )}
         >
           {/* Left — merged escape + traveller profile. Sticky offset only

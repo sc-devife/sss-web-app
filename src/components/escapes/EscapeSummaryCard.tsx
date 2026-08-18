@@ -21,6 +21,7 @@ import { Caption } from "@/components/ui/Typography";
 import { cn } from "@/lib/cn";
 import { resolveFileUrl } from "@/lib/files";
 import { escapeStatusTone, escapeStatusIcon } from "@/lib/escape-status";
+import { formatDisplayDate, formatDisplayDateTime } from "@/lib/date";
 import type { Escape } from "@/lib/escapes";
 import type { EscapeAuditLogEntry } from "@/features/escapes/types";
 import { FaLocationArrow } from "react-icons/fa";
@@ -58,10 +59,12 @@ function IconLine({ icon: Icon, children, className }: { icon: IconType; childre
 function InfoRow({ icon: Icon, label, value }: { icon: IconType; label: string; value: string | null | undefined }) {
   if (!value) return null;
   return (
-    <div className="flex min-w-0 items-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 px-2.5 py-2">
-      <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-      <span className="truncate text-[11px] text-muted-foreground">{label}</span>
-      <span className="truncate text-xs font-semibold text-foreground">{value}</span>
+    <div className="flex min-w-0 flex-col gap-1 rounded-lg border border-border/60 bg-muted/40 px-2.5 py-2">
+      <div className="flex min-w-0 items-center gap-1.5">
+        <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <span className="truncate text-[11px] text-muted-foreground">{label}</span>
+      </div>
+      <span className="truncate text-xs font-semibold text-foreground">{formatDisplayDate(value)}</span>
     </div>
   );
 }
@@ -160,11 +163,15 @@ export function EscapeSummaryCard({
           {lead ? (
             <>
               <div className="flex items-start gap-2">
-                <Avatar name={lead.name} />
                 <div className="flex min-w-0 flex-col gap-1 pt-0.5">
-                  <span className="text-xs font-medium text-foreground">{lead.name}</span>
-                  {lead.email && <IconLine icon={IoMailOutline}>{lead.email}</IconLine>}
-                  {lead.phone && <IconLine icon={IoCallOutline}>{lead.phone}</IconLine>}
+                  <div className="flex items-center gap-1.5">
+                    <Avatar name={lead.name} />
+                    <span className="text-xs font-medium text-foreground">{lead.name}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    {lead.email && <IconLine icon={IoMailOutline}>{lead.email}</IconLine>}
+                    {lead.phone && <IconLine icon={IoCallOutline}>{lead.phone}</IconLine>}
+                  </div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 pt-1">
@@ -205,7 +212,7 @@ export function EscapeSummaryCard({
               {auditLog.map((entry, i) => (
                 <div key={i} className="text-[11px]">
                   <span className="font-medium text-foreground">{entry.action}</span>{" "}
-                  <span className="text-muted-foreground">{new Date(entry.createdAt).toLocaleString()}</span>
+                  <span className="text-muted-foreground">{formatDisplayDateTime(entry.createdAt)}</span>
                 </div>
               ))}
             </div>

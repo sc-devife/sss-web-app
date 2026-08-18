@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
+import { formatDisplayDateTime } from "@/lib/date";
 import { SyncHistoryModal } from "@/components/leadSources/SyncHistoryModal";
 import { WebhookLogModal } from "@/components/leadSources/WebhookLogModal";
 import { FieldMappingEditor } from "@/components/leadSources/FieldMappingEditor";
@@ -63,7 +64,7 @@ export function LeadSourcesPanel() {
           </div>
 
           {source.lastSyncedAt && (
-            <Caption>Last lead received: {new Date(source.lastSyncedAt).toLocaleString()}</Caption>
+            <Caption>Last lead received: {formatDisplayDateTime(source.lastSyncedAt)}</Caption>
           )}
 
           <div className="flex flex-wrap gap-2">

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Body, Caption } from "@/components/ui/Typography";
 import { cn } from "@/lib/cn";
 import type { PendingInvitation } from "@/lib/users";
@@ -24,7 +25,9 @@ export function UnverifiedUsersList({ invitations }: { invitations: PendingInvit
     }
   }
 
-  if (invitations.length === 0) return null;
+  if (invitations.length === 0) {
+    return <EmptyState icon={PiClock} title="No Pending Invitations" description="Invite someone to see them listed here." />;
+  }
 
   return (
     <div className="space-y-3">
@@ -38,7 +41,7 @@ export function UnverifiedUsersList({ invitations }: { invitations: PendingInvit
           <div
             key={invitation.seqp}
             className={cn(
-              "group rounded-xl border p-4 transition-all duration-200 hover:shadow-md",
+              "group rounded-xl border p-3 transition-all duration-200 hover:shadow-md",
               expired ? "border-border bg-muted/40 opacity-75" : "border-warning/30 bg-card hover:border-warning/50",
             )}
           >
