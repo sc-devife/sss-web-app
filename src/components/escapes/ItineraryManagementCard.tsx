@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { PiCopyFill, PiTrashFill, PiPlusFill, PiPencilSimpleFill, PiSuitcaseRollingFill } from "react-icons/pi";
 import { Card } from "@/components/ui/Card";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Badge } from "@/components/ui/Badge";
+import { LoadingState, Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/cn";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -18,6 +19,12 @@ import { selectItineraries, selectItinerariesStatus, selectItinerariesError } fr
 // functionality. ItineraryCard itself is untouched and still used elsewhere
 // its expand/edit flow applies. Escape status advance/cancel controls live
 // on the Escape workspace itself, not here.
+const STATUS_TONE: Record<string, "neutral" | "success" | "warning"> = {
+  draft: "neutral",
+  active: "success",
+  superseded: "warning",
+};
+
 export function ItineraryManagementCard({
   escapeUid,
   selectedUid = null,
@@ -41,10 +48,12 @@ export function ItineraryManagementCard({
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
-  const [rowBusyUid, setRowBusyUid] = useState<string | null>(null);
+  const [duplicatingUid, setDuplicatingUid] = useState<string | null>(null);
+  const [deletingUid, setDeletingUid] = useState<string | null>(null);
 
   const [editingUid, setEditingUid] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [renamingUid, setRenamingUid] = useState<string | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -83,12 +92,12 @@ export function ItineraryManagementCard({
   }
 
   async function handleDuplicate(uid: string) {
-    setRowBusyUid(uid);
+    setDuplicatingUid(uid);
     try {
       await dispatch(duplicateItinerary(uid));
       refreshItineraries();
     } finally {
-      setRowBusyUid(null);
+      setDuplicatingUid(null);
     }
   }
 
@@ -105,7 +114,12 @@ export function ItineraryManagementCard({
     if (!uid) return;
     const original = itineraries.find((i) => i.uid === uid)?.name;
     if (!trimmed || trimmed === original) return;
-    await dispatch(updateItinerary({ uid, name: trimmed }));
+    setRenamingUid(uid);
+    try {
+      await dispatch(updateItinerary({ uid, name: trimmed }));
+    } finally {
+      setRenamingUid(null);
+    }
   }
 
   function handleEditKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -117,12 +131,12 @@ export function ItineraryManagementCard({
   }
 
   async function handleDelete(uid: string) {
-    setRowBusyUid(uid);
+    setDeletingUid(uid);
     try {
       await dispatch(deleteItinerary(uid));
       refreshItineraries();
     } finally {
-      setRowBusyUid(null);
+      setDeletingUid(null);
     }
   }
 
@@ -145,7 +159,10 @@ export function ItineraryManagementCard({
           {sortedItineraries.length === 0 && <p className="py-1 text-xs text-muted-foreground">No itineraries yet.</p>}
           {sortedItineraries.map((itinerary, index) => {
             const isEditing = editingUid === itinerary.uid;
-            const isRowBusy = rowBusyUid === itinerary.uid;
+            const isRenaming = renamingUid === itinerary.uid;
+            const isDuplicating = duplicatingUid === itinerary.uid;
+            const isDeleting = deletingUid === itinerary.uid;
+            const isRowBusy = isDuplicating || isDeleting;
             const isSelected = selectedUid === itinerary.uid;
             return (
               <div
@@ -183,50 +200,77 @@ export function ItineraryManagementCard({
                     className="flex min-w-0 flex-1 items-center gap-1.5"
                   >
                     <span className="truncate text-xs font-medium text-foreground">{itinerary.name}</span>
+                    {itinerary.status && (
+                      <Badge tone={STATUS_TONE[itinerary.status] ?? "neutral"} className="shrink-0 text-[10px]">
+                        {itinerary.status}
+                      </Badge>
+                    )}
                   </div>
                 )}
 
                 <div className="flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
                   {!isEditing && (
+                    isRenaming ? (
+                      <span
+                        aria-label="Renaming itinerary"
+                        title="Renaming…"
+                        className="flex h-7 w-7 items-center justify-center"
+                      >
+                        <Spinner size="sm" />
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEditing(itinerary.uid, itinerary.name);
+                        }}
+                        aria-label="Rename itinerary"
+                        title="Rename"
+                        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                      >
+                        <PiPencilSimpleFill className="h-3.5 w-3.5" />
+                      </button>
+                    )
+                  )}
+                  {isDuplicating ? (
+                    <span aria-label="Duplicating itinerary" title="Duplicating…" className="flex h-7 w-7 items-center justify-center">
+                      <Spinner size="sm" />
+                    </span>
+                  ) : (
                     <button
                       type="button"
+                      disabled={isRowBusy}
                       onClick={(e) => {
                         e.stopPropagation();
-                        startEditing(itinerary.uid, itinerary.name);
+                        handleDuplicate(itinerary.uid);
                       }}
-                      aria-label="Rename itinerary"
-                      title="Rename"
-                      className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                      aria-label="Duplicate itinerary"
+                      title="Duplicate"
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-50"
                     >
-                      <PiPencilSimpleFill className="h-3.5 w-3.5" />
+                      <PiCopyFill className="h-3.5 w-3.5" />
                     </button>
                   )}
-                  <button
-                    type="button"
-                    disabled={isRowBusy}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDuplicate(itinerary.uid);
-                    }}
-                    aria-label="Duplicate itinerary"
-                    title="Duplicate"
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-50"
-                  >
-                    <PiCopyFill className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isRowBusy}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(itinerary.uid);
-                    }}
-                    aria-label="Delete itinerary"
-                    title="Delete"
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-50"
-                  >
-                    <PiTrashFill className="h-3.5 w-3.5" />
-                  </button>
+                  {isDeleting ? (
+                    <span aria-label="Deleting itinerary" title="Deleting…" className="flex h-7 w-7 items-center justify-center">
+                      <Spinner size="sm" />
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={isRowBusy}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(itinerary.uid);
+                      }}
+                      aria-label="Delete itinerary"
+                      title="Delete"
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+                    >
+                      <PiTrashFill className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -248,15 +292,21 @@ export function ItineraryManagementCard({
             className="min-w-0 flex-1 bg-transparent text-xs font-medium text-foreground placeholder:text-muted-foreground placeholder:font-normal focus-visible:outline-none"
           />
           <div className="flex shrink-0 items-center">
-            <button
-              type="submit"
-              disabled={saving}
-              aria-label="Add itinerary"
-              title="Add itinerary"
-              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
-            >
-              <PiPlusFill className="h-3.5 w-3.5" />
-            </button>
+            {saving ? (
+              <span aria-label="Adding itinerary" title="Adding…" className="flex h-7 w-7 items-center justify-center">
+                <Spinner size="sm" />
+              </span>
+            ) : (
+              <button
+                type="submit"
+                disabled={saving}
+                aria-label="Add itinerary"
+                title="Add itinerary"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+              >
+                <PiPlusFill className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
         </form>
         {formError && <p className="pt-1.5 text-xs text-danger">{formError}</p>}

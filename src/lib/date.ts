@@ -30,6 +30,29 @@ export function formatDisplayDate(value: string | null | undefined): string | nu
   return `${day}-${month}-${year}`;
 }
 
+// "2h ago" / "Just now" style — for presence-style timestamps (last active,
+// last synced) where a relative sense of recency matters more than the exact
+// moment. Falls back to the absolute date once it's more than a week old,
+// since "23 days ago" is less useful than the actual date at that point.
+export function formatRelativeTime(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const diffMs = Date.now() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+
+  if (diffSec < 0) return "Just now";
+  if (diffSec < 60) return "Just now";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return formatDisplayDateTime(value);
+}
+
 // Date + time-of-day, for real timestamps (createdAt, lastSyncedAt, etc.) —
 // the date portion uses the same DD-MM-YYYY formatting as formatDisplayDate,
 // the time portion reflects the viewer's local time (appropriate here since

@@ -30,6 +30,11 @@ export interface AssignLeadPayload {
   reason?: string;
 }
 
+export interface SetLeadFollowUpDueDatePayload {
+  leadUid: string;
+  followUpDueDate: string | null;
+}
+
 export interface ConvertLeadToEscapePayload {
   leadUid: string;
   travellerUids: string[];

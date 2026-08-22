@@ -6,6 +6,8 @@
 import type { ReferenceOption } from "@/lib/reference-data";
 import { clientApi } from "@/lib/axios/clientClient";
 
+export type { ReferenceOption };
+
 export async function fetchCountryOptions(): Promise<ReferenceOption[]> {
   const res = await clientApi.get<ReferenceOption[]>("/reference-data/countries");
   return res.data;

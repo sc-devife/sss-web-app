@@ -15,7 +15,7 @@ import { LoadingState } from "@/components/ui/Spinner";
 import { resolveFileUrl } from "@/lib/files";
 import type { EscapePoint } from "@/lib/escape-points";
 import type { ReferenceOption } from "@/lib/reference-data";
-import { fetchCountryOptions, fetchRegionOptions, fetchCityOptions } from "@/lib/reference-data-client";
+import { fetchCountryOptions, fetchRegionOptions, fetchCityOptions, fetchCurrencyOptions } from "@/lib/reference-data-client";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
 import { notDuplicate, required, runValidators } from "@/lib/validators";
@@ -35,6 +35,9 @@ const emptyForm = {
   description: "",
   images: [] as string[],
   status: "active",
+  nearest_airport: "",
+  currency: "",
+  time_zone: "",
 };
 
 type FormState = typeof emptyForm;
@@ -71,6 +74,7 @@ export function EscapePointsPanel() {
   const [countryOptions, setCountryOptions] = useState<ReferenceOption[]>([]);
   const [regionOptions, setRegionOptions] = useState<ReferenceOption[]>([]);
   const [cityOptions, setCityOptions] = useState<ReferenceOption[]>([]);
+  const [currencyOptions, setCurrencyOptions] = useState<ReferenceOption[]>([]);
 
   useEffect(() => {
     dispatch(fetchEscapePoints());
@@ -78,6 +82,7 @@ export function EscapePointsPanel() {
 
   useEffect(() => {
     fetchCountryOptions().then(setCountryOptions);
+    fetchCurrencyOptions().then(setCurrencyOptions);
   }, []);
 
   useEffect(() => {
@@ -111,6 +116,9 @@ export function EscapePointsPanel() {
       description: escapePoint.description ?? "",
       images: escapePoint.images ?? [],
       status: escapePoint.status ?? "active",
+      nearest_airport: escapePoint.nearest_airport ?? "",
+      currency: escapePoint.currency ?? "",
+      time_zone: escapePoint.time_zone ?? "",
     };
     setEditing(escapePoint);
     setForm(snapshot);
@@ -343,6 +351,39 @@ export function EscapePointsPanel() {
                       </Badge>
                     </div>
                   </div>
+
+                  {viewing.nearest_airport && (
+                    <div className="rounded-xl border border-border bg-background p-3">
+                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Nearest Airport
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-foreground">
+                        {viewing.nearest_airport}
+                      </div>
+                    </div>
+                  )}
+
+                  {viewing.currency && (
+                    <div className="rounded-xl border border-border bg-background p-3">
+                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Currency
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-foreground">
+                        {viewing.currency}
+                      </div>
+                    </div>
+                  )}
+
+                  {viewing.time_zone && (
+                    <div className="rounded-xl border border-border bg-background p-3">
+                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Time Zone
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-foreground">
+                        {viewing.time_zone}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -456,6 +497,26 @@ export function EscapePointsPanel() {
             </div>
 
             <FileUpload label="Images" value={form.images} onChange={(images) => update("images", images)} />
+
+            <TextInput
+              label="Nearest Airport"
+              value={form.nearest_airport}
+              onChange={(e) => update("nearest_airport", e.target.value)}
+              placeholder="e.g. BOM — Chhatrapati Shivaji Maharaj International"
+            />
+            <Select
+              label="Currency"
+              options={currencyOptions.map((c) => ({ value: c.code, label: c.label }))}
+              value={form.currency}
+              onChange={(e) => update("currency", e.target.value)}
+              placeholder="Select a currency"
+            />
+            <TextInput
+              label="Time Zone"
+              value={form.time_zone}
+              onChange={(e) => update("time_zone", e.target.value)}
+              placeholder="e.g. Asia/Kolkata"
+            />
 
             <Select
               label="Status"

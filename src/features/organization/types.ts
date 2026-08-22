@@ -9,4 +9,6 @@ export interface UpdateOrganizationPayload {
   support_ph_num: string;
   logo_file: string | null;
   logo_shape: LogoShape;
+  default_currency_code?: string;
+  country_code?: string;
 }

@@ -32,5 +32,10 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  // The trailing `|.*\..*` term excludes any request path containing a dot
+  // (favicon.ico, /world.svg, /logo.jpg, etc.) — without it, static files
+  // under /public get treated as routes and redirected to /login when
+  // unauthenticated, so the browser gets back login HTML instead of the
+  // actual asset.
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };

@@ -7,6 +7,7 @@ import type {
   CreateLeadPayload,
   LeadReasonActionPayload,
   AssignLeadPayload,
+  SetLeadFollowUpDueDatePayload,
   ConvertLeadToEscapePayload,
   ConvertLeadToEscapeResult,
 } from "@/features/leads/types";
@@ -97,6 +98,17 @@ export const assignLead = createAsyncThunk<void, AssignLeadPayload, { rejectValu
       await clientApi.post(`/leads/${leadUid}/assign`, { userId, reason: reason || undefined });
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Action failed"));
+    }
+  },
+);
+
+export const setLeadFollowUpDueDate = createAsyncThunk<void, SetLeadFollowUpDueDatePayload, { rejectValue: string }>(
+  "leads/setFollowUpDueDate",
+  async ({ leadUid, followUpDueDate }, { rejectWithValue }) => {
+    try {
+      await clientApi.put(`/leads/${leadUid}/follow-up-due-date`, { followUpDueDate });
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to update follow-up date"));
     }
   },
 );

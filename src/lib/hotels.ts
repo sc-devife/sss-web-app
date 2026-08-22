@@ -6,9 +6,13 @@ export interface Hotel {
   stars: number | null;
   location: { uid: string; displayName: string } | null;
   escapePoint: { uid: string; name: string } | null;
+  mealPlans: { uid: string; code: string; name: string }[] | null;
+  roomTypes: { uid: string; name: string }[] | null;
   checkInTime: string | null;
   checkOutTime: string | null;
   childAgeForExtraBed: string | null;
+  rateValidFrom: string | null;
+  rateValidTo: string | null;
   isActive: boolean;
   address: string | null;
   contactInfo: string | null;

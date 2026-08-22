@@ -9,6 +9,7 @@ export interface PaymentMilestone {
   amountPaidUsd: number;
   status: string;
   markedPaidBy: number | null;
+  markedPaidByName: string | null;
   markedPaidAt: string | null;
 }
 

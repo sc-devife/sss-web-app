@@ -19,6 +19,8 @@ import {
   PiGlobeFill,
   PiHandshakeFill,
   PiScrollFill,
+  PiForkKnifeFill,
+  PiDoorOpenFill,
 } from "react-icons/pi";
 import { TbKayak, TbBusFilled, TbRoute, TbPlug } from "react-icons/tb";
 
@@ -68,6 +70,8 @@ export const routeGroups: RouteGroup[] = [
       { path: "/library/activities", title: "Activities", icon: TbKayak },
       { path: "/library/transport", title: "Transport", icon: TbBusFilled },
       { path: "/library/service-providers", title: "Service Providers", icon: PiStorefrontFill },
+      { path: "/library/meal-plans", title: "Meal Plans", icon: PiForkKnifeFill },
+      { path: "/library/room-types", title: "Room Types", icon: PiDoorOpenFill },
       { path: "/library/terms-inclusions", title: "Terms, Inclusions & Exclusions", icon: PiScrollFill },
     ],
   },

@@ -22,6 +22,8 @@ export interface Escape {
   numberOfDays: number | null;
   endDate: string | null;
   status: string;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 function withLocationLabels(escape: Escape): Escape {

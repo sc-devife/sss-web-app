@@ -2,6 +2,8 @@ export type { Escape } from "@/lib/escapes";
 
 export interface EscapeAuditLogEntry {
   action: string;
+  performedBy: number | null;
+  performedByName: string | null;
   previousValue: string | null;
   newValue: string | null;
   createdAt: string;
@@ -23,6 +25,9 @@ export interface AddEscapeTravellerPayload {
   lastName?: string;
   email?: string;
   phone?: string;
+  salutation?: string;
+  dateOfBirth?: string;
+  nationality?: string;
 }
 
 export interface UpdateTravellerPayload {
@@ -31,6 +36,9 @@ export interface UpdateTravellerPayload {
   lastName?: string;
   email?: string;
   phone?: string;
+  salutation?: string;
+  dateOfBirth?: string;
+  nationality?: string;
 }
 
 export interface DeleteTravellerPayload {

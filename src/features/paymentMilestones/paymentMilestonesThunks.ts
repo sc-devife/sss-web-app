@@ -42,6 +42,17 @@ export const recordPayment = createAsyncThunk<void, RecordPaymentPayload, { reje
   },
 );
 
+export const verifyPaymentMilestone = createAsyncThunk<void, string, { rejectValue: string }>(
+  "paymentMilestones/verifyPaymentMilestone",
+  async (uid, { rejectWithValue }) => {
+    try {
+      await clientApi.post(`/payment-milestones/${uid}/verify`);
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to verify payment"));
+    }
+  },
+);
+
 export const deletePaymentMilestone = createAsyncThunk<void, DeletePaymentMilestonePayload, { rejectValue: string }>(
   "paymentMilestones/deletePaymentMilestone",
   async ({ uid }, { rejectWithValue }) => {

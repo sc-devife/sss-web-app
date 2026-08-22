@@ -12,6 +12,7 @@ export interface EscapePoint {
   images: string[] | null;
   status: string | null;
   currency: string | null;
+  time_zone: string | null;
   nearest_airport: string | null;
   tags: string | null;
   remarks: string | null;

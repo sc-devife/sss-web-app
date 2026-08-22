@@ -47,6 +47,7 @@ export function SyncHistoryModal({ channelCode, onClose }: { channelCode: string
     { key: "form", header: "Form", render: (a) => a.formId ?? "—" },
     { key: "campaign", header: "Campaign", render: (a) => a.campaignId ?? "—" },
     { key: "status", header: "Status", render: (a) => <Badge tone={STATUS_TONE[a.status]}>{a.status}</Badge> },
+    { key: "retryCount", header: "Retries", render: (a) => a.retryCount, sortValue: (a) => a.retryCount },
     { key: "lead", header: "Lead", render: (a) => a.leadUid ?? "—" },
     { key: "reason", header: "Failure reason", render: (a) => a.failureReason ?? "—" },
   ];

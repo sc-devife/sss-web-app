@@ -17,13 +17,19 @@ import { emailField, mobileField, required, runValidators } from "@/lib/validato
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchAddresses, createAddress, updateAddress, deleteAddress } from "@/features/addresses/addressesThunks";
 import { selectAddresses, selectAddressesStatus, selectAddressesError } from "@/features/addresses/addressesSelectors";
-import type { Address } from "@/features/addresses/types";
+import type { Address, AddressType } from "@/features/addresses/types";
+import { Badge } from "@/components/ui/Badge";
 import { FaEnvelope, FaPhoneAlt } from "react-icons/fa";
 import {
   PiMapPin,
   PiPlusBold,
   PiBuildings,
 } from "react-icons/pi";
+
+const ADDRESS_TYPE_OPTIONS: { value: AddressType; label: string }[] = [
+  { value: "CONTACT", label: "Contact" },
+  { value: "BILLING", label: "Billing" },
+];
 
 const emptyForm = {
   label: "",
@@ -34,6 +40,10 @@ const emptyForm = {
   streetFirst: "",
   contactNumber: "",
   contactEmail: "",
+  addressTypes: ["CONTACT"] as AddressType[],
+  pan: "",
+  gstin: "",
+  tripDestination: "",
 };
 
 type FormState = typeof emptyForm;
@@ -48,12 +58,16 @@ function toForm(address: Address): FormState {
     streetFirst: address.streetFirst ?? "",
     contactNumber: address.contactNumber ?? "",
     contactEmail: address.contactEmail ?? "",
+    addressTypes: address.addressTypes && address.addressTypes.length > 0 ? address.addressTypes : ["CONTACT"],
+    pan: address.pan ?? "",
+    gstin: address.gstin ?? "",
+    tripDestination: address.tripDestination ?? "",
   };
 }
 
 function validate(v: FormState): Record<string, string> {
   const errors: Record<string, string> = {};
-  const err = (key: keyof FormState, validators: Parameters<typeof runValidators>[1]) => {
+  const err = (key: Exclude<keyof FormState, "addressTypes">, validators: Parameters<typeof runValidators>[1]) => {
     const e = runValidators(v[key], validators);
     if (e) errors[key] = e;
   };
@@ -65,21 +79,47 @@ function validate(v: FormState): Record<string, string> {
   err("zipCode", [required("Pincode is required")]);
   err("contactNumber", [mobileField()]); // optional, format-checked only if filled
   err("contactEmail", [emailField()]); // optional, format-checked only if filled
+  if (v.addressTypes.length === 0) errors.addressTypes = "Select at least one";
   return errors;
 }
 
 function AddressFormFields({
   form,
   update,
+  setAddressTypes,
   errors,
 }: {
   form: FormState;
   update: <K extends keyof FormState>(key: K, value: string) => void;
+  setAddressTypes: (types: AddressType[]) => void;
   errors: Record<string, string>;
 }) {
+  function toggleType(type: AddressType) {
+    const has = form.addressTypes.includes(type);
+    const next = has ? form.addressTypes.filter((t) => t !== type) : [...form.addressTypes, type];
+    setAddressTypes(next);
+  }
+
   return (
     <>
       <TextInput label="Label" value={form.label} onChange={(e) => update("label", e.target.value)} error={errors.label} required placeholder="e.g. Head Office" />
+      <div className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium text-foreground">Used For</span>
+        <div className="flex gap-4">
+          {ADDRESS_TYPE_OPTIONS.map((opt) => (
+            <label key={opt.value} className="flex cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.addressTypes.includes(opt.value)}
+                onChange={() => toggleType(opt.value)}
+                className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+              />
+              {opt.label}
+            </label>
+          ))}
+        </div>
+        {errors.addressTypes && <p className="text-sm text-danger">{errors.addressTypes}</p>}
+      </div>
       <TextInput label="Street Address" value={form.streetFirst} onChange={(e) => update("streetFirst", e.target.value)} error={errors.streetFirst} required />
       <TextInput label="City/Town/District" value={form.city} onChange={(e) => update("city", e.target.value)} error={errors.city} required />
       <TextInput label="State/Region" value={form.state} onChange={(e) => update("state", e.target.value)} error={errors.state} required />
@@ -87,6 +127,13 @@ function AddressFormFields({
       <TextInput label="Pincode" value={form.zipCode} onChange={(e) => update("zipCode", e.target.value)} error={errors.zipCode} required />
       <PhoneInput label="Contact Number" value={form.contactNumber} onChange={(v) => update("contactNumber", v)} error={errors.contactNumber} />
       <TextInput label="Contact Email" type="email" value={form.contactEmail} onChange={(e) => update("contactEmail", e.target.value)} error={errors.contactEmail} />
+      <TextInput label="Trip Destination" value={form.tripDestination} onChange={(e) => update("tripDestination", e.target.value)} placeholder="Scope this address to a specific trip destination" />
+      {form.addressTypes.includes("BILLING") && (
+        <>
+          <TextInput label="PAN" value={form.pan} onChange={(e) => update("pan", e.target.value.toUpperCase())} placeholder="e.g. AAAAA0000A" />
+          <TextInput label="GSTIN" value={form.gstin} onChange={(e) => update("gstin", e.target.value.toUpperCase())} placeholder="e.g. 22AAAAA0000A1Z5" />
+        </>
+      )}
     </>
   );
 }
@@ -124,6 +171,16 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
   function updateEdit<K extends keyof FormState>(key: K, value: string) {
     setEditForm((f) => ({ ...f, [key]: value }));
     setEditErrors((p) => ({ ...p, [key]: "" }));
+  }
+
+  function setFormAddressTypes(types: AddressType[]) {
+    setForm((f) => ({ ...f, addressTypes: types }));
+    setErrors((p) => ({ ...p, addressTypes: "" }));
+  }
+
+  function setEditFormAddressTypes(types: AddressType[]) {
+    setEditForm((f) => ({ ...f, addressTypes: types }));
+    setEditErrors((p) => ({ ...p, addressTypes: "" }));
   }
 
   function openAddModal() {
@@ -271,9 +328,18 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
 
                             </div>
 
-                            <Body className="text-lg font-semibold">
-                              {address.label}
-                            </Body>
+                            <div>
+                              <Body className="text-lg font-semibold">
+                                {address.label}
+                              </Body>
+                              <div className="mt-1 flex gap-1.5">
+                                {(address.addressTypes ?? []).map((t) => (
+                                  <Badge key={t} tone="neutral">
+                                    {t === "CONTACT" ? "Contact" : "Billing"}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
 
                           </div>
 
@@ -329,6 +395,12 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
                         </div>
 
                       </div>
+
+                      {address.tripDestination && (
+                        <Caption className="mt-2 text-muted-foreground">
+                          Scoped to: {address.tripDestination}
+                        </Caption>
+                      )}
 
                       {(address.contactNumber || address.contactEmail) && (
 
@@ -386,7 +458,7 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
         <fieldset disabled={saving} className="contents">
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <AddressFormFields form={form} update={update} errors={errors} />
+            <AddressFormFields form={form} update={update} setAddressTypes={setFormAddressTypes} errors={errors} />
           </div>
         </fieldset>
 
@@ -414,7 +486,7 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
         <fieldset disabled={editSaving} className="contents">
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <AddressFormFields form={editForm} update={updateEdit} errors={editErrors} />
+            <AddressFormFields form={editForm} update={updateEdit} setAddressTypes={setEditFormAddressTypes} errors={editErrors} />
           </div>
         </fieldset>
 

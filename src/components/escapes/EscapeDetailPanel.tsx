@@ -142,7 +142,7 @@ export function EscapeDetailPanel({
           {/* Center — Planning/Activity/History workspace. Stretches to the
               grid row's full height (desktop only) so its own Tabs content
               box can scroll internally instead of the page ever needing to. */}
-          <div className="flex flex-col lg:col-span-1 lg:h-full lg:min-h-0">
+          <div className="flex min-w-0 flex-col lg:col-span-1 lg:h-full lg:min-h-0">
             <EscapeWorkspaceTabs
               escapeUid={escape.uid}
               hotels={hotels}
@@ -155,6 +155,7 @@ export function EscapeDetailPanel({
               primaryTravellerUid={escape.primaryTravellerUid}
               leadTravellerCount={escape.lead?.numberOfPeople ?? null}
               auditLog={auditLog}
+              deal={deal}
               onDealChanged={handleDealChanged}
               selectedItineraryUid={selectedItineraryUid}
               onSelectItinerary={setSelectedItineraryUid}

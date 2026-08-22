@@ -18,6 +18,7 @@ export interface Quote {
   validUntil: string | null;
   createdAt: string;
   updatedAt: string;
+  createdByName: string | null;
 }
 
 export async function getQuotesForItinerary(itineraryUid: string): Promise<Quote[]> {

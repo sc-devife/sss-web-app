@@ -16,12 +16,15 @@ import { LoadingState } from "@/components/ui/Spinner";
 import type { Hotel } from "@/lib/hotels";
 import type { LibraryLocation } from "@/lib/locations";
 import type { EscapePoint } from "@/lib/escape-points";
+import type { MealPlan } from "@/lib/meal-plans";
+import type { RoomType } from "@/lib/room-types";
 import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
 import { required, requiredSelection, runValidators } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchHotels, createHotel, updateHotel, deleteHotel } from "@/features/hotels/hotelsThunks";
+import { formatDisplayDate } from "@/lib/date";
 import { selectHotels, selectHotelsStatus, selectHotelsError } from "@/features/hotels/hotelsSelectors";
 import { FaPlus } from "react-icons/fa";
 import { LuImport } from "react-icons/lu";
@@ -42,6 +45,13 @@ const emptyForm = {
   stars: "",
   escapePointId: "",
   locationId: "",
+  mealPlanIds: [] as string[],
+  roomTypeIds: [] as string[],
+  checkInTime: "",
+  checkOutTime: "",
+  childAgeForExtraBed: "",
+  rateValidFrom: "",
+  rateValidTo: "",
   address: "",
   contactInfo: "",
   images: [] as string[],
@@ -77,9 +87,13 @@ function validate(
 export function HotelsPanel({
   locations,
   escapePoints,
+  mealPlans,
+  roomTypes,
 }: {
   locations: LibraryLocation[];
   escapePoints: EscapePoint[];
+  mealPlans: MealPlan[];
+  roomTypes: RoomType[];
 }) {
   const dispatch = useAppDispatch();
   const hotels = useAppSelector(selectHotels);
@@ -123,6 +137,13 @@ export function HotelsPanel({
       stars: hotel.stars ? String(hotel.stars) : "",
       escapePointId: hotel.escapePoint?.uid ?? "",
       locationId: hotel.location?.uid ?? "",
+      mealPlanIds: hotel.mealPlans?.map((m) => m.uid) ?? [],
+      roomTypeIds: hotel.roomTypes?.map((r) => r.uid) ?? [],
+      checkInTime: hotel.checkInTime ?? "",
+      checkOutTime: hotel.checkOutTime ?? "",
+      childAgeForExtraBed: hotel.childAgeForExtraBed ?? "",
+      rateValidFrom: hotel.rateValidFrom ?? "",
+      rateValidTo: hotel.rateValidTo ?? "",
       address: hotel.address ?? "",
       contactInfo: hotel.contactInfo ?? "",
       images: hotel.images ?? [],
@@ -131,7 +152,13 @@ export function HotelsPanel({
     };
     setEditing(hotel);
     setForm(snapshot);
-    setOriginal({ ...snapshot, images: [...snapshot.images], amenities: [...snapshot.amenities] });
+    setOriginal({
+      ...snapshot,
+      mealPlanIds: [...snapshot.mealPlanIds],
+      roomTypeIds: [...snapshot.roomTypeIds],
+      images: [...snapshot.images],
+      amenities: [...snapshot.amenities],
+    });
     setErrors({});
     setAddingLocation(false);
     setNewLocation(emptyNewLocation);
@@ -173,6 +200,13 @@ export function HotelsPanel({
         stars: form.stars ? Number(form.stars) : null,
         locationId,
         escapePointId: form.escapePointId || null,
+        mealPlanIds: form.mealPlanIds,
+        roomTypeIds: form.roomTypeIds,
+        checkInTime: form.checkInTime || null,
+        checkOutTime: form.checkOutTime || null,
+        childAgeForExtraBed: form.childAgeForExtraBed,
+        rateValidFrom: form.rateValidFrom || null,
+        rateValidTo: form.rateValidTo || null,
         address: form.address,
         contactInfo: form.contactInfo,
         images: form.images,
@@ -229,6 +263,24 @@ export function HotelsPanel({
       header: "Location",
       render: (h) => h.location?.displayName ?? "—",
       filterValue: (h) => h.location?.displayName ?? "",
+    },
+    {
+      key: "mealPlans",
+      header: "Meal Plans",
+      render: (h) => (h.mealPlans && h.mealPlans.length > 0 ? h.mealPlans.map((m) => m.code).join(" · ") : "—"),
+    },
+    {
+      key: "checkInOut",
+      header: "Check-in / Check-out",
+      render: (h) => (h.checkInTime || h.checkOutTime ? `${h.checkInTime ?? "—"} / ${h.checkOutTime ?? "—"}` : "—"),
+    },
+    {
+      key: "rateValidity",
+      header: "Rate Valid",
+      render: (h) =>
+        h.rateValidFrom || h.rateValidTo
+          ? `${formatDisplayDate(h.rateValidFrom) ?? "—"} to ${formatDisplayDate(h.rateValidTo) ?? "—"}`
+          : "—",
     },
     {
       key: "status",
@@ -367,6 +419,57 @@ export function HotelsPanel({
                 </div>
               </div>
             )}
+
+            <MultiSelect
+              label="Meal plans"
+              options={mealPlans.map((m) => ({ value: m.uid, label: `${m.code} — ${m.name}` }))}
+              value={form.mealPlanIds}
+              onChange={(v) => update("mealPlanIds", v)}
+            />
+
+            <MultiSelect
+              label="Room types"
+              options={roomTypes.map((r) => ({ value: r.uid, label: r.name }))}
+              value={form.roomTypeIds}
+              onChange={(v) => update("roomTypeIds", v)}
+            />
+
+            <div className="grid grid-cols-2 gap-3">
+              <TextInput
+                label="Check-in time"
+                type="time"
+                value={form.checkInTime}
+                onChange={(e) => update("checkInTime", e.target.value)}
+              />
+              <TextInput
+                label="Check-out time"
+                type="time"
+                value={form.checkOutTime}
+                onChange={(e) => update("checkOutTime", e.target.value)}
+              />
+            </div>
+
+            <TextInput
+              label="Child extra-bed age policy"
+              placeholder="e.g. 6-12yo"
+              value={form.childAgeForExtraBed}
+              onChange={(e) => update("childAgeForExtraBed", e.target.value)}
+            />
+
+            <div className="grid grid-cols-2 gap-3">
+              <TextInput
+                label="Rate valid from"
+                type="date"
+                value={form.rateValidFrom}
+                onChange={(e) => update("rateValidFrom", e.target.value)}
+              />
+              <TextInput
+                label="Rate valid to"
+                type="date"
+                value={form.rateValidTo}
+                onChange={(e) => update("rateValidTo", e.target.value)}
+              />
+            </div>
 
             <TextInput label="Address" value={form.address} onChange={(e) => update("address", e.target.value)} />
             <TextInput label="Contact info" value={form.contactInfo} onChange={(e) => update("contactInfo", e.target.value)} />

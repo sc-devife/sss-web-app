@@ -15,6 +15,8 @@ export interface AppUser {
   eligibleForPriorityLeads: boolean | null;
   acceptingLeads: boolean | null;
   blocked: boolean | null;
+  lastActiveAt: string | null;
+  invitedByName: string | null;
 }
 
 export interface PendingInvitation {

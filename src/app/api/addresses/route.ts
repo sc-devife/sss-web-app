@@ -6,7 +6,7 @@ export async function POST(request: Request) {
 
   const res = await backendFetch(`/api/addresses/${orgId}/create`, {
     method: "POST",
-    body: JSON.stringify({ ...payload, addressTypes: ["CONTACT"] }),
+    body: JSON.stringify(payload),
   });
 
   const body = await res.json().catch(() => null);
@@ -18,7 +18,7 @@ export async function PUT(request: Request) {
 
   const res = await backendFetch(`/api/addresses/${orgId}/update/${addressId}`, {
     method: "PUT",
-    body: JSON.stringify({ ...payload, addressTypes: ["CONTACT"] }),
+    body: JSON.stringify(payload),
   });
 
   const body = await res.json().catch(() => null);

@@ -35,9 +35,12 @@ export function Tabs({
   const [active, setActive] = useState(defaultTab ?? tabs[0]?.id);
 
   return (
-    <div className="flex flex-col gap-3 lg:h-full lg:min-h-0">
-      <div className="flex items-center justify-between gap-3">
-        <div role="tablist" className="flex items-center gap-2">
+    <div className="flex min-w-0 flex-col gap-3 lg:h-full lg:min-h-0">
+      {/* Single scroll container for the whole row — tabs and aside scroll
+          together as one unit rather than each getting its own scrollbar,
+          so the row reads as one continuous strip when it doesn't fit. */}
+      <div className="show-scrollbar flex min-w-0 items-center gap-3 overflow-x-auto">
+        <div role="tablist" className="flex shrink-0 items-center gap-2">
           {tabs.map((tab) => {
             const isActive = active === tab.id;
             return (
@@ -48,7 +51,7 @@ export function Tabs({
                 aria-selected={isActive}
                 onClick={() => setActive(tab.id)}
                 className={cn(
-                  "rounded-full border px-4 py-1.5 text-sm font-medium transition-colors",
+                  "shrink-0 whitespace-nowrap rounded-full border px-4 py-1.5 text-sm font-medium transition-colors",
                   isActive
                     ? "border-primary bg-primary text-primary-foreground shadow-sm"
                     : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
@@ -59,9 +62,9 @@ export function Tabs({
             );
           })}
         </div>
-        {aside && <div className="flex min-w-0 shrink-0 items-center">{aside}</div>}
+        {aside && <div className="flex shrink-0 items-center">{aside}</div>}
       </div>
-      <div className="show-scrollbar rounded-lg border border-border bg-[#f2f2f5] p-3 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-y-auto">
+      <div className="show-scrollbar min-w-0 overflow-x-auto rounded-lg border border-border bg-[#f2f2f5] p-2 lg:flex lg:min-h-0 lg:flex-1 lg:w-full lg:flex-col lg:overflow-y-auto">
         {children(active)}
       </div>
     </div>

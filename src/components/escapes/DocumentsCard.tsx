@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { PiFileTextFill, PiTrashFill, PiPlusFill } from "react-icons/pi";
+import { PiFileTextFill, PiTrashFill, PiPlusFill, PiPencilSimpleFill } from "react-icons/pi";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { LoadingState } from "@/components/ui/Spinner";
+import { LoadingState, Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/cn";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -41,6 +41,7 @@ export function DocumentsCard({
 
   const [editingUid, setEditingUid] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [renamingUid, setRenamingUid] = useState<string | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -82,8 +83,13 @@ export function DocumentsCard({
     if (!uid || !selectedItineraryUid) return;
     const original = quotes.find((q) => q.uid === uid)?.name;
     if (!trimmed || trimmed === original) return;
-    await dispatch(renameQuote({ uid, itineraryUid: selectedItineraryUid, name: trimmed }));
-    refresh();
+    setRenamingUid(uid);
+    try {
+      await dispatch(renameQuote({ uid, itineraryUid: selectedItineraryUid, name: trimmed }));
+      refresh();
+    } finally {
+      setRenamingUid(null);
+    }
   }
 
   function handleEditKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -126,6 +132,7 @@ export function DocumentsCard({
             {sortedQuotes.length === 0 && <p className="py-1 text-xs text-muted-foreground">No quotes yet.</p>}
             {sortedQuotes.map((quote, index) => {
               const isEditing = editingUid === quote.uid;
+              const isRenaming = renamingUid === quote.uid;
               const isRowBusy = rowBusyUid === quote.uid;
               return (
                 <div
@@ -165,16 +172,39 @@ export function DocumentsCard({
                     </span>
                   </div>
                   <div className="flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
-                    <button
-                      type="button"
-                      disabled={isRowBusy}
-                      onClick={() => handleDelete(quote.uid)}
-                      aria-label="Delete quote"
-                      title="Delete"
-                      className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-50"
-                    >
-                      <PiTrashFill className="h-3.5 w-3.5" />
-                    </button>
+                    {!isEditing && (
+                      isRenaming ? (
+                        <span aria-label="Renaming quote" title="Renaming…" className="flex h-7 w-7 items-center justify-center">
+                          <Spinner size="sm" />
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => startEditing(quote.uid, quote.name ?? `Quote ${quote.version}`)}
+                          aria-label="Rename quote"
+                          title="Rename"
+                          className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                        >
+                          <PiPencilSimpleFill className="h-3.5 w-3.5" />
+                        </button>
+                      )
+                    )}
+                    {isRowBusy ? (
+                      <span aria-label="Deleting quote" title="Deleting…" className="flex h-7 w-7 items-center justify-center">
+                        <Spinner size="sm" />
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={isRowBusy}
+                        onClick={() => handleDelete(quote.uid)}
+                        aria-label="Delete quote"
+                        title="Delete"
+                        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+                      >
+                        <PiTrashFill className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -197,15 +227,21 @@ export function DocumentsCard({
               className="min-w-0 flex-1 bg-transparent text-xs font-medium text-foreground placeholder:text-muted-foreground placeholder:font-normal focus-visible:outline-none"
             />
             <div className="flex shrink-0 items-center">
-              <button
-                type="submit"
-                disabled={saving}
-                aria-label="Add quote"
-                title="Add quote"
-                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
-              >
-                <PiPlusFill className="h-3.5 w-3.5" />
-              </button>
+              {saving ? (
+                <span aria-label="Adding quote" title="Adding…" className="flex h-7 w-7 items-center justify-center">
+                  <Spinner size="sm" />
+                </span>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={saving}
+                  aria-label="Add quote"
+                  title="Add quote"
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+                >
+                  <PiPlusFill className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
           </form>
         )}

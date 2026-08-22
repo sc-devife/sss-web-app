@@ -21,7 +21,6 @@ import {
   FaEye,
   FaEyeSlash,
 } from "react-icons/fa";
-
 import { Card } from "@/components/ui/Card";
 import {
   Heading,
@@ -142,7 +141,7 @@ function LoginForm() {
   return (
     <Card className="w-full max-w-[440px] rounded-2xl border-border/70 bg-card/95 px-6 py-8 shadow-xl shadow-primary/10 backdrop-blur sm:px-9 sm:py-9">
       {/* Logo */}
-      <div className="mb-6 flex justify-center">
+      <div className="mb-4 flex justify-center">
         <div className="flex size-16 items-center justify-center overflow-hidden rounded-2xl border border-border bg-muted/50 p-2 shadow-sm">
 
           <img
@@ -325,20 +324,89 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-background">
-      <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-1/2 bg-primary/[0.035] lg:block" />
-      <div className="pointer-events-none absolute -left-24 -top-24 size-72 rounded-full border border-accent/20 lg:block" />
-      {/* Main Content */}
-      <main className="relative flex flex-1 items-center justify-center px-4 py-8 sm:px-6">
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[#f7fbfd]">
+
+      {/* BASE BACKGROUND */}
+      <div
+        aria-hidden="true"
+        className="
+          pointer-events-none
+          absolute inset-0
+          bg-[linear-gradient(135deg,#ffffff_0%,#f8fcfe_45%,#edf7fb_100%)]
+        "
+      />
+
+      {/* MAP BACKGROUND */}
+      <div
+        aria-hidden="true"
+        className="
+          pointer-events-none
+          absolute inset-0
+          overflow-hidden
+        "
+      >
+        <img
+          src="/travel-background.svg"
+          alt=""
+          className="
+            absolute
+            left-1/2
+            top-1/2
+            h-full
+            w-full
+            min-h-full
+            min-w-full
+            -translate-x-1/2
+            -translate-y-1/2
+            object-cover
+            object-center
+            opacity-90
+            select-none
+          "
+        />
+
+        {/* Soft fade */}
+        <div
+          className="
+            absolute
+            inset-0
+            bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.15)_15%,rgba(255,255,255,0.5)_70%,rgba(255,255,255,0.78)_100%)]
+          "
+        />
+      </div>
+
+      {/* LOGIN CONTENT */}
+      <main
+        className="
+          relative
+          z-10
+          flex
+          flex-1
+          items-center
+          justify-center
+          px-4
+          py-8
+          sm:px-6
+        "
+      >
         <Suspense>
           <LoginForm />
         </Suspense>
       </main>
 
-      {/* Footer */}
-      <footer className="pb-4 text-center text-[14px] text-[#737373]">
-        © {new Date().getFullYear()} untitled UI
-        Travel Operations. All rights reserved.
+      {/* FOOTER */}
+      <footer
+        className="
+          relative
+          z-10
+          pb-4
+          text-center
+          text-[14px]
+          text-[#737373]
+        "
+      >
+        © {new Date().getFullYear()} untitled UI Travel Operations.
+        All rights reserved.
       </footer>
     </div>
   );

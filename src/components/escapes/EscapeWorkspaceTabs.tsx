@@ -10,19 +10,23 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { TextInput } from "@/components/ui/TextInput";
+import { Select } from "@/components/ui/Select";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Modal } from "@/components/ui/Modal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import { ItineraryCard } from "@/components/escapes/ItineraryCard";
+import { DealPanel } from "@/components/escapes/DealPanel";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { formatDisplayDateTime } from "@/lib/date";
+import { formatAuditActor, formatAuditChange } from "@/lib/audit";
 import type { Hotel } from "@/lib/hotels";
 import type { Activity } from "@/lib/activities";
 import type { Transport } from "@/lib/transports";
 import type { ServiceProvider } from "@/lib/service-providers";
 import type { Traveller } from "@/lib/travellers";
+import type { Deal } from "@/lib/deals";
 import type { EscapeAuditLogEntry } from "@/features/escapes/types";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchItinerariesForEscape } from "@/features/itineraries/itinerariesThunks";
@@ -34,6 +38,7 @@ import { selectQuotesForItinerary } from "@/features/quotes/quotesSelectors";
 const TABS = [
   { id: "planning", label: "Planning" },
   { id: "travellers", label: "Travellers" },
+  { id: "payments", label: "Payments" },
   { id: "history", label: "History" },
 ];
 
@@ -48,7 +53,16 @@ function TravellerFact({ icon: Icon, value }: { icon: IconType; value: string | 
 
 // Shared name/email/phone fields for both the add-traveller and
 // edit-traveller forms, so the two stay visually and behaviorally identical.
+const SALUTATION_OPTIONS = [
+  { value: "Mr", label: "Mr" },
+  { value: "Mrs", label: "Mrs" },
+  { value: "Ms", label: "Ms" },
+  { value: "Dr", label: "Dr" },
+];
+
 function TravellerFormFields({
+  salutation,
+  setSalutation,
   firstName,
   setFirstName,
   lastName,
@@ -57,7 +71,13 @@ function TravellerFormFields({
   setEmail,
   phone,
   setPhone,
+  dateOfBirth,
+  setDateOfBirth,
+  nationality,
+  setNationality,
 }: {
+  salutation: string;
+  setSalutation: (v: string) => void;
   firstName: string;
   setFirstName: (v: string) => void;
   lastName: string;
@@ -66,13 +86,20 @@ function TravellerFormFields({
   setEmail: (v: string) => void;
   phone: string;
   setPhone: (v: string) => void;
+  dateOfBirth: string;
+  setDateOfBirth: (v: string) => void;
+  nationality: string;
+  setNationality: (v: string) => void;
 }) {
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <Select label="Salutation" options={SALUTATION_OPTIONS} value={salutation} onChange={(e) => setSalutation(e.target.value)} placeholder="—" />
       <TextInput label="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
       <TextInput label="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
       <TextInput label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
       <PhoneInput label="Phone" value={phone} onChange={setPhone} defaultCountry="IN" />
+      <TextInput label="Date of birth" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+      <TextInput label="Nationality" value={nationality} onChange={(e) => setNationality(e.target.value)} />
     </div>
   );
 }
@@ -90,10 +117,13 @@ function TravellerCard({
 }) {
   const dispatch = useAppDispatch();
   const [editing, setEditing] = useState(false);
+  const [salutation, setSalutation] = useState(traveller.salutation ?? "");
   const [firstName, setFirstName] = useState(traveller.firstName);
   const [lastName, setLastName] = useState(traveller.lastName ?? "");
   const [email, setEmail] = useState(traveller.email ?? "");
   const [phone, setPhone] = useState(traveller.phone ?? "");
+  const [dateOfBirth, setDateOfBirth] = useState(traveller.dateOfBirth ?? "");
+  const [nationality, setNationality] = useState(traveller.nationality ?? "");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
 
@@ -119,10 +149,13 @@ function TravellerCard({
   }
 
   function startEdit() {
+    setSalutation(traveller.salutation ?? "");
     setFirstName(traveller.firstName);
     setLastName(traveller.lastName ?? "");
     setEmail(traveller.email ?? "");
     setPhone(traveller.phone ?? "");
+    setDateOfBirth(traveller.dateOfBirth ?? "");
+    setNationality(traveller.nationality ?? "");
     setFormError(undefined);
     setEditing(true);
   }
@@ -136,10 +169,13 @@ function TravellerCard({
       await dispatch(
         updateTraveller({
           travellerUid: traveller.uid,
+          salutation: salutation || undefined,
           firstName: firstName.trim(),
           lastName: lastName.trim() || undefined,
           email: email.trim() || undefined,
           phone: phone.trim() || undefined,
+          dateOfBirth: dateOfBirth || undefined,
+          nationality: nationality.trim() || undefined,
         }),
       ).unwrap();
       dispatch(fetchEscapeById(escapeUid));
@@ -157,6 +193,8 @@ function TravellerCard({
       <Card>
         <form onSubmit={handleSave} className="flex flex-col gap-2">
           <TravellerFormFields
+            salutation={salutation}
+            setSalutation={setSalutation}
             firstName={firstName}
             setFirstName={setFirstName}
             lastName={lastName}
@@ -165,11 +203,15 @@ function TravellerCard({
             setEmail={setEmail}
             phone={phone}
             setPhone={setPhone}
+            dateOfBirth={dateOfBirth}
+            setDateOfBirth={setDateOfBirth}
+            nationality={nationality}
+            setNationality={setNationality}
           />
           {formError && <p className="text-xs text-danger">{formError}</p>}
           <div className="flex gap-1.5">
-            <Button type="submit" size="sm" disabled={saving}>
-              {saving ? "Saving…" : "Save changes"}
+            <Button type="submit" size="sm" disabled={saving} loading={saving} loadingText="Saving…">
+              Save changes
             </Button>
             <Button type="button" variant="ghost" size="sm" disabled={saving} onClick={() => setEditing(false)}>
               Cancel
@@ -255,18 +297,24 @@ function AddTravellerForm({
 }) {
   const dispatch = useAppDispatch();
   const [open, setOpen] = useState(false);
+  const [salutation, setSalutation] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [nationality, setNationality] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
 
   function reset() {
+    setSalutation("");
     setFirstName("");
     setLastName("");
     setEmail("");
     setPhone("");
+    setDateOfBirth("");
+    setNationality("");
     setFormError(undefined);
   }
 
@@ -279,10 +327,13 @@ function AddTravellerForm({
       await dispatch(
         addEscapeTraveller({
           escapeUid,
+          salutation: salutation || undefined,
           firstName: firstName.trim(),
           lastName: lastName.trim() || undefined,
           email: email.trim() || undefined,
           phone: phone.trim() || undefined,
+          dateOfBirth: dateOfBirth || undefined,
+          nationality: nationality.trim() || undefined,
         }),
       ).unwrap();
       dispatch(fetchEscapeById(escapeUid));
@@ -312,6 +363,8 @@ function AddTravellerForm({
     <Card>
       <form onSubmit={handleSubmit} className="flex flex-col gap-2">
         <TravellerFormFields
+          salutation={salutation}
+          setSalutation={setSalutation}
           firstName={firstName}
           setFirstName={setFirstName}
           lastName={lastName}
@@ -320,11 +373,15 @@ function AddTravellerForm({
           setEmail={setEmail}
           phone={phone}
           setPhone={setPhone}
+          dateOfBirth={dateOfBirth}
+          setDateOfBirth={setDateOfBirth}
+          nationality={nationality}
+          setNationality={setNationality}
         />
         {formError && <p className="text-xs text-danger">{formError}</p>}
         <div className="flex gap-1.5">
-          <Button type="submit" size="sm" disabled={saving}>
-            {saving ? "Saving…" : "Save traveller"}
+          <Button type="submit" size="sm" disabled={saving} loading={saving} loadingText="Saving…">
+            Save traveller
           </Button>
           <Button
             type="button"
@@ -363,6 +420,7 @@ export function EscapeWorkspaceTabs({
   primaryTravellerUid,
   leadTravellerCount,
   auditLog,
+  deal,
   onDealChanged,
   selectedItineraryUid,
   onSelectItinerary,
@@ -385,6 +443,7 @@ export function EscapeWorkspaceTabs({
   // context, not treated as a target the record count must match.
   leadTravellerCount: number | null;
   auditLog: EscapeAuditLogEntry[] | null;
+  deal: Deal | null;
   onDealChanged?: () => void;
   /** Which itinerary the Planning tab renders — same selection the right
    * rail's Itineraries list drives, so only one itinerary's day-plan/terms/
@@ -423,17 +482,14 @@ export function EscapeWorkspaceTabs({
   const latestQuote = quotes.slice().sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0))[0];
 
   const selectionAside = activeItinerary && (
-    <div className="flex items-start gap-4">
-      <div className="flex min-w-0 max-w-[9rem] flex-col" title={activeItinerary.name}>
-        <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Itinerary</span>
-        <span className="truncate text-sm font-semibold text-foreground">{activeItinerary.name}</span>
+    <div className="flex shrink-0 items-start gap-4">
+      <div className="flex max-w-[9rem] shrink-0 flex-col">
+        <span className="whitespace-nowrap text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Itinerary</span>
+        <span className="truncate whitespace-nowrap text-sm font-semibold text-foreground">{activeItinerary.name}</span>
       </div>
-      <div
-        className="flex min-w-0 max-w-[9rem] flex-col"
-        title={latestQuote ? latestQuote.name ?? `Quote ${latestQuote.version}` : "No quotes yet"}
-      >
-        <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Quote</span>
-        <span className="truncate text-sm font-semibold text-foreground">
+      <div className="flex max-w-[9rem] shrink-0 flex-col">
+        <span className="whitespace-nowrap text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Quote</span>
+        <span className="truncate whitespace-nowrap text-sm font-semibold text-foreground">
           {latestQuote ? latestQuote.name ?? `Quote ${latestQuote.version}` : "No quotes yet"}
         </span>
       </div>
@@ -441,7 +497,7 @@ export function EscapeWorkspaceTabs({
   );
 
   return (
-    <div className="flex flex-col gap-2 lg:h-full lg:min-h-0">
+    <div className="flex min-w-0 flex-col gap-2 lg:h-full lg:min-h-0">
       <Tabs tabs={TABS} defaultTab="planning" aside={selectionAside}>
         {(active) => {
           if (active === "planning") {
@@ -519,26 +575,45 @@ export function EscapeWorkspaceTabs({
             );
           }
 
+          if (active === "payments") {
+            if (!deal) {
+              return (
+                <EmptyState
+                  icon={PiPulseFill}
+                  title="No deal yet"
+                  description="Accept a quote from the Planning tab to start tracking payment milestones."
+                />
+              );
+            }
+            return <DealPanel deal={deal} />;
+          }
+
           // history
           if (!auditLog || auditLog.length === 0) {
             return <Body muted>No history yet.</Body>;
           }
           return (
             <div className="flex flex-col">
-              {auditLog.map((entry, i) => (
-                <div key={i} className="relative flex gap-3 pb-4 pl-1 last:pb-0">
-                  {i < auditLog.length - 1 && (
-                    <span className="absolute left-[9px] top-6 h-full w-px bg-border" aria-hidden="true" />
-                  )}
-                  <span className="relative z-10 mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15">
-                    <span className="h-2 w-2 rounded-full bg-primary" />
-                  </span>
-                  <div className="min-w-0 flex-1 rounded-lg border border-border/60 bg-muted/40 p-2.5">
-                    <Body className="font-medium">{entry.action}</Body>
-                    <Caption>{formatDisplayDateTime(entry.createdAt)}</Caption>
+              {auditLog.map((entry, i) => {
+                const change = formatAuditChange(entry.previousValue, entry.newValue);
+                return (
+                  <div key={i} className="relative flex gap-3 pb-4 pl-1 last:pb-0">
+                    {i < auditLog.length - 1 && (
+                      <span className="absolute left-[9px] top-6 h-full w-px bg-border" aria-hidden="true" />
+                    )}
+                    <span className="relative z-10 mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                      <span className="h-2 w-2 rounded-full bg-primary" />
+                    </span>
+                    <div className="min-w-0 flex-1 rounded-lg border border-border/60 bg-muted/40 p-2.5">
+                      <Body className="font-medium">{entry.action}</Body>
+                      {change && <Body className="text-sm text-muted-foreground">{change}</Body>}
+                      <Caption>
+                        by {formatAuditActor(entry.performedByName)}, {formatDisplayDateTime(entry.createdAt)}
+                      </Caption>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           );
         }}

@@ -120,7 +120,7 @@ export function ItineraryCard({
 
   return (
     <div className="flex flex-col gap-2 lg:h-full lg:min-h-0">
-      <div className="flex shrink-0 flex-col gap-3 rounded-lg border border-border bg-card p-3 shadow-sm">
+      <div className="flex min-w-max shrink-0 flex-col gap-3 rounded-lg border border-border bg-card p-3 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <div className="inline-flex items-center gap-0.5 rounded-full bg-muted p-1">
             {SUB_TABS.map((tab) => (

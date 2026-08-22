@@ -10,6 +10,7 @@ import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { Body } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
+import { formatDisplayDate } from "@/lib/date";
 import type { Lead } from "@/lib/leads";
 import type { AppUser } from "@/lib/users";
 import type { EscapePoint } from "@/lib/escape-points";
@@ -168,6 +169,18 @@ export function LeadsPanel({
       header: "Assigned to",
       render: (l) => userName(l.assignedToUserId),
       filterValue: (l) => userName(l.assignedToUserId),
+    },
+    {
+      key: "followUpDueDate",
+      header: "Follow-up due",
+      render: (l) => {
+        if (!l.followUpDueDate) return "—";
+        const isOverdue = new Date(l.followUpDueDate) < new Date(new Date().toDateString());
+        return (
+          <span className={isOverdue ? "text-danger" : undefined}>{formatDisplayDate(l.followUpDueDate)}</span>
+        );
+      },
+      sortValue: (l) => l.followUpDueDate ?? "",
     },
   ];
 

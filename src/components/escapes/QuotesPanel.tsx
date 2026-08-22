@@ -7,9 +7,10 @@ import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Body, Caption } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { LoadingState, Spinner } from "@/components/ui/Spinner";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
-import { formatDisplayDate } from "@/lib/date";
+import { formatDisplayDate, formatDisplayDateTime } from "@/lib/date";
+import { formatAuditActor } from "@/lib/audit";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchQuotesForItinerary,
@@ -60,6 +61,9 @@ export function QuotesPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
+  const [deletingUid, setDeletingUid] = useState<string | null>(null);
+  const [revisingUid, setRevisingUid] = useState<string | null>(null);
+  const [acceptingUid, setAcceptingUid] = useState<string | null>(null);
   const [computingUid, setComputingUid] = useState<string | null>(null);
   const [computeForm, setComputeForm] = useState(emptyComputeForm);
   const [computeWarnings, setComputeWarnings] = useState<string[] | null>(null);
@@ -96,26 +100,31 @@ export function QuotesPanel({
 
   async function handleRevise(uid: string) {
     setBusy(true);
+    setRevisingUid(uid);
     try {
       await dispatch(reviseQuote({ uid, itineraryUid }));
       refresh();
     } finally {
       setBusy(false);
+      setRevisingUid(null);
     }
   }
 
   async function handleDelete(uid: string) {
     setBusy(true);
+    setDeletingUid(uid);
     try {
       await dispatch(deleteQuote({ uid, itineraryUid }));
       refresh();
     } finally {
       setBusy(false);
+      setDeletingUid(null);
     }
   }
 
   async function handleAccept(uid: string) {
     setBusy(true);
+    setAcceptingUid(uid);
     setError(undefined);
     try {
       await dispatch(acceptQuote({ quoteUid: uid, escapeUid })).unwrap();
@@ -125,6 +134,7 @@ export function QuotesPanel({
       setError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to accept quote"));
     } finally {
       setBusy(false);
+      setAcceptingUid(null);
     }
   }
 
@@ -199,15 +209,36 @@ export function QuotesPanel({
                   </Badge>{" "}
                   {q.totalUsd != null ? `$${q.totalUsd.toFixed(2)} USD` : "Not priced yet"}
                   {q.validUntil && <span className="text-muted-foreground"> · valid until {formatDisplayDate(q.validUntil)}</span>}
+                  <span className="block text-xs text-muted-foreground">
+                    Created {formatDisplayDateTime(q.createdAt)} by {formatAuditActor(q.createdByName)}
+                  </span>
                 </span>
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={() => openCompute(q.uid)} disabled={busy} className="text-primary hover:underline">Compute pricing</button>
                   <a href={`/quotes/${q.uid}/preview`} target="_blank" rel="noreferrer" className="text-primary hover:underline">Preview</a>
                   {!deal && !["accepted", "superseded", "rejected"].includes(q.status) && (
-                    <button type="button" onClick={() => handleAccept(q.uid)} disabled={busy} className="text-success hover:underline">Accept quote</button>
+                    acceptingUid === q.uid ? (
+                      <span aria-label="Accepting quote" title="Accepting…" className="inline-flex items-center">
+                        <Spinner size="sm" />
+                      </span>
+                    ) : (
+                      <button type="button" onClick={() => handleAccept(q.uid)} disabled={busy} className="text-success hover:underline">Accept quote</button>
+                    )
                   )}
-                  <button type="button" onClick={() => handleRevise(q.uid)} disabled={busy} className="text-primary hover:underline">Revise</button>
-                  <button type="button" onClick={() => handleDelete(q.uid)} disabled={busy} className="text-danger hover:underline">Delete</button>
+                  {revisingUid === q.uid ? (
+                    <span aria-label="Revising quote" title="Revising…" className="inline-flex items-center">
+                      <Spinner size="sm" />
+                    </span>
+                  ) : (
+                    <button type="button" onClick={() => handleRevise(q.uid)} disabled={busy} className="text-primary hover:underline">Revise</button>
+                  )}
+                  {deletingUid === q.uid ? (
+                    <span aria-label="Deleting quote" title="Deleting…" className="inline-flex items-center">
+                      <Spinner size="sm" />
+                    </span>
+                  ) : (
+                    <button type="button" onClick={() => handleDelete(q.uid)} disabled={busy} className="text-danger hover:underline">Delete</button>
+                  )}
                 </div>
               </div>
 
@@ -274,7 +305,7 @@ export function QuotesPanel({
                   )}
                   <div className="flex justify-end gap-2 border-t border-border pt-4">
                     <Button size="sm" variant="ghost" disabled={busy} onClick={closeCompute}>Close</Button>
-                    <Button size="sm" disabled={busy} onClick={() => handleCompute(q.uid)}>{busy ? "Computing…" : "Compute"}</Button>
+                    <Button size="sm" disabled={busy} loading={busy} loadingText="Computing…" onClick={() => handleCompute(q.uid)}>Compute</Button>
                   </div>
                 </div>
               </Modal>
@@ -288,7 +319,7 @@ export function QuotesPanel({
       {showForm && (
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded border border-border p-3">
           <TextInput label="Valid until" type="date" value={form.validUntil} onChange={(e) => setForm({ validUntil: e.target.value })} />
-          <Button type="submit" size="sm" disabled={busy}>{busy ? "Saving…" : "Save quote"}</Button>
+          <Button type="submit" size="sm" disabled={busy} loading={busy} loadingText="Saving…">Save quote</Button>
         </form>
       )}
     </div>

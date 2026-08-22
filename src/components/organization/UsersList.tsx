@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Body, Caption } from "@/components/ui/Typography";
 import type { AppUser, AppRole } from "@/lib/users";
+import { formatRelativeTime } from "@/lib/date";
 import { PiUsersThree, PiPencilSimple, PiWarningCircleFill, PiLockKeyOpenBold } from "react-icons/pi";
 import { useAppDispatch } from "@/store/hooks";
 import { updateUserRoles, setUserBlockedStatus, fetchUsers } from "@/features/users/usersThunks";
@@ -115,6 +116,16 @@ export function UsersList({ users, roles }: { users: AppUser[]; roles: AppRole[]
                     {user.blocked && <PiWarningCircleFill className="h-4 w-4 shrink-0 text-danger" />}
                   </div>
                   <Caption className="truncate">{user.email}</Caption>
+                  {user.lastActiveAt && (
+                    <Caption className="truncate text-muted-foreground">
+                      Active {formatRelativeTime(user.lastActiveAt)}
+                    </Caption>
+                  )}
+                  {user.invitedByName && (
+                    <Caption className="truncate text-muted-foreground">
+                      Invited by {user.invitedByName}
+                    </Caption>
+                  )}
                 </div>
               </div>
             </div>

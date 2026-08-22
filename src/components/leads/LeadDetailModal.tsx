@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { formatDisplayDate, formatDisplayDateTime } from "@/lib/date";
+import { formatAuditActor, formatAuditChange } from "@/lib/audit";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
+import { TextInput } from "@/components/ui/TextInput";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
@@ -13,7 +15,7 @@ import type { AppUser } from "@/lib/users";
 import type { EscapePoint } from "@/lib/escape-points";
 import { ConvertToEscapeModal } from "@/components/leads/ConvertToEscapeModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchLeads, contactLead, qualifyLead, toggleLeadPriority, applyLeadReasonAction, assignLead, fetchLeadAuditLog } from "@/features/leads/leadsThunks";
+import { fetchLeads, contactLead, qualifyLead, toggleLeadPriority, applyLeadReasonAction, assignLead, setLeadFollowUpDueDate, fetchLeadAuditLog } from "@/features/leads/leadsThunks";
 import { clearAuditLog } from "@/features/leads/leadsSlice";
 import type { LeadReasonAction } from "@/features/leads/types";
 import { selectLeadActionStatus, selectLeadActionError, selectLeadAuditLog, selectLeadAuditLogStatus } from "@/features/leads/leadsSelectors";
@@ -41,6 +43,7 @@ export function LeadDetailModal({
   const [reason, setReason] = useState("");
   const [assigneeId, setAssigneeId] = useState("");
   const [convertOpen, setConvertOpen] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState(lead.followUpDueDate ?? "");
 
   useEffect(() => {
     dispatch(fetchLeadAuditLog(lead.uid));
@@ -105,6 +108,15 @@ export function LeadDetailModal({
     }
   }
 
+  async function handleSetFollowUpDate() {
+    try {
+      await dispatch(setLeadFollowUpDueDate({ leadUid: lead.uid, followUpDueDate: followUpDate || null })).unwrap();
+      await afterAction();
+    } catch {
+      // actionError already set in the slice.
+    }
+  }
+
   return (
     <Modal open onClose={onClose} title={lead.name} className="max-w-xl">
       <div className="flex flex-col gap-4">
@@ -125,6 +137,7 @@ export function LeadDetailModal({
           <div><Caption>Origin city</Caption><Body>{lead.originCity || "—"}</Body></div>
           <div><Caption>Travel type</Caption><Body>{lead.travelType || "—"}</Body></div>
           <div><Caption>Assigned to</Caption><Body>{assignedUser?.name ?? "Unassigned"}</Body></div>
+          <div><Caption>Follow-up due</Caption><Body>{formatDisplayDate(lead.followUpDueDate) ?? "—"}</Body></div>
         </div>
 
         {lead.notes && (
@@ -195,6 +208,20 @@ export function LeadDetailModal({
                 <Button size="sm" disabled={busy || !assigneeId} onClick={handleAssign}>Assign</Button>
               </div>
             </div>
+
+            <div className="flex flex-col gap-2 rounded border border-border p-3">
+              <Caption>Follow-up due</Caption>
+              <div className="flex gap-2">
+                <TextInput
+                  label=""
+                  type="date"
+                  className="flex-1"
+                  value={followUpDate}
+                  onChange={(e) => setFollowUpDate(e.target.value)}
+                />
+                <Button size="sm" disabled={busy} onClick={handleSetFollowUpDate}>Save</Button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -204,12 +231,18 @@ export function LeadDetailModal({
           {!loadingAudit && auditLog && auditLog.length === 0 && <Body muted>No history yet.</Body>}
           {!loadingAudit && auditLog && auditLog.length > 0 && (
             <div className="flex max-h-48 flex-col gap-2 overflow-y-auto">
-              {auditLog.map((entry, i) => (
-                <div key={i} className="text-sm">
-                  <span className="font-medium text-foreground">{entry.action}</span>{" "}
-                  <span className="text-muted-foreground">{formatDisplayDateTime(entry.createdAt)}</span>
-                </div>
-              ))}
+              {auditLog.map((entry, i) => {
+                const change = formatAuditChange(entry.previousValue, entry.newValue);
+                return (
+                  <div key={i} className="text-sm">
+                    <span className="font-medium text-foreground">{entry.action}</span>{" "}
+                    <span className="text-muted-foreground">
+                      by {formatAuditActor(entry.performedByName)}, {formatDisplayDateTime(entry.createdAt)}
+                    </span>
+                    {change && <div className="text-xs text-muted-foreground">{change}</div>}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

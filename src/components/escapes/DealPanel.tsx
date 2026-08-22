@@ -9,9 +9,10 @@ import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import type { Deal } from "@/lib/deals";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
-import { formatDisplayDate } from "@/lib/date";
+import { formatDisplayDate, formatDisplayDateTime } from "@/lib/date";
+import { formatAuditActor } from "@/lib/audit";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchMilestonesForDeal, createPaymentMilestone, recordPayment, deletePaymentMilestone } from "@/features/paymentMilestones/paymentMilestonesThunks";
+import { fetchMilestonesForDeal, createPaymentMilestone, recordPayment, verifyPaymentMilestone, deletePaymentMilestone } from "@/features/paymentMilestones/paymentMilestonesThunks";
 import { selectPaymentMilestones, selectPaymentMilestonesStatus, selectPaymentMilestonesError } from "@/features/paymentMilestones/paymentMilestonesSelectors";
 
 const emptyForm = { label: "", dueDate: "", amountUsd: "" };
@@ -72,6 +73,16 @@ export function DealPanel({ deal }: { deal: Deal }) {
     }
   }
 
+  async function handleVerify(uid: string) {
+    setBusy(true);
+    try {
+      await dispatch(verifyPaymentMilestone(uid));
+      refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleDelete(uid: string) {
     setBusy(true);
     try {
@@ -118,7 +129,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
                           ? "success"
                           : m.status === "overdue"
                           ? "danger"
-                          : m.status === "partially_paid"
+                          : m.status === "partially_paid" || m.status === "unverified"
                           ? "warning"
                           : "neutral"
                       }
@@ -129,8 +140,23 @@ export function DealPanel({ deal }: { deal: Deal }) {
                     <span className="text-muted-foreground">
                       due {formatDisplayDate(m.dueDate)} · ${m.amountPaidUsd.toFixed(2)} / ${m.amountUsd.toFixed(2)} USD
                     </span>
+                    {m.markedPaidAt && (
+                      <span className="block text-xs text-muted-foreground">
+                        Paid by {formatAuditActor(m.markedPaidByName)} on {formatDisplayDateTime(m.markedPaidAt)}
+                      </span>
+                    )}
                   </span>
-                  {m.status !== "paid" && (
+                  {m.status === "unverified" && (
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" disabled={busy} onClick={() => handleVerify(m.uid)}>
+                        Verify payment
+                      </Button>
+                      <button type="button" onClick={() => handleDelete(m.uid)} disabled={busy} className="text-danger hover:underline">
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                  {m.status !== "paid" && m.status !== "unverified" && (
                     <div className="flex items-center gap-2">
                       <TextInput
                         label=""

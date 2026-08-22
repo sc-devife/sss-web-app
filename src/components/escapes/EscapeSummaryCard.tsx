@@ -22,6 +22,7 @@ import { cn } from "@/lib/cn";
 import { resolveFileUrl } from "@/lib/files";
 import { escapeStatusTone, escapeStatusIcon } from "@/lib/escape-status";
 import { formatDisplayDate, formatDisplayDateTime } from "@/lib/date";
+import { formatAuditActor } from "@/lib/audit";
 import type { Escape } from "@/lib/escapes";
 import type { EscapeAuditLogEntry } from "@/features/escapes/types";
 import { FaLocationArrow } from "react-icons/fa";
@@ -119,6 +120,23 @@ export function EscapeSummaryCard({
         </button>
       )}
 
+      {collapsed && (
+        <div className="hidden flex-col items-center gap-4 py-4 lg:flex" aria-hidden="true">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground" title="Cover image">
+            <PiImageFill className="h-4 w-4" />
+          </span>
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground" title={escapePoint?.name ?? "Location"}>
+            <PiMapPinFill className="h-4 w-4" />
+          </span>
+          <span title={leadName}>
+            <Avatar name={leadName} />
+          </span>
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground" title="Schedule">
+            <PiCalendarBlankFill className="h-4 w-4" />
+          </span>
+        </div>
+      )}
+
       <div className={cn("show-scrollbar flex flex-col gap-3 p-3.5 lg:overflow-y-auto", collapsed && "lg:hidden")}>
         {cover && !imageFailed ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -198,6 +216,9 @@ export function EscapeSummaryCard({
             <InfoRow icon={PiCalendarBlankFill} label="End date" value={escape.endDate} />
             <InfoRow icon={PiClockFill} label="Duration" value={escape.numberOfDays ? `${escape.numberOfDays} days` : null} />
           </div>
+          {escape.createdAt && (
+            <span className="text-[11px] text-muted-foreground">Created {formatDisplayDateTime(escape.createdAt)}</span>
+          )}
         </Section>
 
         {/* Assignment */}
@@ -212,7 +233,9 @@ export function EscapeSummaryCard({
               {auditLog.map((entry, i) => (
                 <div key={i} className="text-[11px]">
                   <span className="font-medium text-foreground">{entry.action}</span>{" "}
-                  <span className="text-muted-foreground">{formatDisplayDateTime(entry.createdAt)}</span>
+                  <span className="text-muted-foreground">
+                    by {formatAuditActor(entry.performedByName)}, {formatDisplayDateTime(entry.createdAt)}
+                  </span>
                 </div>
               ))}
             </div>

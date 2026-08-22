@@ -81,6 +81,7 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
   const [connecting, setConnecting] = useState<string | null>(null);
   const [secret, setSecret] = useState("");
   const [metaForm, setMetaForm] = useState(emptyMetaForm);
+  const [autoCreateLeads, setAutoCreateLeads] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
@@ -100,6 +101,7 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
     setConnecting(channelCode);
     setSecret("");
     setMetaForm(emptyMetaForm);
+    setAutoCreateLeads(true);
     setErrors({});
     setFormError(undefined);
   }
@@ -118,19 +120,20 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
       const isMeta = META_CHANNELS.has(channelCode);
       const body = isMeta
         ? {
-          autoCreateLeads: true,
+          autoCreateLeads,
           accessToken: metaForm.accessToken,
           pageId: channelCode === "facebook" ? metaForm.pageId : undefined,
           igAccountId: channelCode === "instagram" ? metaForm.igAccountId : undefined,
           pageName: metaForm.pageName,
         }
-        : { secret, autoCreateLeads: true };
+        : { secret, autoCreateLeads };
 
       await dispatch(connectIntegration({ channelCode, body })).unwrap();
       dispatch(fetchIntegrations());
       setConnecting(null);
       setSecret("");
       setMetaForm(emptyMetaForm);
+      setAutoCreateLeads(true);
     } catch (err) {
       setFormError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to connect"));
     } finally {
@@ -163,11 +166,9 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
           const provider = PROVIDER_META[integration.channelCode] ?? DEFAULT_PROVIDER_META;
           const ProviderIcon = provider.icon;
           const isConnected = integration.status === "connected";
-          console.log("integration", integration);
-
-
-
-
+          const tokenStale = integration.tokenLastVerifiedAt
+            ? Date.now() - new Date(integration.tokenLastVerifiedAt).getTime() > 24 * 60 * 60 * 1000
+            : false;
 
           return (
             <Card key={integration.channelCode} variant="elevated" className={`group flex flex-col gap-4 border-border/70 p-4 transition-colors duration-200 hover:border-primary/30 hover:shadow-md ${!integration.available ? "bg-muted/20" : ""}`}>
@@ -209,6 +210,16 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
                   <Caption className="mt-1 block">{integration.channelCode === "facebook" ? "Page ID" : "IG Account ID"}: {integration.pageId ?? integration.igAccountId}</Caption>
                   {integration.lastSyncedAt && (
                     <Body className="mt-1 text-xs">Last lead: {formatDisplayDateTime(integration.lastSyncedAt)}</Body>
+                  )}
+                  {integration.tokenLastVerifiedAt && (
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <Badge tone={tokenStale ? "warning" : "success"}>
+                        {tokenStale ? "Token needs reverification" : "Token healthy"}
+                      </Badge>
+                      <Caption className="text-muted-foreground">
+                        Verified {formatDisplayDateTime(integration.tokenLastVerifiedAt)}
+                      </Caption>
+                    </div>
                   )}
                 </div>
               )}
@@ -253,6 +264,15 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
                               placeholder="Choose a secret for this channel"
                             />
                           )}
+                          <label className="flex cursor-pointer items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={autoCreateLeads}
+                              onChange={(e) => setAutoCreateLeads(e.target.checked)}
+                              className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                            />
+                            Automatically create leads from incoming submissions
+                          </label>
                         </fieldset>
                         <div className="flex gap-2 pt-2">
                           <Button size="sm" disabled={busy} loading={busy} loadingText="Connecting…" onClick={() => handleConnect(integration.channelCode)}>

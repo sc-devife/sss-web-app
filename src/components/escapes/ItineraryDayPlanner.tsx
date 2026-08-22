@@ -84,12 +84,12 @@ function TimelineRow({
   const time = formatStartTime(item.startTime);
 
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-border p-3">
+    <div className="flex min-w-[420px] items-start gap-3 rounded-lg border border-border p-3">
       <div className="w-12 shrink-0 pt-0.5 text-xs font-medium text-muted-foreground">{time ?? "—"}</div>
       <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", PLANNING_ITEM_BADGE_CLASS[item.itemType])}>
         <Icon className="h-4 w-4" />
       </div>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-[120px] flex-1">
         <Body className="font-medium">{item.referenceLabel}</Body>
         {item.notes && <Caption className="mt-0.5 block normal-case text-muted-foreground">{item.notes}</Caption>}
       </div>
@@ -341,7 +341,7 @@ export function ItineraryDayPlanner({
         </button>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-sm">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-lg border border-border bg-card p-2 shadow-sm">
         <div
           className={cn(
             "show-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto",

@@ -1,6 +1,6 @@
-import type { Address } from "@/lib/addresses";
+import type { Address, AddressType } from "@/lib/addresses";
 
-export type { Address };
+export type { Address, AddressType };
 
 export interface AddressPayload {
   label: string;
@@ -11,6 +11,10 @@ export interface AddressPayload {
   streetFirst: string;
   contactNumber: string;
   contactEmail: string;
+  addressTypes: AddressType[];
+  pan: string;
+  gstin: string;
+  tripDestination: string;
 }
 
 export interface CreateAddressPayload {

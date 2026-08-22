@@ -8,6 +8,7 @@ import {
   toggleLeadPriority,
   applyLeadReasonAction,
   assignLead,
+  setLeadFollowUpDueDate,
   convertLeadToEscape,
   fetchLeadAuditLog,
 } from "@/features/leads/leadsThunks";
@@ -122,20 +123,20 @@ const leadsSlice = createSlice({
       })
 
       .addMatcher(
-        isAnyOf(contactLead.pending, qualifyLead.pending, toggleLeadPriority.pending, applyLeadReasonAction.pending, assignLead.pending),
+        isAnyOf(contactLead.pending, qualifyLead.pending, toggleLeadPriority.pending, applyLeadReasonAction.pending, assignLead.pending, setLeadFollowUpDueDate.pending),
         (state) => {
           state.actionStatus = "loading";
           state.actionError = null;
         },
       )
       .addMatcher(
-        isAnyOf(contactLead.fulfilled, qualifyLead.fulfilled, toggleLeadPriority.fulfilled, applyLeadReasonAction.fulfilled, assignLead.fulfilled),
+        isAnyOf(contactLead.fulfilled, qualifyLead.fulfilled, toggleLeadPriority.fulfilled, applyLeadReasonAction.fulfilled, assignLead.fulfilled, setLeadFollowUpDueDate.fulfilled),
         (state) => {
           state.actionStatus = "succeeded";
         },
       )
       .addMatcher(
-        isAnyOf(contactLead.rejected, qualifyLead.rejected, toggleLeadPriority.rejected, applyLeadReasonAction.rejected, assignLead.rejected),
+        isAnyOf(contactLead.rejected, qualifyLead.rejected, toggleLeadPriority.rejected, applyLeadReasonAction.rejected, assignLead.rejected, setLeadFollowUpDueDate.rejected),
         (state, action) => {
           state.actionStatus = "failed";
           state.actionError = action.payload ?? "Action failed";

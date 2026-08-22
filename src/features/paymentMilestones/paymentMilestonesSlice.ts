@@ -1,9 +1,10 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, isAnyOf } from "@reduxjs/toolkit";
 import type { PaymentMilestone } from "@/features/paymentMilestones/types";
 import {
   fetchMilestonesForDeal,
   createPaymentMilestone,
   recordPayment,
+  verifyPaymentMilestone,
   deletePaymentMilestone,
 } from "@/features/paymentMilestones/paymentMilestonesThunks";
 
@@ -72,18 +73,6 @@ const paymentMilestonesSlice = createSlice({
         state.saveError = action.payload ?? "Failed to add milestone";
       })
 
-      .addCase(recordPayment.pending, (state) => {
-        state.recordPaymentStatus = "loading";
-        state.recordPaymentError = null;
-      })
-      .addCase(recordPayment.fulfilled, (state) => {
-        state.recordPaymentStatus = "succeeded";
-      })
-      .addCase(recordPayment.rejected, (state, action) => {
-        state.recordPaymentStatus = "failed";
-        state.recordPaymentError = action.payload ?? "Failed to record payment";
-      })
-
       .addCase(deletePaymentMilestone.pending, (state) => {
         state.deleteStatus = "loading";
         state.deleteError = null;
@@ -94,6 +83,18 @@ const paymentMilestonesSlice = createSlice({
       .addCase(deletePaymentMilestone.rejected, (state, action) => {
         state.deleteStatus = "failed";
         state.deleteError = action.payload ?? "Failed to delete milestone";
+      })
+
+      .addMatcher(isAnyOf(recordPayment.pending, verifyPaymentMilestone.pending), (state) => {
+        state.recordPaymentStatus = "loading";
+        state.recordPaymentError = null;
+      })
+      .addMatcher(isAnyOf(recordPayment.fulfilled, verifyPaymentMilestone.fulfilled), (state) => {
+        state.recordPaymentStatus = "succeeded";
+      })
+      .addMatcher(isAnyOf(recordPayment.rejected, verifyPaymentMilestone.rejected), (state, action) => {
+        state.recordPaymentStatus = "failed";
+        state.recordPaymentError = action.payload ?? "Failed to record payment";
       });
   },
 });

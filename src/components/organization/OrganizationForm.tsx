@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   PiBuildings,
   PiUploadSimple,
@@ -8,6 +8,7 @@ import {
 
 import { TextInput } from "@/components/ui/TextInput";
 import { PhoneInput } from "@/components/ui/PhoneInput";
+import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { Caption } from "@/components/ui/Typography";
@@ -18,6 +19,10 @@ import { useAppDispatch } from "@/store/hooks";
 import { updateOrganization, uploadOrganizationLogo, fetchMyOrganization } from "@/features/organization/organizationThunks";
 import type { Organization, LogoShape } from "@/features/organization/types";
 import { cn } from "@/lib/cn";
+import { clientApi } from "@/lib/axios/clientClient";
+import type { SupportedCurrency } from "@/lib/currencies";
+import { fetchCountryOptions } from "@/lib/reference-data-client";
+import type { ReferenceOption } from "@/lib/reference-data-client";
 
 const LOGO_SHAPES: { value: LogoShape; label: string }[] = [
   { value: "round", label: "Round" },
@@ -45,7 +50,16 @@ export function OrganizationForm({
     organization.logo_file ? [organization.logo_file] : []
   );
   const [logoShape, setLogoShape] = useState<LogoShape>(organization.logo_shape ?? "round");
+  const [defaultCurrencyCode, setDefaultCurrencyCode] = useState(organization.default_currency_code ?? "");
+  const [currencies, setCurrencies] = useState<SupportedCurrency[]>([]);
+  const [countryCode, setCountryCode] = useState(organization.country_code ?? "");
+  const [countries, setCountries] = useState<ReferenceOption[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    clientApi.get<SupportedCurrency[]>("/currencies").then((res) => setCurrencies(res.data)).catch(() => { });
+    fetchCountryOptions().then(setCountries).catch(() => { });
+  }, []);
 
 
   const [saving, setSaving] = useState(false);
@@ -108,6 +122,8 @@ export function OrganizationForm({
         support_ph_num: supportPhone,
         logo_file: logoFile[0] ?? null,
         logo_shape: logoShape,
+        default_currency_code: defaultCurrencyCode || undefined,
+        country_code: countryCode || undefined,
       })).unwrap();
 
       setSaved(true);
@@ -253,6 +269,22 @@ export function OrganizationForm({
             label="Registered Name"
             value={registeredName}
             onChange={(e) => setRegisteredName(e.target.value)}
+          />
+
+          <Select
+            label="Default Currency"
+            options={currencies.map((c) => ({ value: c.code, label: `${c.code} — ${c.name}` }))}
+            value={defaultCurrencyCode}
+            onChange={(e) => setDefaultCurrencyCode(e.target.value)}
+            placeholder="Select a currency"
+          />
+
+          <Select
+            label="Country"
+            options={countries.map((c) => ({ value: c.code, label: c.label }))}
+            value={countryCode}
+            onChange={(e) => setCountryCode(e.target.value)}
+            placeholder="Select a country"
           />
 
         </div>
