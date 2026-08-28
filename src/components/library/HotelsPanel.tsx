@@ -3,6 +3,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import { DatePicker } from "@/components/ui/DatePicker";
+import { TimePicker } from "@/components/ui/TimePicker";
 import { Select } from "@/components/ui/Select";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { Modal } from "@/components/ui/Modal";
@@ -11,8 +13,9 @@ import { Badge } from "@/components/ui/Badge";
 import { FileUpload } from "@/components/ui/FileUpload";
 import { BulkImportModal } from "@/components/library/BulkImportModal";
 import { Alert } from "@/components/ui/Alert";
-import { Body } from "@/components/ui/Typography";
+import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
+import { resolveFileUrl } from "@/lib/files";
 import type { Hotel } from "@/lib/hotels";
 import type { LibraryLocation } from "@/lib/locations";
 import type { EscapePoint } from "@/lib/escape-points";
@@ -24,10 +27,12 @@ import { useIsDirty } from "@/lib/forms";
 import { required, requiredSelection, runValidators } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchHotels, createHotel, updateHotel, deleteHotel } from "@/features/hotels/hotelsThunks";
-import { formatDisplayDate } from "@/lib/date";
+import { formatDisplayDate, formatDisplayTime } from "@/lib/date";
 import { selectHotels, selectHotelsStatus, selectHotelsError } from "@/features/hotels/hotelsSelectors";
 import { FaPlus } from "react-icons/fa";
 import { LuImport } from "react-icons/lu";
+import { FaLocationDot } from "react-icons/fa6";
+import { CiImageOff } from "react-icons/ci";
 
 const AMENITY_OPTIONS = [
   { value: "wifi", label: "Wi-Fi" },
@@ -102,6 +107,7 @@ export function HotelsPanel({
 
   const [modalOpen, setModalOpen] = useState(false);
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
+  const [viewing, setViewing] = useState<Hotel | null>(null);
   const [editing, setEditing] = useState<Hotel | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [addingLocation, setAddingLocation] = useState(false);
@@ -317,7 +323,7 @@ export function HotelsPanel({
           rowKey={(h) => h.uid}
           searchPlaceholder="Search hotels…"
           emptyMessage="No hotels yet — add your first one."
-          onRowClick={(h) => openEdit(h)}
+          onRowClick={(h) => setViewing(h)}
           getRowLabel={(h) => h.name}
           rowMenuActions={(h) => [
             { key: "edit", label: "Edit", onSelect: () => openEdit(h) },
@@ -325,6 +331,173 @@ export function HotelsPanel({
           ]}
         />
       )}
+
+      <Modal open={!!viewing} onClose={() => setViewing(null)} title={viewing?.name ?? "Hotel"}>
+        {viewing && (
+          <div className="flex max-h-[65vh] flex-col">
+            <div className="overflow-y-auto pr-1">
+              {viewing.images && viewing.images.length > 0 ? (
+                <div className="relative overflow-hidden rounded-xl">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={resolveFileUrl(viewing.images[0])}
+                    alt={viewing.name}
+                    className="h-56 w-full object-cover"
+                  />
+                  {viewing.images.length > 1 && (
+                    <div className="absolute bottom-3 right-3 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                      {viewing.images.length} images
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex h-56 flex-col items-center justify-center gap-3 rounded-xl border border-border bg-muted/30">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <CiImageOff size={22} />
+                  </div>
+                  <div className="text-sm font-medium text-muted-foreground">No image available</div>
+                </div>
+              )}
+
+              <div className="mt-4 flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <h2 className="text-xl font-semibold tracking-tight text-foreground">{viewing.name}</h2>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Hotel</span>
+                    {viewing.stars != null && (
+                      <>
+                        <span className="text-muted-foreground/40">•</span>
+                        <span className="text-sm text-muted-foreground">{"★".repeat(viewing.stars)}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <Badge tone={viewing.status === "archived" ? "danger" : "success"}>{viewing.status ?? "active"}</Badge>
+              </div>
+
+              <div className="mt-4 rounded-xl border border-border bg-muted/20 p-4">
+                <div className="flex items-start gap-2">
+                  <span className="mt-0.5 text-muted-foreground"><FaLocationDot /></span>
+                  <Body className="font-medium">{viewing.location?.displayName || "No location available"}</Body>
+                </div>
+                {viewing.escapePoint && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <Badge tone="neutral">{viewing.escapePoint.name}</Badge>
+                  </div>
+                )}
+              </div>
+
+              {(viewing.mealPlans && viewing.mealPlans.length > 0) || (viewing.roomTypes && viewing.roomTypes.length > 0) ? (
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  {viewing.mealPlans && viewing.mealPlans.length > 0 && (
+                    <div>
+                      <Caption>Meal Plans</Caption>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {viewing.mealPlans.map((m) => (
+                          <Badge key={m.uid} tone="neutral">{m.code}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {viewing.roomTypes && viewing.roomTypes.length > 0 && (
+                    <div>
+                      <Caption>Room Types</Caption>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {viewing.roomTypes.map((r) => (
+                          <Badge key={r.uid} tone="neutral">{r.name}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              <div className="mt-4">
+                <Caption>Details</Caption>
+                <div className="mt-1 grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-border bg-background p-3">
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Check-in</div>
+                    <div className="mt-1 text-sm font-semibold text-foreground">{formatDisplayTime(viewing.checkInTime) || "—"}</div>
+                  </div>
+                  <div className="rounded-xl border border-border bg-background p-3">
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Check-out</div>
+                    <div className="mt-1 text-sm font-semibold text-foreground">{formatDisplayTime(viewing.checkOutTime) || "—"}</div>
+                  </div>
+                  <div className="rounded-xl border border-border bg-background p-3">
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Rate Valid</div>
+                    <div className="mt-1 text-sm font-semibold text-foreground">
+                      {viewing.rateValidFrom || viewing.rateValidTo
+                        ? `${formatDisplayDate(viewing.rateValidFrom) ?? "—"} to ${formatDisplayDate(viewing.rateValidTo) ?? "—"}`
+                        : "—"}
+                    </div>
+                  </div>
+                  {viewing.childAgeForExtraBed && (
+                    <div className="rounded-xl border border-border bg-background p-3">
+                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Child Extra-bed Age</div>
+                      <div className="mt-1 text-sm font-semibold text-foreground">{viewing.childAgeForExtraBed}</div>
+                    </div>
+                  )}
+                  {viewing.address && (
+                    <div className="rounded-xl border border-border bg-background p-3">
+                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Address</div>
+                      <div className="mt-1 text-sm font-semibold text-foreground">{viewing.address}</div>
+                    </div>
+                  )}
+                  {viewing.contactInfo && (
+                    <div className="rounded-xl border border-border bg-background p-3">
+                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contact Info</div>
+                      <div className="mt-1 text-sm font-semibold text-foreground">{viewing.contactInfo}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {viewing.amenities && viewing.amenities.length > 0 && (
+                <div className="mt-4">
+                  <Caption>Amenities</Caption>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {viewing.amenities.map((a) => (
+                      <Badge key={a} tone="neutral">
+                        {AMENITY_OPTIONS.find((o) => o.value === a)?.label ?? a}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {viewing.images && viewing.images.length > 1 && (
+                <div className="mt-4">
+                  <Caption>Gallery</Caption>
+                  <div className="mt-1 grid grid-cols-4 gap-2">
+                    {viewing.images.map((url) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={url}
+                        src={resolveFileUrl(url)}
+                        alt={viewing.name}
+                        className="aspect-square w-full rounded-lg border border-border object-cover transition-transform hover:scale-[1.02]"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 flex shrink-0 justify-end gap-2 border-t border-border pt-4">
+              <Button variant="secondary" onClick={() => setViewing(null)}>Close</Button>
+              <Button
+                onClick={() => {
+                  const hotel = viewing;
+                  setViewing(null);
+                  openEdit(hotel);
+                }}
+              >
+                Edit
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <Modal
         open={modalOpen}
@@ -435,17 +608,15 @@ export function HotelsPanel({
             />
 
             <div className="grid grid-cols-2 gap-3">
-              <TextInput
+              <TimePicker
                 label="Check-in time"
-                type="time"
                 value={form.checkInTime}
-                onChange={(e) => update("checkInTime", e.target.value)}
+                onChange={(v) => update("checkInTime", v)}
               />
-              <TextInput
+              <TimePicker
                 label="Check-out time"
-                type="time"
                 value={form.checkOutTime}
-                onChange={(e) => update("checkOutTime", e.target.value)}
+                onChange={(v) => update("checkOutTime", v)}
               />
             </div>
 
@@ -457,17 +628,15 @@ export function HotelsPanel({
             />
 
             <div className="grid grid-cols-2 gap-3">
-              <TextInput
+              <DatePicker
                 label="Rate valid from"
-                type="date"
                 value={form.rateValidFrom}
-                onChange={(e) => update("rateValidFrom", e.target.value)}
+                onChange={(v) => update("rateValidFrom", v)}
               />
-              <TextInput
+              <DatePicker
                 label="Rate valid to"
-                type="date"
                 value={form.rateValidTo}
-                onChange={(e) => update("rateValidTo", e.target.value)}
+                onChange={(v) => update("rateValidTo", v)}
               />
             </div>
 

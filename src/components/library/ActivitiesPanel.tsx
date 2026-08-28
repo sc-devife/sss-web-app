@@ -10,8 +10,9 @@ import { Badge } from "@/components/ui/Badge";
 import { FileUpload } from "@/components/ui/FileUpload";
 import { BulkImportModal } from "@/components/library/BulkImportModal";
 import { Alert } from "@/components/ui/Alert";
-import { Body } from "@/components/ui/Typography";
+import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
+import { resolveFileUrl } from "@/lib/files";
 import type { Activity } from "@/lib/activities";
 import type { EscapePoint } from "@/lib/escape-points";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
@@ -22,6 +23,8 @@ import { fetchActivities, createActivity, updateActivity, deleteActivity } from 
 import { selectActivities, selectActivitiesStatus, selectActivitiesError } from "@/features/activities/activitiesSelectors";
 import { FaPlus } from "react-icons/fa";
 import { LuImport } from "react-icons/lu";
+import { FaLocationDot } from "react-icons/fa6";
+import { CiImageOff } from "react-icons/ci";
 
 const CATEGORY_OPTIONS = [
   { value: "water_sports", label: "Water Sports" },
@@ -65,6 +68,7 @@ export function ActivitiesPanel({
 
   const [modalOpen, setModalOpen] = useState(false);
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
+  const [viewing, setViewing] = useState<Activity | null>(null);
   const [editing, setEditing] = useState<Activity | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [original, setOriginal] = useState<FormState | null>(null);
@@ -224,7 +228,7 @@ export function ActivitiesPanel({
           rowKey={(a) => a.uid}
           searchPlaceholder="Search activities…"
           emptyMessage="No activities yet — add your first one."
-          onRowClick={(a) => openEdit(a)}
+          onRowClick={(a) => setViewing(a)}
           getRowLabel={(a) => a.name}
           rowMenuActions={(a) => [
             { key: "edit", label: "Edit", onSelect: () => openEdit(a) },
@@ -232,6 +236,131 @@ export function ActivitiesPanel({
           ]}
         />
       )}
+
+      <Modal open={!!viewing} onClose={() => setViewing(null)} title={viewing?.name ?? "Activity"}>
+        {viewing && (
+          <div className="flex max-h-[65vh] flex-col">
+            <div className="overflow-y-auto pr-1">
+              {viewing.images && viewing.images.length > 0 ? (
+                <div className="relative overflow-hidden rounded-xl">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={resolveFileUrl(viewing.images[0])}
+                    alt={viewing.name}
+                    className="h-56 w-full object-cover"
+                  />
+                  {viewing.images.length > 1 && (
+                    <div className="absolute bottom-3 right-3 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                      {viewing.images.length} images
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex h-56 flex-col items-center justify-center gap-3 rounded-xl border border-border bg-muted/30">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <CiImageOff size={22} />
+                  </div>
+                  <div className="text-sm font-medium text-muted-foreground">No image available</div>
+                </div>
+              )}
+
+              <div className="mt-4 flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <h2 className="text-xl font-semibold tracking-tight text-foreground">{viewing.name}</h2>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Activity</span>
+                    {viewing.categoryCode && (
+                      <>
+                        <span className="text-muted-foreground/40">•</span>
+                        <span className="text-sm text-muted-foreground">
+                          {CATEGORY_OPTIONS.find((c) => c.value === viewing.categoryCode)?.label ?? viewing.categoryCode}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <Badge tone={viewing.status === "archived" ? "danger" : "success"}>{viewing.status ?? "active"}</Badge>
+              </div>
+
+              {viewing.escapePoint && (
+                <div className="mt-4 rounded-xl border border-border bg-muted/20 p-4">
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 text-muted-foreground"><FaLocationDot /></span>
+                    <Body className="font-medium">{viewing.escapePoint.name}</Body>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-4">
+                <Caption>About this Activity</Caption>
+                <Body className="mt-1 whitespace-pre-wrap leading-6">
+                  {viewing.description || "No description available."}
+                </Body>
+              </div>
+
+              <div className="mt-4">
+                <Caption>Details</Caption>
+                <div className="mt-1 grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-border bg-background p-3">
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Duration</div>
+                    <div className="mt-1 text-sm font-semibold text-foreground">
+                      {viewing.durationMinutes ? `${viewing.durationMinutes} min` : "—"}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-border bg-background p-3">
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Base Price</div>
+                    <div className="mt-1 text-sm font-semibold text-foreground">
+                      {viewing.basePrice != null ? `$${viewing.basePrice.toFixed(2)}` : "—"}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-border bg-background p-3">
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Category</div>
+                    <div className="mt-1 text-sm font-semibold text-foreground">
+                      {CATEGORY_OPTIONS.find((c) => c.value === viewing.categoryCode)?.label ?? viewing.categoryCode ?? "—"}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-border bg-background p-3">
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</div>
+                    <div className="mt-1">
+                      <Badge tone={viewing.status === "archived" ? "danger" : "success"}>{viewing.status ?? "active"}</Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {viewing.images && viewing.images.length > 1 && (
+                <div className="mt-4">
+                  <Caption>Gallery</Caption>
+                  <div className="mt-1 grid grid-cols-4 gap-2">
+                    {viewing.images.map((url) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={url}
+                        src={resolveFileUrl(url)}
+                        alt={viewing.name}
+                        className="aspect-square w-full rounded-lg border border-border object-cover transition-transform hover:scale-[1.02]"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 flex shrink-0 justify-end gap-2 border-t border-border pt-4">
+              <Button variant="secondary" onClick={() => setViewing(null)}>Close</Button>
+              <Button
+                onClick={() => {
+                  const activity = viewing;
+                  setViewing(null);
+                  openEdit(activity);
+                }}
+              >
+                Edit
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <Modal
         open={modalOpen}

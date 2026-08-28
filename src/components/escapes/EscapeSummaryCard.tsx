@@ -22,7 +22,6 @@ import { cn } from "@/lib/cn";
 import { resolveFileUrl } from "@/lib/files";
 import { escapeStatusTone, escapeStatusIcon } from "@/lib/escape-status";
 import { formatDisplayDate, formatDisplayDateTime } from "@/lib/date";
-import { formatAuditActor } from "@/lib/audit";
 import type { Escape } from "@/lib/escapes";
 import type { EscapeAuditLogEntry } from "@/features/escapes/types";
 import { FaLocationArrow } from "react-icons/fa";
@@ -72,7 +71,6 @@ function InfoRow({ icon: Icon, label, value }: { icon: IconType; label: string; 
 
 export function EscapeSummaryCard({
   escape,
-  auditLog,
   collapsed = false,
   onToggleCollapsed,
 }: {
@@ -227,21 +225,6 @@ export function EscapeSummaryCard({
           <InfoRow icon={PiUserCircleFill} label="Assigned to" value={escape.assignedToUserName ?? "Unassigned"} />
         </Section>
 
-        {/* History */}
-        {auditLog && auditLog.length > 0 && (
-          <Section title="History">
-            <div className="flex max-h-28 flex-col gap-1 overflow-y-auto">
-              {auditLog.map((entry, i) => (
-                <div key={i} className="text-[11px]">
-                  <span className="font-medium text-foreground">{entry.action}</span>{" "}
-                  <span className="text-muted-foreground">
-                    by {formatAuditActor(entry.performedByName)}, {formatDisplayDateTime(entry.createdAt)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Section>
-        )}
       </div>
     </div>
   );

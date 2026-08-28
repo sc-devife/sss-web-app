@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
 import { Body, Caption } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { LoadingState, Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/cn";
 import type { ItineraryContentItem } from "@/lib/itinerary-content-items";
 import type { InclusionExclusionType } from "@/lib/inclusion-exclusions";
@@ -68,6 +68,7 @@ function TypeBlock({
   const [editName, setEditName] = useState("");
   const [editHtml, setEditHtml] = useState("");
   const [busy, setBusy] = useState(false);
+  const [removingUid, setRemovingUid] = useState<string | null>(null);
   const [error, setError] = useState<string | undefined>();
 
   function openLibraryPicker() {
@@ -135,11 +136,13 @@ function TypeBlock({
 
   async function handleRemove(uid: string) {
     setBusy(true);
+    setRemovingUid(uid);
     try {
       await dispatch(deleteItineraryContentItem({ uid, itineraryUid }));
       onChanged();
     } finally {
       setBusy(false);
+      setRemovingUid(null);
     }
   }
 
@@ -154,7 +157,14 @@ function TypeBlock({
             <Body className="font-medium">{item.name}</Body>
             <div className="flex gap-2">
               <button type="button" onClick={() => openEdit(item)} className="text-primary hover:underline">Edit</button>
-              <button type="button" onClick={() => handleRemove(item.uid)} disabled={busy} className="text-danger hover:underline">Remove</button>
+              <button
+                type="button"
+                onClick={() => handleRemove(item.uid)}
+                disabled={busy}
+                className="flex items-center gap-1.5 text-danger hover:underline disabled:no-underline"
+              >
+                {removingUid === item.uid ? <Spinner size="sm" tone="danger" /> : "Remove"}
+              </button>
             </div>
           </div>
           {editingUid === item.uid ? (

@@ -78,6 +78,15 @@ export const pattern =
     v.trim().length > 0 && !re.test(v.trim()) ? msg : undefined;
 
 export const emailField = (msg = validationMessages.email): FieldValidator => pattern(EMAIL_RE, msg);
+// PhoneInput always submits a full "+<code><digits>" E.164 string once a
+// country is selected in its flag dropdown — a non-empty value missing that
+// "+" prefix means no calling code was captured. Run this before
+// `mobileField()` so a missing code surfaces this specific message rather
+// than the generic "invalid phone number" one.
+export const countryCodeField =
+  (msg = "Country code is required"): FieldValidator =>
+  (v) =>
+    v.trim().length > 0 && !/^\+\d/.test(v.trim()) ? msg : undefined;
 // Real per-country length/format validation via libphonenumber-js's metadata
 // (through the react-phone-number-input re-export) — the PhoneInput
 // component always submits a full E.164 string (e.g. "+919876543213"), so

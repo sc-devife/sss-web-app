@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
@@ -375,7 +376,7 @@ export function QuotesPanel({
 
       {showForm && (
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded border border-border p-3">
-          <TextInput label="Valid until" type="date" value={form.validUntil} onChange={(e) => setForm({ validUntil: e.target.value })} />
+          <DatePicker label="Valid until" value={form.validUntil} onChange={(v) => setForm({ validUntil: v })} />
           <Button type="submit" size="sm" disabled={busy} loading={busy} loadingText="Saving…">Save quote</Button>
         </form>
       )}

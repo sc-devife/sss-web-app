@@ -30,6 +30,20 @@ export function formatDisplayDate(value: string | null | undefined): string | nu
   return `${day}-${month}-${year}`;
 }
 
+// "HH:mm" (24-hour, the shape TimePicker/native `type="time"` both use) ->
+// "h:mm AM/PM" for display.
+export function formatDisplayTime(value: string | null | undefined): string | null {
+  if (!value) return value ?? null;
+  const match = /^(\d{1,2}):(\d{2})/.exec(value.trim());
+  if (!match) return value;
+  const h24 = Number(match[1]);
+  const m = Number(match[2]);
+  if (Number.isNaN(h24) || Number.isNaN(m)) return value;
+  const period = h24 < 12 ? "AM" : "PM";
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
 // "2h ago" / "Just now" style — for presence-style timestamps (last active,
 // last synced) where a relative sense of recency matters more than the exact
 // moment. Falls back to the absolute date once it's more than a week old,

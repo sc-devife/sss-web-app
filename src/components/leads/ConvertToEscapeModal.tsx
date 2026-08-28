@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import type { Lead } from "@/lib/leads";
@@ -12,6 +13,7 @@ import type { Traveller } from "@/lib/travellers";
 import type { EscapePoint } from "@/lib/escape-points";
 import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import { countryCodeField, runValidators } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { convertLeadToEscape } from "@/features/leads/leadsThunks";
 import { selectConvertStatus, selectConvertError } from "@/features/leads/leadsSelectors";
@@ -50,6 +52,7 @@ export function ConvertToEscapeModal({
   const [addingTraveller, setAddingTraveller] = useState(false);
   const [newTraveller, setNewTraveller] = useState({ firstName: "", lastName: "", email: "", phone: "" });
   const [savingTraveller, setSavingTraveller] = useState(false);
+  const [travellerPhoneError, setTravellerPhoneError] = useState<string | undefined>();
   const [formError, setFormError] = useState<string | undefined>();
 
   useEffect(() => {
@@ -61,6 +64,12 @@ export function ConvertToEscapeModal({
 
   async function handleAddTraveller() {
     if (!newTraveller.firstName.trim()) return;
+    const nextPhoneError = runValidators(newTraveller.phone, [countryCodeField()]);
+    if (nextPhoneError) {
+      setTravellerPhoneError(nextPhoneError);
+      return;
+    }
+    setTravellerPhoneError(undefined);
     setSavingTraveller(true);
     setFormError(undefined);
     try {
@@ -121,7 +130,7 @@ export function ConvertToEscapeModal({
         />
 
         <div className="grid grid-cols-2 gap-4">
-          <TextInput label="Start date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+          <DatePicker label="Start date" value={startDate} onChange={setStartDate} required />
           <TextInput label="Number of days" type="number" min={1} value={numberOfDays} onChange={(e) => setNumberOfDays(e.target.value)} required />
         </div>
 
@@ -142,11 +151,29 @@ export function ConvertToEscapeModal({
               <TextInput label="First name" value={newTraveller.firstName} onChange={(e) => setNewTraveller((t) => ({ ...t, firstName: e.target.value }))} required />
               <TextInput label="Last name" value={newTraveller.lastName} onChange={(e) => setNewTraveller((t) => ({ ...t, lastName: e.target.value }))} />
               <TextInput label="Email" type="email" value={newTraveller.email} onChange={(e) => setNewTraveller((t) => ({ ...t, email: e.target.value }))} />
-              <PhoneInput label="Phone" value={newTraveller.phone} onChange={(v) => setNewTraveller((t) => ({ ...t, phone: v }))} />
+              <PhoneInput
+                label="Phone"
+                value={newTraveller.phone}
+                onChange={(v) => {
+                  setNewTraveller((t) => ({ ...t, phone: v }));
+                  setTravellerPhoneError(undefined);
+                }}
+                error={travellerPhoneError}
+              />
             </div>
             <div className="flex gap-2">
               <Button type="button" size="sm" disabled={busy} onClick={handleAddTraveller}>Add traveller</Button>
-              <Button type="button" size="sm" variant="ghost" onClick={() => setAddingTraveller(false)}>Cancel</Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setAddingTraveller(false);
+                  setTravellerPhoneError(undefined);
+                }}
+              >
+                Cancel
+              </Button>
             </div>
           </div>
         )}

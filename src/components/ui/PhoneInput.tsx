@@ -3,6 +3,7 @@
 import { useId } from "react";
 import RPNInput, { type Country, getCountries, getCountryCallingCode } from "react-phone-number-input";
 import baseLabels from "react-phone-number-input/locale/en.json";
+import { CountrySelect } from "@/components/ui/CountrySelect";
 import { cn } from "@/lib/cn";
 
 // Augments the library's default "India" / "United States" country-select
@@ -63,15 +64,17 @@ export function PhoneInput({
       </label>
       <RPNInput
         id={inputId}
-        international
-        // The number field must hold only the local number — the calling
-        // code is picked exclusively via the country dropdown, never typed
-        // inline (confirmed live: without this, typing digits into the
-        // number field can get misparsed as a different country's calling
-        // code, e.g. "2025550123" silently becoming Egypt's +20 prefix).
-        countryCallingCodeEditable={false}
+        // `international={false}` (not the shorthand `international`/omitted)
+        // forces the number field to always render national-format digits
+        // only — the calling code is never part of its text, so it can't be
+        // typed inline or misparsed as a different country's prefix. The
+        // code is shown exclusively via the flag in the country dropdown,
+        // which is why that dropdown's trigger doesn't repeat it as text.
+        international={false}
+        addInternationalOption={false}
         defaultCountry={defaultCountry}
         labels={labelsWithDialCode}
+        countrySelectComponent={CountrySelect}
         value={value || undefined}
         onChange={(v) => onChange(v ?? "")}
         disabled={disabled}

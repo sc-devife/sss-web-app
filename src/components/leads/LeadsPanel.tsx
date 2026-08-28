@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
@@ -11,6 +12,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Body } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import { formatDisplayDate } from "@/lib/date";
+import { countryCodeField, runValidators } from "@/lib/validators";
 import type { Lead } from "@/lib/leads";
 import type { EscapePoint } from "@/lib/escape-points";
 import { LeadDetailModal } from "@/components/leads/LeadDetailModal";
@@ -75,6 +77,8 @@ export function LeadsPanel({
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [validationError, setValidationError] = useState<string | undefined>();
+  const [phoneError, setPhoneError] = useState<string | undefined>();
+  const [agencyPhoneError, setAgencyPhoneError] = useState<string | undefined>();
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   useEffect(() => {
@@ -88,6 +92,8 @@ export function LeadsPanel({
   function openCreate() {
     setForm(emptyForm);
     setValidationError(undefined);
+    setPhoneError(undefined);
+    setAgencyPhoneError(undefined);
     dispatch(resetCreateStatus());
     setModalOpen(true);
   }
@@ -108,11 +114,18 @@ export function LeadsPanel({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const err = validate();
-    if (err) {
+    const nextPhoneError = runValidators(form.phone, [countryCodeField()]);
+    const nextAgencyPhoneError =
+      form.sourceType === "AGENCY" ? runValidators(form.agencyContactPhone, [countryCodeField()]) : undefined;
+    if (err || nextPhoneError || nextAgencyPhoneError) {
       setValidationError(err);
+      setPhoneError(nextPhoneError);
+      setAgencyPhoneError(nextAgencyPhoneError);
       return;
     }
     setValidationError(undefined);
+    setPhoneError(undefined);
+    setAgencyPhoneError(undefined);
     try {
       await dispatch(
         createLead({
@@ -230,7 +243,15 @@ export function LeadsPanel({
           <TextInput label="Name" value={form.name} onChange={(e) => update("name", e.target.value)} required />
           <div className="grid grid-cols-2 gap-4">
             <TextInput label="Email" type="email" value={form.email} onChange={(e) => update("email", e.target.value)} />
-            <PhoneInput label="Phone" value={form.phone} onChange={(v) => update("phone", v)} />
+            <PhoneInput
+              label="Phone"
+              value={form.phone}
+              onChange={(v) => {
+                update("phone", v);
+                setPhoneError(undefined);
+              }}
+              error={phoneError}
+            />
           </div>
           <p className="-mt-2 text-xs text-muted-foreground">Email or phone is required (at least one).</p>
 
@@ -251,7 +272,7 @@ export function LeadsPanel({
                 <p className="mt-1 text-xs text-muted-foreground">{durationInfoMessage}</p>
               ) : null}
             </div>
-            <TextInput label="Travel date" type="date" value={form.travelDate} onChange={(e) => update("travelDate", e.target.value)} />
+            <DatePicker label="Travel date" value={form.travelDate} onChange={(v) => update("travelDate", v)} />
             <TextInput label="Budget" type="number" min={0} value={form.budget} onChange={(e) => update("budget", e.target.value)} />
             <TextInput label="Origin city" value={form.originCity} onChange={(e) => update("originCity", e.target.value)} placeholder="e.g. Mumbai" />
             <Select
@@ -308,7 +329,15 @@ export function LeadsPanel({
               <div className="grid grid-cols-2 gap-3">
                 <TextInput label="Agency contact name" value={form.agencyContactName} onChange={(e) => update("agencyContactName", e.target.value)} required />
                 <TextInput label="Contact email" type="email" value={form.agencyContactEmail} onChange={(e) => update("agencyContactEmail", e.target.value)} />
-                <PhoneInput label="Contact phone" value={form.agencyContactPhone} onChange={(v) => update("agencyContactPhone", v)} />
+                <PhoneInput
+                  label="Contact phone"
+                  value={form.agencyContactPhone}
+                  onChange={(v) => {
+                    update("agencyContactPhone", v);
+                    setAgencyPhoneError(undefined);
+                  }}
+                  error={agencyPhoneError}
+                />
                 <TextInput label="Billing name" value={form.agencyBillingName} onChange={(e) => update("agencyBillingName", e.target.value)} placeholder="Defaults to contact name" />
               </div>
             )}

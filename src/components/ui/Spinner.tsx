@@ -9,10 +9,13 @@ const sizeClasses: Record<"sm" | "md" | "lg", string> = {
 
 // "current" inherits the surrounding text color — needed inside solid-fill
 // buttons (e.g. primary/danger variants), where the default border-primary
-// would blend into a bg-primary background and become invisible.
-const toneClasses: Record<"primary" | "current", string> = {
+// would blend into a bg-primary background and become invisible. "danger"
+// is for a pending state on a destructive action (e.g. a Remove button)
+// where the spinner itself should read as danger-toned, not just inherit.
+const toneClasses: Record<"primary" | "current" | "danger", string> = {
   primary: "border-primary",
   current: "border-current",
+  danger: "border-danger",
 };
 
 export function Spinner({
@@ -21,7 +24,7 @@ export function Spinner({
   className,
 }: {
   size?: "sm" | "md" | "lg";
-  tone?: "primary" | "current";
+  tone?: "primary" | "current" | "danger";
   className?: string;
 }) {
   return (

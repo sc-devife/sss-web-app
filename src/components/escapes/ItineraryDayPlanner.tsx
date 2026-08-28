@@ -5,6 +5,7 @@ import { IoChevronUpOutline, IoChevronDownOutline, IoPencilOutline, IoTrashOutli
 import { PiPlusFill, PiPlusBold } from "react-icons/pi";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import { TimePicker } from "@/components/ui/TimePicker";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
 import { Body, Caption } from "@/components/ui/Typography";
@@ -407,11 +408,10 @@ export function ItineraryDayPlanner({
       <Modal open={!!modal} onClose={() => setModal(null)} title="Edit planning item">
         {modal && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            <TextInput
+            <TimePicker
               label="Start time"
-              type="time"
               value={modal.startTime}
-              onChange={(e) => setModal((m) => (m ? { ...m, startTime: e.target.value } : m))}
+              onChange={(v) => setModal((m) => (m ? { ...m, startTime: v } : m))}
             />
             <Select
               label="Type"

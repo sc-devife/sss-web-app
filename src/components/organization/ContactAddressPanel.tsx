@@ -13,7 +13,7 @@ import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
-import { emailField, mobileField, required, runValidators } from "@/lib/validators";
+import { countryCodeField, emailField, mobileField, required, runValidators } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchAddresses, createAddress, updateAddress, deleteAddress } from "@/features/addresses/addressesThunks";
 import { selectAddresses, selectAddressesStatus, selectAddressesError } from "@/features/addresses/addressesSelectors";
@@ -77,7 +77,7 @@ function validate(v: FormState): Record<string, string> {
   err("state", [required("State is required")]);
   err("country", [required("Country is required")]);
   err("zipCode", [required("Pincode is required")]);
-  err("contactNumber", [mobileField()]); // optional, format-checked only if filled
+  err("contactNumber", [countryCodeField(), mobileField()]); // optional, format-checked only if filled
   err("contactEmail", [emailField()]); // optional, format-checked only if filled
   if (v.addressTypes.length === 0) errors.addressTypes = "Select at least one";
   return errors;

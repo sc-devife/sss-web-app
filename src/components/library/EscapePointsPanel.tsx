@@ -27,6 +27,7 @@ import { selectEscapePoints, selectEscapePointsStatus, selectEscapePointsError }
 import { FaPlus } from "react-icons/fa";
 import { LuImport } from "react-icons/lu";
 import { FaLocationDot } from "react-icons/fa6";
+import { CiImageOff } from "react-icons/ci";
 
 const emptyForm = {
   id: "",
@@ -282,15 +283,11 @@ export function EscapePointsPanel({ locations }: { locations: LibraryLocation[] 
                   )}
                 </div>
               ) : (
-                <div className="flex h-56 items-center justify-center rounded-xl border border-border bg-muted/30">
-                  <div className="text-center">
-                    <div className="text-sm font-medium text-muted-foreground">
-                      No image available
-                    </div>
-                    <div className="mt-1 text-xs text-muted-foreground/70">
-                      No images uploaded
-                    </div>
+                <div className="flex h-56 flex-col items-center justify-center gap-3 rounded-xl border border-border bg-muted/30">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <CiImageOff size={22} />
                   </div>
+                  <div className="text-sm font-medium text-muted-foreground">No image available</div>
                 </div>
               )}
 

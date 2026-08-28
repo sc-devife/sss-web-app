@@ -22,7 +22,7 @@ import { LoadingState } from "@/components/ui/Spinner";
 import { resolveFileUrl } from "@/lib/files";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
-import { mobileField, required, runValidators } from "@/lib/validators";
+import { countryCodeField, mobileField, required, runValidators } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchMyProfile, updateMyProfile, uploadProfilePicture } from "@/features/profile/profileThunks";
 import {
@@ -44,7 +44,7 @@ function validate(v: ProfileFormState): Record<string, string> {
   };
   err("firstName", [required("First name is required")]);
   err("lastName", [required("Last name is required")]);
-  err("mobileNumber", [mobileField()]); // optional field, format-checked only if filled
+  err("mobileNumber", [countryCodeField(), mobileField()]); // optional field, format-checked only if filled
   return errors;
 }
 

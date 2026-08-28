@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { TextInput } from "@/components/ui/TextInput";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { Select } from "@/components/ui/Select";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Modal } from "@/components/ui/Modal";
@@ -21,6 +22,7 @@ import { DealPanel } from "@/components/escapes/DealPanel";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { formatDisplayDateTime } from "@/lib/date";
 import { formatAuditActor, formatAuditChange } from "@/lib/audit";
+import { countryCodeField, runValidators } from "@/lib/validators";
 import { fetchCountryOptions } from "@/lib/reference-data-client";
 import type { ReferenceOption } from "@/lib/reference-data-client";
 import type { Hotel } from "@/lib/hotels";
@@ -81,6 +83,7 @@ function TravellerFormFields({
   setEmail,
   phone,
   setPhone,
+  phoneError,
   dateOfBirth,
   setDateOfBirth,
   age,
@@ -107,6 +110,7 @@ function TravellerFormFields({
   setEmail: (v: string) => void;
   phone: string;
   setPhone: (v: string) => void;
+  phoneError?: string;
   dateOfBirth: string;
   setDateOfBirth: (v: string) => void;
   age: string;
@@ -129,8 +133,8 @@ function TravellerFormFields({
         <TextInput label="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
         <TextInput label="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
         <TextInput label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <PhoneInput label="Phone" value={phone} onChange={setPhone} defaultCountry="IN" />
-        <TextInput label="Date of birth" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+        <PhoneInput label="Phone" value={phone} onChange={setPhone} defaultCountry="IN" error={phoneError} />
+        <DatePicker label="Date of birth" value={dateOfBirth} onChange={setDateOfBirth} />
         <TextInput label="Age" type="number" min={0} value={age} onChange={(e) => setAge(e.target.value)} />
         <TextInput label="Nationality" value={nationality} onChange={(e) => setNationality(e.target.value)} />
       </div>
@@ -139,7 +143,7 @@ function TravellerFormFields({
         <Caption className="font-medium text-foreground">Passport / travel document</Caption>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <TextInput label="Passport number" value={passportNumber} onChange={(e) => setPassportNumber(e.target.value)} />
-          <TextInput label="Passport expiry" type="date" value={passportExpiry} onChange={(e) => setPassportExpiry(e.target.value)} />
+          <DatePicker label="Passport expiry" value={passportExpiry} onChange={setPassportExpiry} />
           <div className="sm:col-span-2">
             <Select
               label="Issuing country"
@@ -184,6 +188,7 @@ function TravellerCard({
   const [passportIssuingCountry, setPassportIssuingCountry] = useState(traveller.passportIssuingCountry ?? "");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
+  const [phoneError, setPhoneError] = useState<string | undefined>();
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -220,12 +225,19 @@ function TravellerCard({
     setPassportExpiry(traveller.passportExpiry ?? "");
     setPassportIssuingCountry(traveller.passportIssuingCountry ?? "");
     setFormError(undefined);
+    setPhoneError(undefined);
     setEditing(true);
   }
 
   async function handleSave(e: FormEvent) {
     e.preventDefault();
     if (!firstName.trim()) return;
+    const nextPhoneError = runValidators(phone, [countryCodeField()]);
+    if (nextPhoneError) {
+      setPhoneError(nextPhoneError);
+      return;
+    }
+    setPhoneError(undefined);
     setSaving(true);
     setFormError(undefined);
     try {
@@ -272,7 +284,11 @@ function TravellerCard({
             email={email}
             setEmail={setEmail}
             phone={phone}
-            setPhone={setPhone}
+            setPhone={(v) => {
+              setPhone(v);
+              setPhoneError(undefined);
+            }}
+            phoneError={phoneError}
             dateOfBirth={dateOfBirth}
             setDateOfBirth={setDateOfBirth}
             age={age}
@@ -395,6 +411,7 @@ function AddTravellerForm({
   const [passportIssuingCountry, setPassportIssuingCountry] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
+  const [phoneError, setPhoneError] = useState<string | undefined>();
 
   function reset() {
     setType("");
@@ -410,11 +427,18 @@ function AddTravellerForm({
     setPassportExpiry("");
     setPassportIssuingCountry("");
     setFormError(undefined);
+    setPhoneError(undefined);
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!firstName.trim()) return;
+    const nextPhoneError = runValidators(phone, [countryCodeField()]);
+    if (nextPhoneError) {
+      setPhoneError(nextPhoneError);
+      return;
+    }
+    setPhoneError(undefined);
     setSaving(true);
     setFormError(undefined);
     try {
@@ -473,7 +497,11 @@ function AddTravellerForm({
           email={email}
           setEmail={setEmail}
           phone={phone}
-          setPhone={setPhone}
+          setPhone={(v) => {
+            setPhone(v);
+            setPhoneError(undefined);
+          }}
+          phoneError={phoneError}
           dateOfBirth={dateOfBirth}
           setDateOfBirth={setDateOfBirth}
           age={age}
@@ -571,7 +599,7 @@ export function EscapeWorkspaceTabs({
   // issuing-country picker.
   const [countryOptions, setCountryOptions] = useState<ReferenceOption[]>([]);
   useEffect(() => {
-    fetchCountryOptions().then(setCountryOptions).catch(() => {});
+    fetchCountryOptions().then(setCountryOptions).catch(() => { });
   }, []);
 
   function refreshItineraries() {

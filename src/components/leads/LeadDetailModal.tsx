@@ -5,7 +5,7 @@ import { Modal } from "@/components/ui/Modal";
 import { formatDisplayDate, formatDisplayDateTime } from "@/lib/date";
 import { formatAuditActor, formatAuditChange } from "@/lib/audit";
 import { Button } from "@/components/ui/Button";
-import { TextInput } from "@/components/ui/TextInput";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
@@ -196,12 +196,10 @@ export function LeadDetailModal({
             <div className="flex flex-col gap-2 rounded border border-border p-3">
               <Caption>Follow-up due</Caption>
               <div className="flex gap-2">
-                <TextInput
-                  label=""
-                  type="date"
+                <DatePicker
                   className="flex-1"
                   value={followUpDate}
-                  onChange={(e) => setFollowUpDate(e.target.value)}
+                  onChange={setFollowUpDate}
                 />
                 <Button size="sm" disabled={busy} onClick={handleSetFollowUpDate}>Save</Button>
               </div>

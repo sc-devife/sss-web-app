@@ -5,6 +5,7 @@ import { PiMagnifyingGlassBold, PiMountainsFill, PiPencilSimpleFill, PiCheckBold
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import { TimePicker } from "@/components/ui/TimePicker";
 import { Caption } from "@/components/ui/Typography";
 import { cn } from "@/lib/cn";
 import type { Activity } from "@/lib/activities";
@@ -200,7 +201,7 @@ export function AddActivityModal({
             <span className="shrink-0 text-xs font-medium text-primary">Change</span>
           </button>
 
-          <TextInput label="Start time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+          <TimePicker label="Start time" value={startTime} onChange={setStartTime} />
           <TextInput
             label="Notes"
             value={notes}

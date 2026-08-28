@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { Alert } from "@/components/ui/Alert";
 import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
@@ -146,19 +147,17 @@ export function PriorityCalendarPanel() {
                 required
                 placeholder="e.g. Diwali 2026"
               />
-              <TextInput
+              <DatePicker
                 label="Start date"
-                type="date"
                 value={form.startDate}
-                onChange={(e) => update("startDate", e.target.value)}
+                onChange={(v) => update("startDate", v)}
                 error={errors.startDate}
                 required
               />
-              <TextInput
+              <DatePicker
                 label="End date"
-                type="date"
                 value={form.endDate}
-                onChange={(e) => update("endDate", e.target.value)}
+                onChange={(v) => update("endDate", v)}
                 error={errors.endDate}
                 required
               />

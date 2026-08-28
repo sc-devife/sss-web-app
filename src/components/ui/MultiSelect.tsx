@@ -1,4 +1,5 @@
-import { useId } from "react";
+import { useId, useState } from "react";
+import { IoSearchOutline } from "react-icons/io5";
 import { cn } from "@/lib/cn";
 import type { SelectOption } from "@/components/ui/Select";
 
@@ -11,11 +12,21 @@ interface MultiSelectProps {
   className?: string;
 }
 
+// Long lists get a search box to narrow the visible chips; short ones don't
+// need the extra chrome — same threshold as Select's dropdown search.
+const SEARCH_THRESHOLD = 7;
+
 // A checkbox list rather than a native <select multiple> — much easier to
 // scan and touch-target on mobile, and it's the same interaction pattern
 // Section 12 asks for on small screens anyway.
 export function MultiSelect({ label, options, value, onChange, error, className }: MultiSelectProps) {
   const groupId = useId();
+  const [search, setSearch] = useState("");
+
+  const showSearch = options.length > SEARCH_THRESHOLD;
+  const filteredOptions = showSearch && search.trim()
+    ? options.filter((o) => o.label.toLowerCase().includes(search.trim().toLowerCase()))
+    : options;
 
   function toggle(optValue: string) {
     if (value.includes(optValue)) {
@@ -27,7 +38,20 @@ export function MultiSelect({ label, options, value, onChange, error, className 
 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <span className="text-sm font-medium text-foreground">{label}</span>
+      <span id={groupId} className="text-sm font-medium text-foreground">{label}</span>
+
+      {showSearch && (
+        <div className="relative max-w-[240px]">
+          <IoSearchOutline className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="h-8 w-full rounded border border-transparent bg-[#f8f8fa] pl-7 pr-3 text-sm text-foreground placeholder:text-[#9da3af] transition-colors focus-visible:border-primary/40 focus-visible:bg-background focus-visible:outline-none"
+          />
+        </div>
+      )}
+
       <div
         role="group"
         aria-labelledby={groupId}
@@ -36,7 +60,7 @@ export function MultiSelect({ label, options, value, onChange, error, className 
           error && "border-danger",
         )}
       >
-        {options.map((opt) => {
+        {filteredOptions.map((opt) => {
           const checked = value.includes(opt.value);
           return (
             <label
@@ -59,6 +83,9 @@ export function MultiSelect({ label, options, value, onChange, error, className 
           );
         })}
         {options.length === 0 && <span className="text-sm text-muted-foreground">No options available</span>}
+        {options.length > 0 && filteredOptions.length === 0 && (
+          <span className="text-sm text-muted-foreground">No options match &quot;{search}&quot;</span>
+        )}
       </div>
       {error && <span className="text-xs text-danger">{error}</span>}
     </div>

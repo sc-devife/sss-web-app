@@ -11,7 +11,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Caption } from "@/components/ui/Typography";
 import { resolveFileUrl } from "@/lib/files";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
-import { mobileField, runValidators } from "@/lib/validators";
+import { countryCodeField, mobileField, runValidators } from "@/lib/validators";
 import { useAppDispatch } from "@/store/hooks";
 import { updateOrganization, uploadOrganizationLogo, fetchMyOrganization } from "@/features/organization/organizationThunks";
 import type { Organization, LogoShape } from "@/features/organization/types";
@@ -74,6 +74,7 @@ export function OrganizationForm({
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [error, setError] = useState<string>();
   const [phoneError, setPhoneError] = useState<string>();
+  const [whatsappError, setWhatsappError] = useState<string>();
   const [saved, setSaved] = useState(false);
 
   async function handleLogoUpload(file: File) {
@@ -112,12 +113,15 @@ export function OrganizationForm({
     setError(undefined);
     setSaved(false);
 
-    const nextPhoneError = runValidators(supportPhone, [mobileField()]);
-    if (nextPhoneError) {
+    const nextPhoneError = runValidators(supportPhone, [countryCodeField(), mobileField()]);
+    const nextWhatsappError = runValidators(whatsappNumber, [countryCodeField(), mobileField()]);
+    if (nextPhoneError || nextWhatsappError) {
       setPhoneError(nextPhoneError);
+      setWhatsappError(nextWhatsappError);
       return;
     }
     setPhoneError(undefined);
+    setWhatsappError(undefined);
     setSaving(true);
 
     try {
@@ -290,7 +294,15 @@ export function OrganizationForm({
 
             <TextInput label="Business Email" type="email" value={businessEmail} onChange={(e) => setBusinessEmail(e.target.value)} />
             <TextInput label="Website" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://" />
-            <PhoneInput label="WhatsApp Number" value={whatsappNumber} onChange={setWhatsappNumber} />
+            <PhoneInput
+              label="WhatsApp Number"
+              value={whatsappNumber}
+              onChange={(v) => {
+                setWhatsappNumber(v);
+                setWhatsappError(undefined);
+              }}
+              error={whatsappError}
+            />
             <TextInput label="Tagline" value={tagline} onChange={(e) => setTagline(e.target.value)} placeholder="A short line shown on customer-facing quotes" />
 
             <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-3">
