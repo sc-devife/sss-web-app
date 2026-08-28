@@ -8,7 +8,7 @@ import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
 import { Body, Caption } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { LoadingState, Spinner } from "@/components/ui/Spinner";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import type { Hotel } from "@/lib/hotels";
 import type { Activity } from "@/lib/activities";
@@ -120,15 +120,21 @@ function TimelineRow({
         >
           <IoPencilOutline size={14} />
         </button>
-        <button
-          type="button"
-          onClick={onDelete}
-          disabled={deleting}
-          className="rounded p-1 text-muted-foreground hover:bg-danger/10 hover:text-danger disabled:opacity-50"
-          aria-label="Remove"
-        >
-          <IoTrashOutline size={14} />
-        </button>
+        {deleting ? (
+          <span aria-label="Removing" title="Removing…" className="flex items-center justify-center p-1">
+            <Spinner size="sm" />
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={deleting}
+            className="rounded p-1 text-muted-foreground hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+            aria-label="Remove"
+          >
+            <IoTrashOutline size={14} />
+          </button>
+        )}
       </div>
     </div>
   );

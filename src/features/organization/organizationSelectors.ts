@@ -5,5 +5,7 @@ export const selectOrganizationStatus = (state: RootState) => state.organization
 export const selectOrganizationError = (state: RootState) => state.organization.error;
 export const selectOrganizationSaveStatus = (state: RootState) => state.organization.saveStatus;
 export const selectOrganizationSaveError = (state: RootState) => state.organization.saveError;
+export const selectOrganizationSettingsSaveStatus = (state: RootState) => state.organization.settingsSaveStatus;
+export const selectOrganizationSettingsSaveError = (state: RootState) => state.organization.settingsSaveError;
 export const selectOrganizationLogoUploadStatus = (state: RootState) => state.organization.logoUploadStatus;
 export const selectOrganizationLogoUploadError = (state: RootState) => state.organization.logoUploadError;

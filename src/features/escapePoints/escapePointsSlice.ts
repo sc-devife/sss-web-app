@@ -1,6 +1,6 @@
 import { createSlice, isAnyOf } from "@reduxjs/toolkit";
 import type { EscapePoint } from "@/features/escapePoints/types";
-import { fetchEscapePoints, createEscapePoint, updateEscapePoint, deleteEscapePoint } from "@/features/escapePoints/escapePointsThunks";
+import { fetchEscapePoints, createEscapePoint, updateEscapePoint, updateEscapePointLocations, deleteEscapePoint } from "@/features/escapePoints/escapePointsThunks";
 
 type RequestStatus = "idle" | "loading" | "succeeded" | "failed";
 
@@ -62,14 +62,14 @@ const escapePointsSlice = createSlice({
         state.deleteError = action.payload ?? "Failed to archive escape point";
       })
 
-      .addMatcher(isAnyOf(createEscapePoint.pending, updateEscapePoint.pending), (state) => {
+      .addMatcher(isAnyOf(createEscapePoint.pending, updateEscapePoint.pending, updateEscapePointLocations.pending), (state) => {
         state.saveStatus = "loading";
         state.saveError = null;
       })
-      .addMatcher(isAnyOf(createEscapePoint.fulfilled, updateEscapePoint.fulfilled), (state) => {
+      .addMatcher(isAnyOf(createEscapePoint.fulfilled, updateEscapePoint.fulfilled, updateEscapePointLocations.fulfilled), (state) => {
         state.saveStatus = "succeeded";
       })
-      .addMatcher(isAnyOf(createEscapePoint.rejected, updateEscapePoint.rejected), (state, action) => {
+      .addMatcher(isAnyOf(createEscapePoint.rejected, updateEscapePoint.rejected, updateEscapePointLocations.rejected), (state, action) => {
         state.saveStatus = "failed";
         state.saveError = action.payload ?? "Failed to save escape point";
       });

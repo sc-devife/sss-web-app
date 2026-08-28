@@ -31,7 +31,7 @@ export function InvoiceTemplatesPanel({ organization }: { organization: Organiza
     setBusy(templateId);
     setFormError(undefined);
     try {
-      await dispatch(setDefaultInvoiceTemplate({ organizationUid: organization.uid, templateId })).unwrap();
+      await dispatch(setDefaultInvoiceTemplate({ templateId })).unwrap();
       router.refresh();
     } catch (err) {
       setFormError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to set default template"));
@@ -53,7 +53,7 @@ export function InvoiceTemplatesPanel({ organization }: { organization: Organiza
       {formError && <p className="text-sm text-danger">{formError}</p>}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {templates.map((template) => {
-          const isDefault = organization.invoice_template_id === template.id;
+          const isDefault = organization.settings?.invoice_template_id === template.id;
           return (
             <Card key={template.id} className="flex flex-col gap-3">
               <div className="h-24 rounded" style={{ backgroundColor: template.accentColor }} />

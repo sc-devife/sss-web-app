@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Body, Caption } from "@/components/ui/Typography";
 import type { AppUser, AppRole } from "@/lib/users";
+import type { Team } from "@/lib/teams";
 import { formatRelativeTime } from "@/lib/date";
-import { PiUsersThree, PiPencilSimple, PiWarningCircleFill, PiLockKeyOpenBold } from "react-icons/pi";
+import { PiUsersThree, PiUsersFourFill, PiPencilSimple, PiWarningCircleFill, PiLockKeyOpenBold } from "react-icons/pi";
 import { useAppDispatch } from "@/store/hooks";
-import { updateUserRoles, setUserBlockedStatus, fetchUsers } from "@/features/users/usersThunks";
+import { updateUserRoles, updateUserTeams, setUserBlockedStatus, fetchUsers } from "@/features/users/usersThunks";
 import { ImBlocked } from "react-icons/im";
 
 function RoleEditor({ user, roles, onClose }: { user: AppUser; roles: AppRole[]; onClose: () => void }) {
@@ -67,9 +68,69 @@ function RoleEditor({ user, roles, onClose }: { user: AppUser; roles: AppRole[];
   );
 }
 
-export function UsersList({ users, roles }: { users: AppUser[]; roles: AppRole[] }) {
+function TeamEditor({ user, teams, onClose }: { user: AppUser; teams: Team[]; onClose: () => void }) {
+  const dispatch = useAppDispatch();
+  const [selected, setSelected] = useState(new Set(user.teams.map((t) => t.uid)));
+  const [saving, setSaving] = useState(false);
+
+  function toggle(uid: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(uid)) next.delete(uid);
+      else next.add(uid);
+      return next;
+    });
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await dispatch(updateUserTeams({ uid: user.uid, teams: Array.from(selected) }));
+      dispatch(fetchUsers());
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 space-y-3 border-t border-border pt-4">
+      {teams.length === 0 ? (
+        <Caption className="text-muted-foreground">No teams yet — create one under Organization → Teams.</Caption>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {teams.map((team) => (
+            <label
+              key={team.uid}
+              className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 transition-all hover:border-primary hover:bg-primary/5"
+            >
+              <input
+                type="checkbox"
+                checked={selected.has(team.uid)}
+                onChange={() => toggle(team.uid)}
+                className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+              />
+              <span className="text-sm font-medium text-foreground">{team.name}</span>
+            </label>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-2 pt-2">
+        <Button size="sm" onClick={handleSave} disabled={saving}>
+          {saving ? "Saving…" : "Save teams"}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function UsersList({ users, roles, teams }: { users: AppUser[]; roles: AppRole[]; teams: Team[] }) {
   const dispatch = useAppDispatch();
   const [editingUid, setEditingUid] = useState<string | null>(null);
+  const [editingTeamsUid, setEditingTeamsUid] = useState<string | null>(null);
   const [updatingUid, setUpdatingUid] = useState<string | null>(null);
 
   async function toggleBlocked(user: AppUser) {
@@ -141,6 +202,11 @@ export function UsersList({ users, roles }: { users: AppUser[]; roles: AppRole[]
                   </Badge>
                 ))
               )}
+              {user.teams.map((t) => (
+                <Badge key={t.uid} tone="neutral" icon={PiUsersFourFill}>
+                  {t.name}
+                </Badge>
+              ))}
             </div>
 
             <div className="flex justify-end gap-2 sm:justify-start">
@@ -152,6 +218,15 @@ export function UsersList({ users, roles }: { users: AppUser[]; roles: AppRole[]
                 title="Edit roles"
               >
                 <PiPencilSimple className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setEditingTeamsUid(editingTeamsUid === user.uid ? null : user.uid)}
+                aria-label="Edit teams"
+                title="Edit teams"
+              >
+                <PiUsersFourFill className="h-4 w-4" />
               </Button>
               <Button
                 size="sm"
@@ -168,6 +243,7 @@ export function UsersList({ users, roles }: { users: AppUser[]; roles: AppRole[]
           </div>
 
           {editingUid === user.uid && <RoleEditor user={user} roles={roles} onClose={() => setEditingUid(null)} />}
+          {editingTeamsUid === user.uid && <TeamEditor user={user} teams={teams} onClose={() => setEditingTeamsUid(null)} />}
         </div>
       ))}
     </div>

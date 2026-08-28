@@ -1,13 +1,19 @@
 import { backendJson } from "@/lib/backend";
-import { resolveCountryLabel, resolveRegionLabel, resolveCityLabel } from "@/lib/reference-data";
+
+export interface EscapePointLocationRef {
+  uid: string;
+  city: string;
+  state: string | null;
+  country: string | null;
+  displayName: string;
+  isPrimary: boolean;
+}
 
 export interface EscapePoint {
+  seqp: number;
   uid: string;
   id: string;
   name: string;
-  countryCode: string | null;
-  regionCode: string | null;
-  cityCode: string | null;
   description: string | null;
   images: string[] | null;
   status: string | null;
@@ -16,18 +22,14 @@ export interface EscapePoint {
   nearest_airport: string | null;
   tags: string | null;
   remarks: string | null;
-  // Resolved server-side (Section 14: code is stored, label is resolved at
-  // render time) so the client list/table never needs the reference-data
-  // library itself — see EscapePointsPanel for why that matters.
+  // Which cities (Location) this destination covers, and locationLabel — the
+  // primary one's displayName (or the first linked one if none is marked
+  // primary) — both resolved server-side from the EscapePoint <-> Location
+  // relation, not from reference-data code lookups.
+  locations: EscapePointLocationRef[];
   locationLabel: string;
 }
 
 export async function getEscapePoints(): Promise<EscapePoint[]> {
-  const escapePoints = await backendJson<Omit<EscapePoint, "locationLabel">[]>("/library/escapepoints/all");
-  return escapePoints.map((d) => ({
-    ...d,
-    locationLabel: [resolveCityLabel(d.cityCode), resolveRegionLabel(d.countryCode, d.regionCode), resolveCountryLabel(d.countryCode)]
-      .filter(Boolean)
-      .join(", "),
-  }));
+  return backendJson<EscapePoint[]>("/library/escapepoints/all");
 }

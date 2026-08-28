@@ -13,9 +13,9 @@ export interface Address {
   contactNumber: string | null;
   contactEmail: string | null;
   addressTypes: AddressType[] | null;
-  pan: string | null;
   gstin: string | null;
   tripDestination: string | null;
+  primaryAddress: boolean | null;
 }
 
 export async function getAddresses(orgId: string): Promise<Address[]> {

@@ -16,6 +16,7 @@ export interface BankAccount {
   accountName: string;
   currency: string;
   status: "active" | "inactive";
+  isDefault: boolean;
 }
 
 export async function getBankAccounts(orgId: string): Promise<BankAccount[]> {

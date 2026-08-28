@@ -1,6 +1,6 @@
-import type { AppUser, PendingInvitation, AppRole } from "@/lib/users";
+import type { AppUser, AppUserTeamRef, PendingInvitation, AppRole } from "@/lib/users";
 
-export type { AppUser, PendingInvitation, AppRole };
+export type { AppUser, AppUserTeamRef, PendingInvitation, AppRole };
 
 export interface InviteUserPayload {
   email: string;
@@ -10,6 +10,11 @@ export interface InviteUserPayload {
 export interface UpdateUserRolesPayload {
   uid: string;
   roles: string[];
+}
+
+export interface UpdateUserTeamsPayload {
+  uid: string;
+  teams: string[];
 }
 
 export interface SetUserBlockedPayload {

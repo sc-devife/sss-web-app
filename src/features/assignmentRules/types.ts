@@ -9,6 +9,5 @@ export interface PriorityCalendarEntryPayload {
 }
 
 export interface ToggleAutoAssignPayload {
-  organizationUid: string;
   enabled: boolean;
 }

@@ -7,6 +7,7 @@ import type {
   PendingInvitation,
   InviteUserPayload,
   UpdateUserRolesPayload,
+  UpdateUserTeamsPayload,
   SetUserBlockedPayload,
   UpdateAgentAssignmentSettingsPayload,
 } from "@/features/users/types";
@@ -90,6 +91,17 @@ export const updateUserRoles = createAsyncThunk<void, UpdateUserRolesPayload, { 
       await clientApi.put(`/users/${uid}/roles`, { roles });
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to update roles"));
+    }
+  },
+);
+
+export const updateUserTeams = createAsyncThunk<void, UpdateUserTeamsPayload, { rejectValue: string }>(
+  "users/updateUserTeams",
+  async ({ uid, teams }, { rejectWithValue }) => {
+    try {
+      await clientApi.put(`/users/${uid}/teams`, { teams });
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to update teams"));
     }
   },
 );

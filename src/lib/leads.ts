@@ -1,5 +1,22 @@
 import { backendJson } from "@/lib/backend";
 
+export type LeadSourceType = "DIRECT" | "AGENCY";
+
+export interface LeadAgencyDetails {
+  contactName: string;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  pincode: string | null;
+  streetAddress: string | null;
+  locality: string | null;
+  landmark: string | null;
+  billingName: string | null;
+  additionalBillingDetails: string | null;
+}
+
 export interface Lead {
   uid: string;
   name: string;
@@ -11,15 +28,17 @@ export interface Lead {
   durationDays: number | null;
   budget: number | null;
   status: string;
-  sourceCode: string | null;
+  // DIRECT | AGENCY — sourceChannel only applies when DIRECT, agencyDetails
+  // only when AGENCY. Leads are never individually assigned — assignment
+  // lives on Escape once converted (see lib/escapes.ts).
+  sourceType: LeadSourceType | null;
+  sourceChannel: string | null;
   sourceRefId: string | null;
+  agencyDetails: LeadAgencyDetails | null;
   escapePointId: string | null;
   isPriority: boolean | null;
   originCity: string | null;
   travelType: string | null;
-  assignedToUserId: number | null;
-  assignedToUserName: string | null;
-  assignmentReason: string | null;
   followUpDueDate: string | null;
   notes: string | null;
   createdAt: string | null;

@@ -21,6 +21,8 @@ import { DealPanel } from "@/components/escapes/DealPanel";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { formatDisplayDateTime } from "@/lib/date";
 import { formatAuditActor, formatAuditChange } from "@/lib/audit";
+import { fetchCountryOptions } from "@/lib/reference-data-client";
+import type { ReferenceOption } from "@/lib/reference-data-client";
 import type { Hotel } from "@/lib/hotels";
 import type { Activity } from "@/lib/activities";
 import type { Transport } from "@/lib/transports";
@@ -60,7 +62,15 @@ const SALUTATION_OPTIONS = [
   { value: "Dr", label: "Dr" },
 ];
 
+const TRAVELLER_TYPE_OPTIONS = [
+  { value: "ADULT", label: "Adult" },
+  { value: "CHILD", label: "Child" },
+  { value: "INFANT", label: "Infant" },
+];
+
 function TravellerFormFields({
+  type,
+  setType,
   salutation,
   setSalutation,
   firstName,
@@ -73,9 +83,20 @@ function TravellerFormFields({
   setPhone,
   dateOfBirth,
   setDateOfBirth,
+  age,
+  setAge,
   nationality,
   setNationality,
+  passportNumber,
+  setPassportNumber,
+  passportExpiry,
+  setPassportExpiry,
+  passportIssuingCountry,
+  setPassportIssuingCountry,
+  countryOptions,
 }: {
+  type: string;
+  setType: (v: string) => void;
   salutation: string;
   setSalutation: (v: string) => void;
   firstName: string;
@@ -88,18 +109,48 @@ function TravellerFormFields({
   setPhone: (v: string) => void;
   dateOfBirth: string;
   setDateOfBirth: (v: string) => void;
+  age: string;
+  setAge: (v: string) => void;
   nationality: string;
   setNationality: (v: string) => void;
+  passportNumber: string;
+  setPassportNumber: (v: string) => void;
+  passportExpiry: string;
+  setPassportExpiry: (v: string) => void;
+  passportIssuingCountry: string;
+  setPassportIssuingCountry: (v: string) => void;
+  countryOptions: ReferenceOption[];
 }) {
   return (
-    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-      <Select label="Salutation" options={SALUTATION_OPTIONS} value={salutation} onChange={(e) => setSalutation(e.target.value)} placeholder="—" />
-      <TextInput label="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-      <TextInput label="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-      <TextInput label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-      <PhoneInput label="Phone" value={phone} onChange={setPhone} defaultCountry="IN" />
-      <TextInput label="Date of birth" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
-      <TextInput label="Nationality" value={nationality} onChange={(e) => setNationality(e.target.value)} />
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <Select label="Type" options={TRAVELLER_TYPE_OPTIONS} value={type} onChange={(e) => setType(e.target.value)} placeholder="—" />
+        <Select label="Salutation" options={SALUTATION_OPTIONS} value={salutation} onChange={(e) => setSalutation(e.target.value)} placeholder="—" />
+        <TextInput label="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+        <TextInput label="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+        <TextInput label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <PhoneInput label="Phone" value={phone} onChange={setPhone} defaultCountry="IN" />
+        <TextInput label="Date of birth" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+        <TextInput label="Age" type="number" min={0} value={age} onChange={(e) => setAge(e.target.value)} />
+        <TextInput label="Nationality" value={nationality} onChange={(e) => setNationality(e.target.value)} />
+      </div>
+
+      <div className="flex flex-col gap-2 border-t border-border pt-3">
+        <Caption className="font-medium text-foreground">Passport / travel document</Caption>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <TextInput label="Passport number" value={passportNumber} onChange={(e) => setPassportNumber(e.target.value)} />
+          <TextInput label="Passport expiry" type="date" value={passportExpiry} onChange={(e) => setPassportExpiry(e.target.value)} />
+          <div className="sm:col-span-2">
+            <Select
+              label="Issuing country"
+              options={countryOptions.map((c) => ({ value: c.code, label: c.label }))}
+              value={passportIssuingCountry}
+              onChange={(e) => setPassportIssuingCountry(e.target.value)}
+              placeholder="Select a country"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -108,22 +159,29 @@ function TravellerCard({
   escapeUid,
   traveller,
   isPrimary,
+  countryOptions,
   onUpdated,
 }: {
   escapeUid: string;
   traveller: Traveller;
   isPrimary: boolean;
+  countryOptions: ReferenceOption[];
   onUpdated: () => void;
 }) {
   const dispatch = useAppDispatch();
   const [editing, setEditing] = useState(false);
+  const [type, setType] = useState(traveller.type ?? "");
   const [salutation, setSalutation] = useState(traveller.salutation ?? "");
   const [firstName, setFirstName] = useState(traveller.firstName);
   const [lastName, setLastName] = useState(traveller.lastName ?? "");
   const [email, setEmail] = useState(traveller.email ?? "");
   const [phone, setPhone] = useState(traveller.phone ?? "");
   const [dateOfBirth, setDateOfBirth] = useState(traveller.dateOfBirth ?? "");
+  const [age, setAge] = useState(traveller.age != null ? String(traveller.age) : "");
   const [nationality, setNationality] = useState(traveller.nationality ?? "");
+  const [passportNumber, setPassportNumber] = useState(traveller.passportNumber ?? "");
+  const [passportExpiry, setPassportExpiry] = useState(traveller.passportExpiry ?? "");
+  const [passportIssuingCountry, setPassportIssuingCountry] = useState(traveller.passportIssuingCountry ?? "");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
 
@@ -149,13 +207,18 @@ function TravellerCard({
   }
 
   function startEdit() {
+    setType(traveller.type ?? "");
     setSalutation(traveller.salutation ?? "");
     setFirstName(traveller.firstName);
     setLastName(traveller.lastName ?? "");
     setEmail(traveller.email ?? "");
     setPhone(traveller.phone ?? "");
     setDateOfBirth(traveller.dateOfBirth ?? "");
+    setAge(traveller.age != null ? String(traveller.age) : "");
     setNationality(traveller.nationality ?? "");
+    setPassportNumber(traveller.passportNumber ?? "");
+    setPassportExpiry(traveller.passportExpiry ?? "");
+    setPassportIssuingCountry(traveller.passportIssuingCountry ?? "");
     setFormError(undefined);
     setEditing(true);
   }
@@ -169,13 +232,18 @@ function TravellerCard({
       await dispatch(
         updateTraveller({
           travellerUid: traveller.uid,
+          type: type || undefined,
           salutation: salutation || undefined,
           firstName: firstName.trim(),
           lastName: lastName.trim() || undefined,
           email: email.trim() || undefined,
           phone: phone.trim() || undefined,
           dateOfBirth: dateOfBirth || undefined,
+          age: age ? Number(age) : undefined,
           nationality: nationality.trim() || undefined,
+          passportNumber: passportNumber.trim() || undefined,
+          passportExpiry: passportExpiry || undefined,
+          passportIssuingCountry: passportIssuingCountry || undefined,
         }),
       ).unwrap();
       dispatch(fetchEscapeById(escapeUid));
@@ -193,6 +261,8 @@ function TravellerCard({
       <Card>
         <form onSubmit={handleSave} className="flex flex-col gap-2">
           <TravellerFormFields
+            type={type}
+            setType={setType}
             salutation={salutation}
             setSalutation={setSalutation}
             firstName={firstName}
@@ -205,8 +275,17 @@ function TravellerCard({
             setPhone={setPhone}
             dateOfBirth={dateOfBirth}
             setDateOfBirth={setDateOfBirth}
+            age={age}
+            setAge={setAge}
             nationality={nationality}
             setNationality={setNationality}
+            passportNumber={passportNumber}
+            setPassportNumber={setPassportNumber}
+            passportExpiry={passportExpiry}
+            setPassportExpiry={setPassportExpiry}
+            passportIssuingCountry={passportIssuingCountry}
+            setPassportIssuingCountry={setPassportIssuingCountry}
+            countryOptions={countryOptions}
           />
           {formError && <p className="text-xs text-danger">{formError}</p>}
           <div className="flex gap-1.5">
@@ -222,12 +301,15 @@ function TravellerCard({
     );
   }
 
+  const typeLabel = TRAVELLER_TYPE_OPTIONS.find((t) => t.value === traveller.type)?.label;
+
   return (
     <Card variant="elevated" className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <Avatar name={name} />
           <span className="truncate text-sm font-semibold text-foreground">{name}</span>
+          {typeLabel && <Badge tone="neutral">{typeLabel}</Badge>}
           {isPrimary && (
             <Badge tone="success" icon={IoCheckmarkCircle}>
               Primary
@@ -289,32 +371,44 @@ function TravellerCard({
 function AddTravellerForm({
   escapeUid,
   atCapacity,
+  countryOptions,
   onAdded,
 }: {
   escapeUid: string;
   atCapacity: boolean;
+  countryOptions: ReferenceOption[];
   onAdded: () => void;
 }) {
   const dispatch = useAppDispatch();
   const [open, setOpen] = useState(false);
+  const [type, setType] = useState("");
   const [salutation, setSalutation] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
+  const [age, setAge] = useState("");
   const [nationality, setNationality] = useState("");
+  const [passportNumber, setPassportNumber] = useState("");
+  const [passportExpiry, setPassportExpiry] = useState("");
+  const [passportIssuingCountry, setPassportIssuingCountry] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
 
   function reset() {
+    setType("");
     setSalutation("");
     setFirstName("");
     setLastName("");
     setEmail("");
     setPhone("");
     setDateOfBirth("");
+    setAge("");
     setNationality("");
+    setPassportNumber("");
+    setPassportExpiry("");
+    setPassportIssuingCountry("");
     setFormError(undefined);
   }
 
@@ -327,13 +421,18 @@ function AddTravellerForm({
       await dispatch(
         addEscapeTraveller({
           escapeUid,
+          type: type || undefined,
           salutation: salutation || undefined,
           firstName: firstName.trim(),
           lastName: lastName.trim() || undefined,
           email: email.trim() || undefined,
           phone: phone.trim() || undefined,
           dateOfBirth: dateOfBirth || undefined,
+          age: age ? Number(age) : undefined,
           nationality: nationality.trim() || undefined,
+          passportNumber: passportNumber.trim() || undefined,
+          passportExpiry: passportExpiry || undefined,
+          passportIssuingCountry: passportIssuingCountry || undefined,
         }),
       ).unwrap();
       dispatch(fetchEscapeById(escapeUid));
@@ -363,6 +462,8 @@ function AddTravellerForm({
     <Card>
       <form onSubmit={handleSubmit} className="flex flex-col gap-2">
         <TravellerFormFields
+          type={type}
+          setType={setType}
           salutation={salutation}
           setSalutation={setSalutation}
           firstName={firstName}
@@ -375,8 +476,17 @@ function AddTravellerForm({
           setPhone={setPhone}
           dateOfBirth={dateOfBirth}
           setDateOfBirth={setDateOfBirth}
+          age={age}
+          setAge={setAge}
           nationality={nationality}
           setNationality={setNationality}
+          passportNumber={passportNumber}
+          setPassportNumber={setPassportNumber}
+          passportExpiry={passportExpiry}
+          setPassportExpiry={setPassportExpiry}
+          passportIssuingCountry={passportIssuingCountry}
+          setPassportIssuingCountry={setPassportIssuingCountry}
+          countryOptions={countryOptions}
         />
         {formError && <p className="text-xs text-danger">{formError}</p>}
         <div className="flex gap-1.5">
@@ -455,6 +565,14 @@ export function EscapeWorkspaceTabs({
   const dispatch = useAppDispatch();
   const itineraries = useAppSelector(selectItineraries);
   const itinerariesStatus = useAppSelector(selectItinerariesStatus);
+
+  // Fetched once here (rather than per-traveller-form) since every traveller
+  // add/edit form on this tab needs the same country list for the passport
+  // issuing-country picker.
+  const [countryOptions, setCountryOptions] = useState<ReferenceOption[]>([]);
+  useEffect(() => {
+    fetchCountryOptions().then(setCountryOptions).catch(() => {});
+  }, []);
 
   function refreshItineraries() {
     dispatch(fetchItinerariesForEscape(escapeUid));
@@ -547,7 +665,7 @@ export function EscapeWorkspaceTabs({
                     title="No travellers yet"
                     description="Traveller details will appear here once they're added to this escape."
                   />
-                  <AddTravellerForm escapeUid={escapeUid} atCapacity={atCapacity} onAdded={() => { }} />
+                  <AddTravellerForm escapeUid={escapeUid} atCapacity={atCapacity} countryOptions={countryOptions} onAdded={() => { }} />
                 </div>
               );
             }
@@ -566,11 +684,12 @@ export function EscapeWorkspaceTabs({
                       escapeUid={escapeUid}
                       traveller={traveller}
                       isPrimary={traveller.uid === primaryTravellerUid}
+                      countryOptions={countryOptions}
                       onUpdated={() => { }}
                     />
                   ))}
                 </div>
-                <AddTravellerForm escapeUid={escapeUid} atCapacity={atCapacity} onAdded={() => { }} />
+                <AddTravellerForm escapeUid={escapeUid} atCapacity={atCapacity} countryOptions={countryOptions} onAdded={() => { }} />
               </div>
             );
           }

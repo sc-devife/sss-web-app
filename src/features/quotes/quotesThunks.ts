@@ -93,6 +93,28 @@ export const setQuoteTemplate = createAsyncThunk<void, SetQuoteTemplatePayload, 
   },
 );
 
+export const markQuoteSent = createAsyncThunk<void, QuoteUidWithItinerary, { rejectValue: string }>(
+  "quotes/markQuoteSent",
+  async ({ uid }, { rejectWithValue }) => {
+    try {
+      await clientApi.post(`/quotes/${uid}/mark-sent`);
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to mark quote as sent"));
+    }
+  },
+);
+
+export const markQuoteRejected = createAsyncThunk<void, QuoteUidWithItinerary, { rejectValue: string }>(
+  "quotes/markQuoteRejected",
+  async ({ uid }, { rejectWithValue }) => {
+    try {
+      await clientApi.post(`/quotes/${uid}/mark-rejected`);
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to mark quote as rejected"));
+    }
+  },
+);
+
 export const computeQuote = createAsyncThunk<ComputeQuoteResult, ComputeQuotePayload, { rejectValue: string }>(
   "quotes/computeQuote",
   async ({ uid, taxProfileUid, discountType, discountValue, displayCurrencyCode, fxRateSnapshot }, { rejectWithValue }) => {

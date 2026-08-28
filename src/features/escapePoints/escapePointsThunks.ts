@@ -1,7 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
-import type { EscapePoint, EscapePointPayload, UpdateEscapePointPayload } from "@/features/escapePoints/types";
+import type { EscapePoint, EscapePointPayload, UpdateEscapePointPayload, UpdateEscapePointLocationsPayload } from "@/features/escapePoints/types";
 
 // GET here returns EscapePoint[] already enriched with locationLabel by the
 // route handler (see api/library/escape-points/route.ts) — the resolver
@@ -36,6 +36,17 @@ export const updateEscapePoint = createAsyncThunk<void, UpdateEscapePointPayload
       await clientApi.put(`/library/escape-points/${uid}`, payload);
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to save escape point"));
+    }
+  },
+);
+
+export const updateEscapePointLocations = createAsyncThunk<void, UpdateEscapePointLocationsPayload, { rejectValue: string }>(
+  "escapePoints/updateEscapePointLocations",
+  async ({ uid, locationUids, primaryLocationUid }, { rejectWithValue }) => {
+    try {
+      await clientApi.put(`/library/escape-points/${uid}/locations`, { locationUids, primaryLocationUid });
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to update locations"));
     }
   },
 );

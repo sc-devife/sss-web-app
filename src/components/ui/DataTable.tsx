@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import { IoChevronUp, IoChevronDown, IoSearchOutline } from "react-icons/io5";
 import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui/Button";
+import { RowContextMenu, type RowMenuAction } from "@/components/ui/RowContextMenu";
 
 export interface DataTableColumn<T> {
   key: string;
@@ -21,7 +22,21 @@ interface DataTableProps<T> {
   searchPlaceholder?: string;
   emptyMessage?: string;
   actions?: (row: T) => ReactNode;
+  /** Also doubles as the row's "View" action — fires on row click (but not on
+   * a click that originated from an interactive element inside the row). */
   onRowClick?: (row: T) => void;
+  /** Right-click context menu items for a row, reusing the same handlers as
+   * the `actions` buttons. Return an empty array (or omit the prop) to let
+   * the browser's native context menu show instead. */
+  rowMenuActions?: (row: T) => RowMenuAction[];
+  /** Small header line in the context menu identifying which row it applies to. */
+  getRowLabel?: (row: T) => string;
+}
+
+const INTERACTIVE_SELECTOR = 'button, a, input, select, textarea, [role="button"], [data-no-row-click]';
+
+function isFromInteractiveElement(e: MouseEvent) {
+  return (e.target as HTMLElement).closest?.(INTERACTIVE_SELECTOR) != null;
 }
 
 type SortDir = "asc" | "desc";
@@ -39,11 +54,14 @@ export function DataTable<T>({
   emptyMessage = "Nothing here yet.",
   actions,
   onRowClick,
+  rowMenuActions,
+  getRowLabel,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [page, setPage] = useState(1);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; row: T } | null>(null);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return rows;
@@ -79,6 +97,19 @@ export function DataTable<T>({
       setSortKey(col.key);
       setSortDir("asc");
     }
+  }
+
+  function handleRowClick(e: MouseEvent, row: T) {
+    if (!onRowClick || isFromInteractiveElement(e)) return;
+    onRowClick(row);
+  }
+
+  function handleRowContextMenu(e: MouseEvent, row: T) {
+    if (!rowMenuActions || isFromInteractiveElement(e)) return;
+    const menuActions = rowMenuActions(row);
+    if (menuActions.length === 0) return; // let the native context menu show
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, row });
   }
 
   return (
@@ -126,10 +157,18 @@ export function DataTable<T>({
                 {pageRows.map((row) => (
                   <tr
                     key={rowKey(row)}
-                    onClick={onRowClick ? () => onRowClick(row) : undefined}
+                    onClick={(e) => handleRowClick(e, row)}
+                    onContextMenu={(e) => handleRowContextMenu(e, row)}
+                    tabIndex={onRowClick ? 0 : undefined}
+                    onKeyDown={(e) => {
+                      if (onRowClick && (e.key === "Enter" || e.key === " ") && !isFromInteractiveElement(e as unknown as MouseEvent)) {
+                        e.preventDefault();
+                        onRowClick(row);
+                      }
+                    }}
                     className={cn(
                       "border-b border-[#f2f2f2] last:border-0 hover:bg-[#f2f2f5]",
-                      onRowClick && "cursor-pointer",
+                      onRowClick && "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:-outline-offset-2",
                     )}
                   >
                     {columns.map((col) => (
@@ -149,8 +188,19 @@ export function DataTable<T>({
             {pageRows.map((row) => (
               <div
                 key={rowKey(row)}
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
-                className={cn("rounded border border-border bg-card p-3", onRowClick && "cursor-pointer")}
+                onClick={(e) => handleRowClick(e, row)}
+                onContextMenu={(e) => handleRowContextMenu(e, row)}
+                tabIndex={onRowClick ? 0 : undefined}
+                onKeyDown={(e) => {
+                  if (onRowClick && (e.key === "Enter" || e.key === " ") && !isFromInteractiveElement(e as unknown as MouseEvent)) {
+                    e.preventDefault();
+                    onRowClick(row);
+                  }
+                }}
+                className={cn(
+                  "rounded border border-border bg-card p-3",
+                  onRowClick && "cursor-pointer hover:bg-[#f2f2f5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary",
+                )}
               >
                 {columns.map((col) => (
                   <div key={col.key} className="flex justify-between gap-3 py-0.5 text-sm">
@@ -167,16 +217,26 @@ export function DataTable<T>({
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>Page {clampedPage} of {totalPages}</span>
               <div className="flex gap-2">
-                <Button variant="secondary" size="sm" disabled={clampedPage <= 1} onClick={() => setPage((p) => p - 1)}>
+                <Button variant="secondary" size="sm" disabled={clampedPage <= 1} onClick={() => { setContextMenu(null); setPage((p) => p - 1); }}>
                   Previous
                 </Button>
-                <Button variant="secondary" size="sm" disabled={clampedPage >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                <Button variant="secondary" size="sm" disabled={clampedPage >= totalPages} onClick={() => { setContextMenu(null); setPage((p) => p + 1); }}>
                   Next
                 </Button>
               </div>
             </div>
           )}
         </>
+      )}
+
+      {contextMenu && rowMenuActions && (
+        <RowContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          label={getRowLabel?.(contextMenu.row)}
+          actions={rowMenuActions(contextMenu.row)}
+          onClose={() => setContextMenu(null)}
+        />
       )}
     </div>
   );

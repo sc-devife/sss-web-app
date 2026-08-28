@@ -28,6 +28,11 @@ export interface AddEscapeTravellerPayload {
   salutation?: string;
   dateOfBirth?: string;
   nationality?: string;
+  type?: string;
+  age?: number;
+  passportNumber?: string;
+  passportExpiry?: string;
+  passportIssuingCountry?: string;
 }
 
 export interface UpdateTravellerPayload {
@@ -39,6 +44,11 @@ export interface UpdateTravellerPayload {
   salutation?: string;
   dateOfBirth?: string;
   nationality?: string;
+  type?: string;
+  age?: number;
+  passportNumber?: string;
+  passportExpiry?: string;
+  passportIssuingCountry?: string;
 }
 
 export interface DeleteTravellerPayload {
@@ -47,8 +57,8 @@ export interface DeleteTravellerPayload {
 }
 
 // Deliberately minimal — the backend endpoint (PUT /escape/update/{id}) is a
-// full-object update, but travellerUids/escapePointUids/sourceUid are only
-// applied when present, so omitting them leaves those untouched. status is
+// full-object update, but travellerUids/escapePointUids are only applied
+// when present, so omitting them leaves those untouched. status is
 // ignored server-side by design (goes through the lifecycle endpoints
 // instead), so it's not part of this payload either.
 export interface UpdateEscapeDurationPayload {

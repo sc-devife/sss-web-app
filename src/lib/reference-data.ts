@@ -55,21 +55,6 @@ export function resolveCityLabel(cityCode: string | null | undefined): string {
   return cityCode ?? "";
 }
 
-// Combined "city, region, country" label from stored codes — same
-// composition getEscapePoints() (lib/escape-points.ts) uses, extracted here
-// so other server-only call sites (e.g. the /api/escapes/[id] route, and
-// lib/escapes.ts's own getEscapeById/getEscapes) can reuse it instead of
-// re-deriving it.
-export function resolveLocationLabel(codes: {
-  countryCode: string | null | undefined;
-  regionCode: string | null | undefined;
-  cityCode: string | null | undefined;
-}): string {
-  return [resolveCityLabel(codes.cityCode), resolveRegionLabel(codes.countryCode, codes.regionCode), resolveCountryLabel(codes.countryCode)]
-    .filter(Boolean)
-    .join(", ");
-}
-
 export function resolveCurrencyLabel(code: string | null | undefined): string {
   if (!code) return "";
   const entry = currencyCodes.code(code);

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Body } from "@/components/ui/Typography";
@@ -64,12 +63,10 @@ export function SyncHistoryModal({ channelCode, onClose }: { channelCode: string
           rows={attempts}
           rowKey={(a) => a.uid}
           emptyMessage="No sync activity yet."
-          actions={(a) =>
-            a.status === "failed" ? (
-              <Button size="sm" variant="secondary" disabled={resyncingId === a.uid} onClick={() => handleResync(a.uid)}>
-                {resyncingId === a.uid ? "Resyncing…" : "Resync"}
-              </Button>
-            ) : null
+          rowMenuActions={(a) =>
+            a.status === "failed"
+              ? [{ key: "resync", label: resyncingId === a.uid ? "Resyncing…" : "Resync", disabled: resyncingId === a.uid, onSelect: () => handleResync(a.uid) }]
+              : []
           }
         />
       )}

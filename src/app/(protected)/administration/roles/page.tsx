@@ -3,7 +3,7 @@ import { ComingSoon } from "@/components/ui/ComingSoon";
 import { findRouteWithGroup } from "@/lib/nav-config";
 
 export default function Page() {
-  const { route, groupTitle } = findRouteWithGroup("/organization/roles")!;
+  const { route, groupTitle } = findRouteWithGroup("/administration/roles")!;
   return (
     <Card variant="page" className="min-h-full">
       <ComingSoon title={route.title} section={groupTitle} icon={route.icon} />

@@ -8,12 +8,15 @@ import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import type { Deal } from "@/lib/deals";
+import type { Quote } from "@/lib/quotes";
+import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { formatDisplayDate, formatDisplayDateTime } from "@/lib/date";
 import { formatAuditActor } from "@/lib/audit";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchMilestonesForDeal, createPaymentMilestone, recordPayment, verifyPaymentMilestone, deletePaymentMilestone } from "@/features/paymentMilestones/paymentMilestonesThunks";
 import { selectPaymentMilestones, selectPaymentMilestonesStatus, selectPaymentMilestonesError } from "@/features/paymentMilestones/paymentMilestonesSelectors";
+import { cancelDeal } from "@/features/deals/dealsThunks";
 
 const emptyForm = { label: "", dueDate: "", amountUsd: "" };
 
@@ -29,9 +32,23 @@ export function DealPanel({ deal }: { deal: Deal }) {
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
 
+  const [quoteTotal, setQuoteTotal] = useState<number | null>(null);
+  const [showCancelForm, setShowCancelForm] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelError, setCancelError] = useState<string | undefined>();
+
+  const isCancelled = deal.status === "cancelled";
+
   useEffect(() => {
     dispatch(fetchMilestonesForDeal(deal.uid));
   }, [dispatch, deal.uid]);
+
+  useEffect(() => {
+    clientApi
+      .get<Quote>(`/quotes/${deal.acceptedQuoteUid}`)
+      .then((res) => setQuoteTotal(res.data.totalUsd))
+      .catch(() => setQuoteTotal(null));
+  }, [deal.acceptedQuoteUid]);
 
   function refresh() {
     dispatch(fetchMilestonesForDeal(deal.uid));
@@ -93,6 +110,28 @@ export function DealPanel({ deal }: { deal: Deal }) {
     }
   }
 
+  async function handleCancelDeal() {
+    if (!cancelReason.trim()) {
+      setCancelError("A cancellation reason is required");
+      return;
+    }
+    setBusy(true);
+    setCancelError(undefined);
+    try {
+      await dispatch(cancelDeal({ uid: deal.uid, reason: cancelReason.trim() })).unwrap();
+      setShowCancelForm(false);
+      setCancelReason("");
+    } catch (err) {
+      setCancelError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to cancel deal"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const milestonesTotal = milestones.reduce((sum, m) => sum + m.amountUsd, 0);
+  const milestonesMismatch =
+    quoteTotal != null && milestones.length > 0 && Math.abs(milestonesTotal - quoteTotal) > 0.01;
+
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -101,9 +140,44 @@ export function DealPanel({ deal }: { deal: Deal }) {
           <a href={`/deals/${deal.uid}/invoice-preview`} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline">
             Invoice preview
           </a>
-          <Badge tone="success">{deal.status}</Badge>
+          {!isCancelled && !showCancelForm && (
+            <button type="button" onClick={() => setShowCancelForm(true)} disabled={busy} className="text-sm text-danger hover:underline">
+              Cancel deal
+            </button>
+          )}
+          <Badge tone={isCancelled ? "danger" : "success"}>{deal.status}</Badge>
         </div>
       </div>
+
+      {showCancelForm && (
+        <div className="flex flex-col gap-2 rounded border border-danger/40 bg-danger/5 p-3">
+          <label htmlFor="deal-cancel-reason" className="text-sm font-medium text-foreground">
+            Reason for cancelling this deal
+          </label>
+          <textarea
+            id="deal-cancel-reason"
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            rows={2}
+            className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+          />
+          {cancelError && <p className="text-sm text-danger">{cancelError}</p>}
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="danger" disabled={busy} onClick={handleCancelDeal}>
+              Confirm cancellation
+            </Button>
+            <Button size="sm" variant="ghost" disabled={busy} onClick={() => { setShowCancelForm(false); setCancelReason(""); setCancelError(undefined); }}>
+              Back
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {milestonesMismatch && (
+        <div className="rounded border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
+          Payment milestones total ${milestonesTotal.toFixed(2)} USD, which doesn&apos;t match the accepted quote&apos;s total of ${quoteTotal!.toFixed(2)} USD.
+        </div>
+      )}
 
       {status === "loading" && milestones.length === 0 ? (
         <LoadingState />
@@ -148,7 +222,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
                   </span>
                   {m.status === "unverified" && (
                     <div className="flex items-center gap-2">
-                      <Button size="sm" disabled={busy} onClick={() => handleVerify(m.uid)}>
+                      <Button size="sm" disabled={busy || isCancelled} onClick={() => handleVerify(m.uid)}>
                         Verify payment
                       </Button>
                       <button type="button" onClick={() => handleDelete(m.uid)} disabled={busy} className="text-danger hover:underline">
@@ -167,8 +241,9 @@ export function DealPanel({ deal }: { deal: Deal }) {
                         value={payAmounts[m.uid] ?? ""}
                         onChange={(e) => setPayAmounts((p) => ({ ...p, [m.uid]: e.target.value }))}
                         className="w-28"
+                        disabled={isCancelled}
                       />
-                      <Button size="sm" disabled={busy} onClick={() => handleRecordPayment(m.uid)}>
+                      <Button size="sm" disabled={busy || isCancelled} onClick={() => handleRecordPayment(m.uid)}>
                         Record payment
                       </Button>
                       <button type="button" onClick={() => handleDelete(m.uid)} disabled={busy} className="text-danger hover:underline">
@@ -183,11 +258,13 @@ export function DealPanel({ deal }: { deal: Deal }) {
         </>
       )}
 
-      <div className="flex items-center border-t border-border pt-3">
-        <Button size="sm" variant="secondary" onClick={() => setShowForm((s) => !s)}>
-          {showForm ? "Cancel" : "Add milestone"}
-        </Button>
-      </div>
+      {!isCancelled && (
+        <div className="flex items-center border-t border-border pt-3">
+          <Button size="sm" variant="secondary" onClick={() => setShowForm((s) => !s)}>
+            {showForm ? "Cancel" : "Add milestone"}
+          </Button>
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={handleAdd} className="grid grid-cols-1 gap-3 rounded border border-border p-3 sm:grid-cols-3">

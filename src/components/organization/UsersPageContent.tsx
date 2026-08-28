@@ -18,6 +18,8 @@ import {
   selectPendingInvitations,
   selectPendingInvitationsStatus,
 } from "@/features/users/usersSelectors";
+import { fetchTeams } from "@/features/teams/teamsThunks";
+import { selectTeams } from "@/features/teams/teamsSelectors";
 
 // Owns the initial data fetch for the whole Users page — page.tsx is no
 // longer a Server Component fetching this data, so something client-side
@@ -29,6 +31,7 @@ export function UsersPageContent() {
   const usersStatus = useAppSelector(selectOrgUsersStatus);
   const usersError = useAppSelector(selectOrgUsersError);
   const roles = useAppSelector(selectAssignableRoles);
+  const teams = useAppSelector(selectTeams);
   const invitations = useAppSelector(selectPendingInvitations);
   const invitationsStatus = useAppSelector(selectPendingInvitationsStatus);
 
@@ -36,6 +39,7 @@ export function UsersPageContent() {
     dispatch(fetchUsers());
     dispatch(fetchAssignableRoles());
     dispatch(fetchPendingInvitations());
+    dispatch(fetchTeams());
   }, [dispatch]);
 
   return (
@@ -66,7 +70,7 @@ export function UsersPageContent() {
           ) : usersStatus === "failed" ? (
             <Body className="text-danger">{usersError}</Body>
           ) : (
-            <UsersList users={users} roles={roles} />
+            <UsersList users={users} roles={roles} teams={teams} />
           )}
         </div>
       </Card>

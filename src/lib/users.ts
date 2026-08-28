@@ -1,5 +1,11 @@
 import { backendJson } from "@/lib/backend";
 
+export interface AppUserTeamRef {
+  seqp: number;
+  uid: string;
+  name: string;
+}
+
 export interface AppUser {
   seqp: number;
   uid: string;
@@ -8,7 +14,10 @@ export interface AppUser {
   first_name: string;
   last_name: string;
   contact_number: string | null;
+  designation: string | null;
+  signature: string | null;
   roles: { role: { name: string; label: string } }[];
+  teams: AppUserTeamRef[];
   isSpecialist: boolean | null;
   specialistEscapePoints: number[] | null;
   maxConcurrentAssignments: number | null;

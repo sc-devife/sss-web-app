@@ -12,15 +12,17 @@ import { BulkImportModal } from "@/components/library/BulkImportModal";
 import { Alert } from "@/components/ui/Alert";
 import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
+import { MultiSelect } from "@/components/ui/MultiSelect";
 import { resolveFileUrl } from "@/lib/files";
 import type { EscapePoint } from "@/lib/escape-points";
+import type { LibraryLocation } from "@/lib/locations";
+import { fetchCurrencyOptions } from "@/lib/reference-data-client";
 import type { ReferenceOption } from "@/lib/reference-data";
-import { fetchCountryOptions, fetchRegionOptions, fetchCityOptions, fetchCurrencyOptions } from "@/lib/reference-data-client";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
 import { notDuplicate, required, runValidators } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchEscapePoints, createEscapePoint, updateEscapePoint, deleteEscapePoint } from "@/features/escapePoints/escapePointsThunks";
+import { fetchEscapePoints, createEscapePoint, updateEscapePoint, updateEscapePointLocations, deleteEscapePoint } from "@/features/escapePoints/escapePointsThunks";
 import { selectEscapePoints, selectEscapePointsStatus, selectEscapePointsError } from "@/features/escapePoints/escapePointsSelectors";
 import { FaPlus } from "react-icons/fa";
 import { LuImport } from "react-icons/lu";
@@ -29,9 +31,6 @@ import { FaLocationDot } from "react-icons/fa6";
 const emptyForm = {
   id: "",
   name: "",
-  countryCode: "",
-  regionCode: "",
-  cityCode: "",
   description: "",
   images: [] as string[],
   status: "active",
@@ -54,7 +53,7 @@ function validate(v: FormState, escapePoints: EscapePoint[], editingUid?: string
   return errors;
 }
 
-export function EscapePointsPanel() {
+export function EscapePointsPanel({ locations }: { locations: LibraryLocation[] }) {
   const dispatch = useAppDispatch();
   const escapePoints = useAppSelector(selectEscapePoints);
   const status = useAppSelector(selectEscapePointsStatus);
@@ -71,30 +70,55 @@ export function EscapePointsPanel() {
   const [formError, setFormError] = useState<string | undefined>();
   const [deletingUid, setDeletingUid] = useState<string | null>(null);
 
-  const [countryOptions, setCountryOptions] = useState<ReferenceOption[]>([]);
-  const [regionOptions, setRegionOptions] = useState<ReferenceOption[]>([]);
-  const [cityOptions, setCityOptions] = useState<ReferenceOption[]>([]);
   const [currencyOptions, setCurrencyOptions] = useState<ReferenceOption[]>([]);
+
+  // Managing which cities a destination covers is a separate action from
+  // editing its own fields — a distinct endpoint (PUT {uid}/locations),
+  // same "separate editor" pattern as Users' role/team editors.
+  const [managingLocations, setManagingLocations] = useState<EscapePoint | null>(null);
+  const [selectedLocationUids, setSelectedLocationUids] = useState<string[]>([]);
+  const [primaryLocationUid, setPrimaryLocationUid] = useState("");
+  const [savingLocations, setSavingLocations] = useState(false);
+  const [locationsError, setLocationsError] = useState<string | undefined>();
 
   useEffect(() => {
     dispatch(fetchEscapePoints());
   }, [dispatch]);
 
   useEffect(() => {
-    fetchCountryOptions().then(setCountryOptions);
     fetchCurrencyOptions().then(setCurrencyOptions);
   }, []);
 
-  useEffect(() => {
-    fetchRegionOptions(form.countryCode).then(setRegionOptions);
-  }, [form.countryCode]);
-
-  useEffect(() => {
-    fetchCityOptions(form.countryCode, form.regionCode).then(setCityOptions);
-  }, [form.countryCode, form.regionCode]);
-
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function openLocations(escapePoint: EscapePoint) {
+    setManagingLocations(escapePoint);
+    setSelectedLocationUids(escapePoint.locations.map((l) => l.uid));
+    setPrimaryLocationUid(escapePoint.locations.find((l) => l.isPrimary)?.uid ?? "");
+    setLocationsError(undefined);
+  }
+
+  async function handleSaveLocations() {
+    if (!managingLocations) return;
+    setSavingLocations(true);
+    setLocationsError(undefined);
+    try {
+      await dispatch(
+        updateEscapePointLocations({
+          uid: managingLocations.uid,
+          locationUids: selectedLocationUids,
+          primaryLocationUid: primaryLocationUid || null,
+        }),
+      ).unwrap();
+      dispatch(fetchEscapePoints());
+      setManagingLocations(null);
+    } catch (err) {
+      setLocationsError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to save locations"));
+    } finally {
+      setSavingLocations(false);
+    }
   }
 
   function openCreate() {
@@ -110,9 +134,6 @@ export function EscapePointsPanel() {
     const snapshot: FormState = {
       id: escapePoint.id,
       name: escapePoint.name,
-      countryCode: escapePoint.countryCode ?? "",
-      regionCode: escapePoint.regionCode ?? "",
-      cityCode: escapePoint.cityCode ?? "",
       description: escapePoint.description ?? "",
       images: escapePoint.images ?? [],
       status: escapePoint.status ?? "active",
@@ -224,12 +245,13 @@ export function EscapePointsPanel() {
           rowKey={(d) => d.uid}
           searchPlaceholder="Search escape points…"
           emptyMessage="No escape points yet — add your first one."
-          actions={(d) => (
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" size="sm" onClick={() => openEdit(d)}>Edit</Button>
-              <Button variant="danger" size="sm" disabled={deletingUid === d.uid} onClick={() => handleDelete(d)}>Archive</Button>
-            </div>
-          )}
+          onRowClick={(d) => setViewing(d)}
+          getRowLabel={(d) => d.name}
+          rowMenuActions={(d) => [
+            { key: "edit", label: "Edit", onSelect: () => openEdit(d) },
+            { key: "locations", label: "Locations", onSelect: () => openLocations(d) },
+            { key: "archive", label: "Archive", tone: "danger", disabled: deletingUid === d.uid, onSelect: () => handleDelete(d) },
+          ]}
         />
       )}
 
@@ -308,6 +330,15 @@ export function EscapePointsPanel() {
                     {viewing.locationLabel || "No location available"}
                   </Body>
                 </div>
+                {viewing.locations.length > 1 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {viewing.locations.map((l) => (
+                      <Badge key={l.uid} tone={l.isPrimary ? "success" : "neutral"}>
+                        {l.city}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Description */}
@@ -461,29 +492,11 @@ export function EscapePointsPanel() {
               required
             />
 
-            <Select
-              label="Country"
-              options={countryOptions.map((c) => ({ value: c.code, label: c.label }))}
-              value={form.countryCode}
-              onChange={(e) => { update("countryCode", e.target.value); update("regionCode", ""); update("cityCode", ""); }}
-              placeholder="Select a country"
-            />
-            <Select
-              label="Region / State"
-              options={regionOptions.map((r) => ({ value: r.code, label: r.label }))}
-              value={form.regionCode}
-              onChange={(e) => { update("regionCode", e.target.value); update("cityCode", ""); }}
-              placeholder="Select a region"
-              disabled={!form.countryCode}
-            />
-            <Select
-              label="City"
-              options={cityOptions.map((c) => ({ value: c.code, label: c.label }))}
-              value={form.cityCode}
-              onChange={(e) => update("cityCode", e.target.value)}
-              placeholder="Select a city"
-              disabled={!form.regionCode}
-            />
+            {!editing && (
+              <Caption className="text-muted-foreground">
+                Which cities this destination covers can be set from the &quot;Locations&quot; action once it&apos;s created.
+              </Caption>
+            )}
 
             <div className="flex flex-col gap-1.5">
               <label htmlFor="description" className="text-sm font-medium text-foreground">Description</label>
@@ -544,6 +557,52 @@ export function EscapePointsPanel() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        open={!!managingLocations}
+        onClose={() => {
+          if (savingLocations) return;
+          setManagingLocations(null);
+        }}
+        title={managingLocations ? `Locations — ${managingLocations.name}` : "Locations"}
+      >
+        <div className="flex flex-col gap-4">
+          <fieldset disabled={savingLocations} className="contents">
+            <MultiSelect
+              label="Cities this destination covers"
+              options={locations.map((l) => ({ value: l.uid, label: l.displayName }))}
+              value={selectedLocationUids}
+              onChange={(next) => {
+                setSelectedLocationUids(next);
+                if (!next.includes(primaryLocationUid)) setPrimaryLocationUid("");
+              }}
+            />
+            <Select
+              label="Headline / display city"
+              options={locations.filter((l) => selectedLocationUids.includes(l.uid)).map((l) => ({ value: l.uid, label: l.displayName }))}
+              value={primaryLocationUid}
+              onChange={(e) => setPrimaryLocationUid(e.target.value)}
+              placeholder="No primary set"
+              disabled={selectedLocationUids.length === 0}
+            />
+          </fieldset>
+
+          {locationsError && (
+            <Alert tone="danger" autoClose={false}>
+              {locationsError}
+            </Alert>
+          )}
+
+          <div className="flex gap-2">
+            <Button type="button" disabled={savingLocations} loading={savingLocations} loadingText="Saving…" onClick={handleSaveLocations}>
+              Save locations
+            </Button>
+            <Button type="button" variant="ghost" disabled={savingLocations} onClick={() => setManagingLocations(null)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

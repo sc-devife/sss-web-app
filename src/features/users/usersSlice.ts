@@ -8,6 +8,7 @@ import {
   cancelInvitation,
   setUserBlockedStatus,
   updateUserRoles,
+  updateUserTeams,
   updateAgentAssignmentSettings,
 } from "@/features/users/usersThunks";
 
@@ -38,6 +39,9 @@ interface UsersState {
   rolesUpdateStatus: RequestStatus;
   rolesUpdateError: string | null;
 
+  teamsUpdateStatus: RequestStatus;
+  teamsUpdateError: string | null;
+
   assignmentSettingsStatus: RequestStatus;
   assignmentSettingsError: string | null;
 }
@@ -60,6 +64,8 @@ const initialState: UsersState = {
   blockError: null,
   rolesUpdateStatus: "idle",
   rolesUpdateError: null,
+  teamsUpdateStatus: "idle",
+  teamsUpdateError: null,
   assignmentSettingsStatus: "idle",
   assignmentSettingsError: null,
 };
@@ -160,6 +166,18 @@ const usersSlice = createSlice({
       .addCase(updateUserRoles.rejected, (state, action) => {
         state.rolesUpdateStatus = "failed";
         state.rolesUpdateError = action.payload ?? "Failed to update roles";
+      })
+
+      .addCase(updateUserTeams.pending, (state) => {
+        state.teamsUpdateStatus = "loading";
+        state.teamsUpdateError = null;
+      })
+      .addCase(updateUserTeams.fulfilled, (state) => {
+        state.teamsUpdateStatus = "succeeded";
+      })
+      .addCase(updateUserTeams.rejected, (state, action) => {
+        state.teamsUpdateStatus = "failed";
+        state.teamsUpdateError = action.payload ?? "Failed to update teams";
       })
 
       .addCase(updateAgentAssignmentSettings.pending, (state) => {

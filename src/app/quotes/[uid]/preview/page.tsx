@@ -26,7 +26,7 @@ export default async function QuotePreviewPage({ params }: { params: { uid: stri
 
   const template =
     templates.find((t) => t.id === quote.templateId) ??
-    templates.find((t) => t.id === organization.quote_template_id) ??
+    templates.find((t) => t.id === organization.settings?.quote_template_id) ??
     templates[0];
 
   const itemsByDay = items.reduce<Record<number, typeof items>>((acc, item) => {
@@ -67,7 +67,7 @@ export default async function QuotePreviewPage({ params }: { params: { uid: stri
 
         <div className="mb-8">
           <h1 className="text-xl font-semibold" style={{ color: isModern ? undefined : template.accentColor }}>
-            {itinerary.name}
+            {quote.name ?? itinerary.name}
           </h1>
           <p className="text-sm text-gray-600">
             {trip.escapePoints.map((d) => d.name).join(", ")}

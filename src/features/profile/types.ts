@@ -12,9 +12,12 @@ export interface MyProfile {
   last_name: string;
   contact_number: string | null;
   roles: MyProfileRole[];
+  teams: { seqp: number; uid: string; name: string }[];
   organizationName: string | null;
   organizationLogo: string | null;
   profile_picture: string | null;
+  designation: string | null;
+  signature: string | null;
 }
 
 export interface UpdateMyProfilePayload {
@@ -22,4 +25,6 @@ export interface UpdateMyProfilePayload {
   last_name: string;
   contact_number: string;
   profile_picture?: string | null;
+  designation?: string;
+  signature?: string;
 }

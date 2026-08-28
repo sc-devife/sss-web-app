@@ -204,12 +204,12 @@ export function ServiceProvidersPanel() {
           rowKey={(p) => p.uid}
           searchPlaceholder="Search service providers…"
           emptyMessage="No service providers yet — add your first one."
-          actions={(p) => (
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" size="sm" onClick={() => openEdit(p)}>Edit</Button>
-              <Button variant="danger" size="sm" disabled={deletingUid === p.uid} onClick={() => handleDelete(p)}>Archive</Button>
-            </div>
-          )}
+          onRowClick={(p) => openEdit(p)}
+          getRowLabel={(p) => p.name}
+          rowMenuActions={(p) => [
+            { key: "edit", label: "Edit", onSelect: () => openEdit(p) },
+            { key: "archive", label: "Archive", tone: "danger", disabled: deletingUid === p.uid, onSelect: () => handleDelete(p) },
+          ]}
         />
       )}
 

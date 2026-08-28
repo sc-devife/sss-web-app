@@ -12,9 +12,9 @@ export interface AddressPayload {
   contactNumber: string;
   contactEmail: string;
   addressTypes: AddressType[];
-  pan: string;
   gstin: string;
   tripDestination: string;
+  primaryAddress: boolean;
 }
 
 export interface CreateAddressPayload {

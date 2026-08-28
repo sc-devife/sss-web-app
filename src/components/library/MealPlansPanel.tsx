@@ -146,12 +146,12 @@ export function MealPlansPanel() {
           rowKey={(m) => m.uid}
           searchPlaceholder="Search meal plans…"
           emptyMessage="No meal plans yet — add your first one."
-          actions={(m) => (
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" size="sm" onClick={() => openEdit(m)}>Edit</Button>
-              <Button variant="danger" size="sm" disabled={deletingUid === m.uid} onClick={() => handleDelete(m)}>Delete</Button>
-            </div>
-          )}
+          onRowClick={(m) => openEdit(m)}
+          getRowLabel={(m) => m.name}
+          rowMenuActions={(m) => [
+            { key: "edit", label: "Edit", onSelect: () => openEdit(m) },
+            { key: "delete", label: "Delete", tone: "danger", disabled: deletingUid === m.uid, onSelect: () => handleDelete(m) },
+          ]}
         />
       )}
 

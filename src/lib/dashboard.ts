@@ -1,5 +1,4 @@
 import { backendJson } from "@/lib/backend";
-import type { Lead } from "@/lib/leads";
 import type { Escape } from "@/lib/escapes";
 import type { PaymentMilestone } from "@/lib/payment-milestones";
 
@@ -10,9 +9,10 @@ export interface DashboardOrgMetrics {
   revenuePipelineUsd: number;
 }
 
+// Leads have no per-user assignee (assignment happens once, on the Escape,
+// at conversion time), so there is no "myOpenLeads" here.
 export interface Dashboard {
   orgMetrics: DashboardOrgMetrics | null;
-  myOpenLeads: Lead[];
   myOpenEscapes: Escape[];
   myUpcomingPaymentMilestones: PaymentMilestone[];
 }

@@ -15,13 +15,13 @@ export const fetchInvoiceTemplates = createAsyncThunk<InvoiceTemplate[], void, {
   },
 );
 
-// See the equivalent comment in quoteTemplatesThunks.ts — mutates Organization,
-// not this module's own data.
+// See the equivalent comment in quoteTemplatesThunks.ts — mutates
+// OrganizationSettings, not this module's own data.
 export const setDefaultInvoiceTemplate = createAsyncThunk<void, SetDefaultInvoiceTemplatePayload, { rejectValue: string }>(
   "invoiceTemplates/setDefaultInvoiceTemplate",
-  async ({ organizationUid, templateId }, { rejectWithValue }) => {
+  async ({ templateId }, { rejectWithValue }) => {
     try {
-      await clientApi.put("/organizations", { uid: organizationUid, invoice_template_id: templateId });
+      await clientApi.put("/organizations/settings", { invoice_template_id: templateId });
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to set default template"));
     }

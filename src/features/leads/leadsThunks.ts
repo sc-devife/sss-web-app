@@ -6,7 +6,6 @@ import type {
   AuditLogEntry,
   CreateLeadPayload,
   LeadReasonActionPayload,
-  AssignLeadPayload,
   SetLeadFollowUpDueDatePayload,
   ConvertLeadToEscapePayload,
   ConvertLeadToEscapeResult,
@@ -85,17 +84,6 @@ export const applyLeadReasonAction = createAsyncThunk<void, LeadReasonActionPayl
   async ({ leadUid, action, reason }, { rejectWithValue }) => {
     try {
       await clientApi.post(`/leads/${leadUid}/actions/${action}`, { reason });
-    } catch (err) {
-      return rejectWithValue(extractErrorMessage(err, "Action failed"));
-    }
-  },
-);
-
-export const assignLead = createAsyncThunk<void, AssignLeadPayload, { rejectValue: string }>(
-  "leads/assignLead",
-  async ({ leadUid, userId, reason }, { rejectWithValue }) => {
-    try {
-      await clientApi.post(`/leads/${leadUid}/assign`, { userId, reason: reason || undefined });
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Action failed"));
     }

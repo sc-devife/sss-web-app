@@ -1,4 +1,6 @@
-export type { Lead, AuditLogEntry } from "@/lib/leads";
+import type { LeadAgencyDetails, LeadSourceType } from "@/lib/leads";
+
+export type { Lead, AuditLogEntry, LeadSourceType, LeadAgencyDetails } from "@/lib/leads";
 
 export interface CreateLeadPayload {
   name: string;
@@ -14,6 +16,9 @@ export interface CreateLeadPayload {
   travelType: string | null;
   isPriority: boolean;
   notes: string | null;
+  sourceType: LeadSourceType;
+  sourceChannel?: string | null;
+  agencyDetails?: LeadAgencyDetails | null;
 }
 
 export type LeadReasonAction = "disqualify" | "mark-lost" | "mark-duplicate";
@@ -22,12 +27,6 @@ export interface LeadReasonActionPayload {
   leadUid: string;
   action: LeadReasonAction;
   reason: string;
-}
-
-export interface AssignLeadPayload {
-  leadUid: string;
-  userId: number;
-  reason?: string;
 }
 
 export interface SetLeadFollowUpDueDatePayload {

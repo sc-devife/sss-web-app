@@ -19,9 +19,9 @@ export function AutoAssignTogglePanel({ organization }: { organization: Organiza
     setBusy(true);
     setError(undefined);
     try {
-      await dispatch(toggleAutoAssign({ organizationUid: organization.uid, enabled: next })).unwrap();
+      await dispatch(toggleAutoAssign({ enabled: next })).unwrap();
       // Organization isn't Redux-managed yet — router.refresh() re-runs the
-      // Server Component to pick up the new auto_assign_enabled value.
+      // Server Component to pick up the new settings.auto_assign_enabled value.
       router.refresh();
     } catch (err) {
       setError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to update setting"));
@@ -33,11 +33,11 @@ export function AutoAssignTogglePanel({ organization }: { organization: Organiza
   return (
     <Card className="flex items-center justify-between gap-4">
       <div>
-        <Body className="font-medium">Auto-assign new leads</Body>
+        <Body className="font-medium">Auto-assign new escapes</Body>
         <Caption>
-          {organization.auto_assign_enabled
-            ? "New leads are automatically assigned using the rules below."
-            : "New leads land in an unassigned queue for a Lead Assigner to handle manually."}
+          {organization.settings?.auto_assign_enabled
+            ? "When a lead is converted to an escape, it's automatically assigned using the rules below. Leads themselves are never individually assigned — any eligible user can work any lead."
+            : "Converted escapes land unassigned for a Lead Assigner to handle manually."}
         </Caption>
         {error && <p className="text-sm text-danger">{error}</p>}
       </div>
@@ -45,7 +45,7 @@ export function AutoAssignTogglePanel({ organization }: { organization: Organiza
         <input
           type="checkbox"
           className="peer sr-only"
-          checked={organization.auto_assign_enabled}
+          checked={organization.settings?.auto_assign_enabled ?? false}
           disabled={busy}
           onChange={(e) => handleToggle(e.target.checked)}
         />

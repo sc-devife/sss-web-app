@@ -43,8 +43,8 @@ export function LeadSourcesPanel() {
     return (
       <Body muted>
         No Facebook or Instagram Lead Ads sources are connected yet. Connect one from{" "}
-        <Link href="/organization/integrations" className="text-primary hover:underline">
-          Organization → Integrations
+        <Link href="/administration/integrations" className="text-primary hover:underline">
+          Administration → Integrations
         </Link>
         .
       </Body>

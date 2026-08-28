@@ -20,7 +20,7 @@ export default async function InvoicePreviewPage({ params }: { params: { uid: st
     getInvoiceTemplates(),
   ]);
 
-  const template = templates.find((t) => t.id === organization.invoice_template_id) ?? templates[0];
+  const template = templates.find((t) => t.id === organization.settings?.invoice_template_id) ?? templates[0];
 
   const totalPaid = milestones.reduce((sum, m) => sum + m.amountPaidUsd, 0);
   const totalDue = milestones.reduce((sum, m) => sum + m.amountUsd, 0);

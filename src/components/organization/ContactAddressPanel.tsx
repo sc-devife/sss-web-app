@@ -41,9 +41,9 @@ const emptyForm = {
   contactNumber: "",
   contactEmail: "",
   addressTypes: ["CONTACT"] as AddressType[],
-  pan: "",
   gstin: "",
   tripDestination: "",
+  primaryAddress: false,
 };
 
 type FormState = typeof emptyForm;
@@ -59,15 +59,15 @@ function toForm(address: Address): FormState {
     contactNumber: address.contactNumber ?? "",
     contactEmail: address.contactEmail ?? "",
     addressTypes: address.addressTypes && address.addressTypes.length > 0 ? address.addressTypes : ["CONTACT"],
-    pan: address.pan ?? "",
     gstin: address.gstin ?? "",
     tripDestination: address.tripDestination ?? "",
+    primaryAddress: address.primaryAddress ?? false,
   };
 }
 
 function validate(v: FormState): Record<string, string> {
   const errors: Record<string, string> = {};
-  const err = (key: Exclude<keyof FormState, "addressTypes">, validators: Parameters<typeof runValidators>[1]) => {
+  const err = (key: Exclude<keyof FormState, "addressTypes" | "primaryAddress">, validators: Parameters<typeof runValidators>[1]) => {
     const e = runValidators(v[key], validators);
     if (e) errors[key] = e;
   };
@@ -87,11 +87,13 @@ function AddressFormFields({
   form,
   update,
   setAddressTypes,
+  setPrimaryAddress,
   errors,
 }: {
   form: FormState;
   update: <K extends keyof FormState>(key: K, value: string) => void;
   setAddressTypes: (types: AddressType[]) => void;
+  setPrimaryAddress: (value: boolean) => void;
   errors: Record<string, string>;
 }) {
   function toggleType(type: AddressType) {
@@ -129,11 +131,19 @@ function AddressFormFields({
       <TextInput label="Contact Email" type="email" value={form.contactEmail} onChange={(e) => update("contactEmail", e.target.value)} error={errors.contactEmail} />
       <TextInput label="Trip Destination" value={form.tripDestination} onChange={(e) => update("tripDestination", e.target.value)} placeholder="Scope this address to a specific trip destination" />
       {form.addressTypes.includes("BILLING") && (
-        <>
-          <TextInput label="PAN" value={form.pan} onChange={(e) => update("pan", e.target.value.toUpperCase())} placeholder="e.g. AAAAA0000A" />
-          <TextInput label="GSTIN" value={form.gstin} onChange={(e) => update("gstin", e.target.value.toUpperCase())} placeholder="e.g. 22AAAAA0000A1Z5" />
-        </>
+        <TextInput label="GSTIN" value={form.gstin} onChange={(e) => update("gstin", e.target.value.toUpperCase())} placeholder="e.g. 22AAAAA0000A1Z5" />
       )}
+      <label className="flex cursor-pointer items-center gap-2 text-sm md:col-span-2">
+        <input
+          type="checkbox"
+          checked={form.primaryAddress}
+          onChange={(e) => setPrimaryAddress(e.target.checked)}
+          className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+        />
+        Set as default {form.addressTypes.includes("BILLING") && form.addressTypes.includes("CONTACT")
+          ? "billing & contact"
+          : form.addressTypes.includes("BILLING") ? "billing" : "contact"} address
+      </label>
     </>
   );
 }
@@ -181,6 +191,14 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
   function setEditFormAddressTypes(types: AddressType[]) {
     setEditForm((f) => ({ ...f, addressTypes: types }));
     setEditErrors((p) => ({ ...p, addressTypes: "" }));
+  }
+
+  function setFormPrimary(value: boolean) {
+    setForm((f) => ({ ...f, primaryAddress: value }));
+  }
+
+  function setEditFormPrimary(value: boolean) {
+    setEditForm((f) => ({ ...f, primaryAddress: value }));
   }
 
   function openAddModal() {
@@ -338,6 +356,7 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
                                     {t === "CONTACT" ? "Contact" : "Billing"}
                                   </Badge>
                                 ))}
+                                {address.primaryAddress && <Badge tone="success">Default</Badge>}
                               </div>
                             </div>
 
@@ -458,7 +477,7 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
         <fieldset disabled={saving} className="contents">
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <AddressFormFields form={form} update={update} setAddressTypes={setFormAddressTypes} errors={errors} />
+            <AddressFormFields form={form} update={update} setAddressTypes={setFormAddressTypes} setPrimaryAddress={setFormPrimary} errors={errors} />
           </div>
         </fieldset>
 
@@ -486,7 +505,7 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
         <fieldset disabled={editSaving} className="contents">
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <AddressFormFields form={editForm} update={updateEdit} setAddressTypes={setEditFormAddressTypes} errors={editErrors} />
+            <AddressFormFields form={editForm} update={updateEdit} setAddressTypes={setEditFormAddressTypes} setPrimaryAddress={setEditFormPrimary} errors={editErrors} />
           </div>
         </fieldset>
 

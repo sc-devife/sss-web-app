@@ -1,7 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
-import type { Organization, UpdateOrganizationPayload } from "@/features/organization/types";
+import type { Organization, OrganizationSettings, UpdateOrganizationPayload, UpdateOrganizationSettingsPayload } from "@/features/organization/types";
 
 export const fetchMyOrganization = createAsyncThunk<Organization, void, { rejectValue: string }>(
   "organization/fetchMyOrganization",
@@ -22,6 +22,18 @@ export const updateOrganization = createAsyncThunk<void, UpdateOrganizationPaylo
       await clientApi.put("/organizations", payload);
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to save organization"));
+    }
+  },
+);
+
+export const updateOrganizationSettings = createAsyncThunk<OrganizationSettings, UpdateOrganizationSettingsPayload, { rejectValue: string }>(
+  "organization/updateOrganizationSettings",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const res = await clientApi.put<OrganizationSettings>("/organizations/settings", payload);
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to save settings"));
     }
   },
 );

@@ -224,12 +224,12 @@ export function ActivitiesPanel({
           rowKey={(a) => a.uid}
           searchPlaceholder="Search activities…"
           emptyMessage="No activities yet — add your first one."
-          actions={(a) => (
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" size="sm" onClick={() => openEdit(a)}>Edit</Button>
-              <Button variant="danger" size="sm" disabled={deletingUid === a.uid} onClick={() => handleDelete(a)}>Archive</Button>
-            </div>
-          )}
+          onRowClick={(a) => openEdit(a)}
+          getRowLabel={(a) => a.name}
+          rowMenuActions={(a) => [
+            { key: "edit", label: "Edit", onSelect: () => openEdit(a) },
+            { key: "archive", label: "Archive", tone: "danger", disabled: deletingUid === a.uid, onSelect: () => handleDelete(a) },
+          ]}
         />
       )}
 

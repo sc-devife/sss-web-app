@@ -7,6 +7,8 @@ import {
   reviseQuote,
   deleteQuote,
   setQuoteTemplate,
+  markQuoteSent,
+  markQuoteRejected,
   computeQuote,
 } from "@/features/quotes/quotesThunks";
 
@@ -31,6 +33,9 @@ interface QuotesState {
 
   setTemplateStatus: RequestStatus;
 
+  markStatus: RequestStatus;
+  markError: string | null;
+
   computeStatus: RequestStatus;
   computeError: string | null;
 }
@@ -48,6 +53,8 @@ const initialState: QuotesState = {
   deleteStatus: "idle",
   deleteError: null,
   setTemplateStatus: "idle",
+  markStatus: "idle",
+  markError: null,
   computeStatus: "idle",
   computeError: null,
 };
@@ -135,6 +142,30 @@ const quotesSlice = createSlice({
       })
       .addCase(setQuoteTemplate.rejected, (state) => {
         state.setTemplateStatus = "failed";
+      })
+
+      .addCase(markQuoteSent.pending, (state) => {
+        state.markStatus = "loading";
+        state.markError = null;
+      })
+      .addCase(markQuoteSent.fulfilled, (state) => {
+        state.markStatus = "succeeded";
+      })
+      .addCase(markQuoteSent.rejected, (state, action) => {
+        state.markStatus = "failed";
+        state.markError = action.payload ?? "Failed to mark quote as sent";
+      })
+
+      .addCase(markQuoteRejected.pending, (state) => {
+        state.markStatus = "loading";
+        state.markError = null;
+      })
+      .addCase(markQuoteRejected.fulfilled, (state) => {
+        state.markStatus = "succeeded";
+      })
+      .addCase(markQuoteRejected.rejected, (state, action) => {
+        state.markStatus = "failed";
+        state.markError = action.payload ?? "Failed to mark quote as rejected";
       })
 
       .addCase(computeQuote.pending, (state) => {

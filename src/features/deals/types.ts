@@ -6,3 +6,8 @@ export interface AcceptQuotePayload {
   quoteUid: string;
   escapeUid: string;
 }
+
+export interface CancelDealPayload {
+  uid: string;
+  reason: string;
+}

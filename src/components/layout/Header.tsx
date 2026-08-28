@@ -3,12 +3,13 @@
 import { usePathname } from "next/navigation";
 import { findRouteByPath, profileRoute } from "@/lib/nav-config";
 import Link from "next/link";
-import { PiListFill, PiHouseFill, PiBuildingsFill, PiCaretDownFill } from "react-icons/pi";
+import { PiHouseFill, PiBuildingsFill, PiCaretDownFill } from "react-icons/pi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { toggleMobile } from "@/features/ui/uiSlice";
 import { selectLoggedInUser } from "@/features/auth/authSelectors";
 import { resolveFileUrl } from "@/lib/files";
 import { cn } from "@/lib/cn";
+import { RiMenuUnfoldLine } from "react-icons/ri";
 
 // First letter of first + last name (e.g. "John Doe" -> "JD"); just the
 // first letter of the first name when there's no last name on file.
@@ -42,6 +43,7 @@ export function Header() {
           href="/dashboard"
           aria-label="Dashboard"
           className="-ml-1 flex items-center rounded-lg p-1.5 text-black transition-colors hover:bg-muted"
+          title="Dashboard"
         >
           <PiHouseFill className="h-4 w-4" />
         </Link>
@@ -50,8 +52,9 @@ export function Header() {
           onClick={() => dispatch(toggleMobile())}
           aria-label="Open navigation menu"
           className="flex items-center rounded-lg p-1.5 text-black transition-colors hover:bg-muted md:hidden"
+          title="Open navigation menu"
         >
-          <PiListFill className="h-5 w-5" />
+          <RiMenuUnfoldLine className="h-5 w-5" />
         </button>
         <span className="h-3 w-px bg-border/50" aria-hidden="true" />
         {route?.icon && <route.icon className="h-4 w-4 text-black" />}

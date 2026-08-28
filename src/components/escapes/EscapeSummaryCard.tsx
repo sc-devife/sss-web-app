@@ -221,9 +221,10 @@ export function EscapeSummaryCard({
           )}
         </Section>
 
-        {/* Assignment */}
+        {/* Assignment — lives on the Escape itself, not the Lead: decided
+            once by the assignment engine at conversion time. */}
         <Section title="Assignment">
-          <InfoRow icon={PiUserCircleFill} label="Assigned to" value={lead?.assignedToUserName ?? "Unassigned"} />
+          <InfoRow icon={PiUserCircleFill} label="Assigned to" value={escape.assignedToUserName ?? "Unassigned"} />
         </Section>
 
         {/* History */}

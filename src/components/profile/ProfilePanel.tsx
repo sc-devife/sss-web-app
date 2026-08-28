@@ -34,11 +34,11 @@ import {
 import { selectLoggedInUser } from "@/features/auth/authSelectors";
 import { setLoggedInUser } from "@/features/auth/authSlice";
 
-type ProfileFormState = { firstName: string; lastName: string; mobileNumber: string };
+type ProfileFormState = { firstName: string; lastName: string; mobileNumber: string; designation: string; signature: string };
 
 function validate(v: ProfileFormState): Record<string, string> {
   const errors: Record<string, string> = {};
-  const err = (key: keyof ProfileFormState, validators: Parameters<typeof runValidators>[1]) => {
+  const err = (key: "firstName" | "lastName" | "mobileNumber", validators: Parameters<typeof runValidators>[1]) => {
     const e = runValidators(v[key], validators);
     if (e) errors[key] = e;
   };
@@ -72,6 +72,8 @@ export function ProfilePanel() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
+  const [designation, setDesignation] = useState("");
+  const [signature, setSignature] = useState("");
   const [original, setOriginal] = useState<ProfileFormState | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | undefined>();
@@ -98,10 +100,14 @@ export function ProfilePanel() {
       firstName: profile.first_name ?? "",
       lastName: profile.last_name ?? "",
       mobileNumber: profile.contact_number ?? "",
+      designation: profile.designation ?? "",
+      signature: profile.signature ?? "",
     };
     setFirstName(snapshot.firstName);
     setLastName(snapshot.lastName);
     setMobileNumber(snapshot.mobileNumber);
+    setDesignation(snapshot.designation);
+    setSignature(snapshot.signature);
     setOriginal(snapshot);
     setErrors({});
     setFormError(undefined);
@@ -138,6 +144,8 @@ export function ProfilePanel() {
           last_name: profile.last_name,
           contact_number: profile.contact_number ?? "",
           profile_picture: url,
+          designation: profile.designation ?? "",
+          signature: profile.signature ?? "",
         }),
       ).unwrap();
       if (loggedInUser) {
@@ -153,14 +161,14 @@ export function ProfilePanel() {
     }
   }
 
-  const isDirty = useIsDirty(original, { firstName, lastName, mobileNumber });
+  const isDirty = useIsDirty(original, { firstName, lastName, mobileNumber, designation, signature });
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (submittingRef.current || !isDirty) return;
     setFormError(undefined);
 
-    const nextErrors = validate({ firstName, lastName, mobileNumber });
+    const nextErrors = validate({ firstName, lastName, mobileNumber, designation, signature });
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
@@ -174,6 +182,8 @@ export function ProfilePanel() {
           first_name: firstName,
           last_name: lastName,
           contact_number: mobileNumber,
+          designation,
+          signature,
         }),
       ).unwrap();
       setEditing(false);
@@ -254,6 +264,7 @@ export function ProfilePanel() {
               {profile.first_name} {profile.last_name}
             </Heading>
             <Body muted>{orgName}</Body>
+            {profile.designation && <Body muted className="text-sm">{profile.designation}</Body>}
             <div className="mt-2 flex flex-wrap justify-center gap-1.5 sm:justify-start">
               {profile.roles.length > 0 ? (
                 profile.roles.map((r) => (
@@ -264,6 +275,11 @@ export function ProfilePanel() {
               ) : (
                 <Badge tone="neutral">No role assigned</Badge>
               )}
+              {profile.teams.map((t) => (
+                <Badge key={t.uid} tone="neutral">
+                  {t.name}
+                </Badge>
+              ))}
             </div>
           </div>
         </div>
@@ -316,14 +332,30 @@ export function ProfilePanel() {
                   }}
                   error={errors.mobileNumber}
                   disabled={saving}
-                  className="sm:col-span-2"
                 />
+                <TextInput
+                  label="Designation"
+                  value={designation}
+                  onChange={(e) => setDesignation(e.target.value)}
+                  disabled={saving}
+                  placeholder="e.g. Senior Travel Consultant"
+                />
+                <div className="sm:col-span-2">
+                  <TextInput
+                    label="Signature"
+                    value={signature}
+                    onChange={(e) => setSignature(e.target.value)}
+                    disabled={saving}
+                    placeholder="Shown on outgoing quotes/documents"
+                  />
+                </div>
               </>
             ) : (
               <>
                 <ReadOnlyField label="First Name" value={profile.first_name} icon={PiUser} />
                 <ReadOnlyField label="Last Name" value={profile.last_name} icon={PiUser} />
                 <ReadOnlyField label="Mobile Number" value={profile.contact_number || "—"} icon={PiPhone} />
+                <ReadOnlyField label="Designation" value={profile.designation || "—"} icon={PiIdentificationCard} />
               </>
             )}
           </div>

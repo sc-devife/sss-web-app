@@ -15,16 +15,16 @@ export const fetchQuoteTemplates = createAsyncThunk<QuoteTemplate[], void, { rej
   },
 );
 
-// Mutates the Organization entity (its quote_template_id), not this module's
+// Mutates OrganizationSettings (its quote_template_id), not this module's
 // own data — same "different entity as a side effect" shape as
 // ConvertToEscapeModal's traveller creation. Organization itself isn't Redux-
 // managed yet, so the panel calls router.refresh() afterward to pick up the
 // new default from its still-server-fetched organization prop.
 export const setDefaultQuoteTemplate = createAsyncThunk<void, SetDefaultQuoteTemplatePayload, { rejectValue: string }>(
   "quoteTemplates/setDefaultQuoteTemplate",
-  async ({ organizationUid, templateId }, { rejectWithValue }) => {
+  async ({ templateId }, { rejectWithValue }) => {
     try {
-      await clientApi.put("/organizations", { uid: organizationUid, quote_template_id: templateId });
+      await clientApi.put("/organizations/settings", { quote_template_id: templateId });
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to set default template"));
     }

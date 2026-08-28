@@ -317,12 +317,12 @@ export function HotelsPanel({
           rowKey={(h) => h.uid}
           searchPlaceholder="Search hotels…"
           emptyMessage="No hotels yet — add your first one."
-          actions={(h) => (
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" size="sm" onClick={() => openEdit(h)}>Edit</Button>
-              <Button variant="danger" size="sm" disabled={deletingUid === h.uid} onClick={() => handleDelete(h)}>Archive</Button>
-            </div>
-          )}
+          onRowClick={(h) => openEdit(h)}
+          getRowLabel={(h) => h.name}
+          rowMenuActions={(h) => [
+            { key: "edit", label: "Edit", onSelect: () => openEdit(h) },
+            { key: "archive", label: "Archive", tone: "danger", disabled: deletingUid === h.uid, onSelect: () => handleDelete(h) },
+          ]}
         />
       )}
 

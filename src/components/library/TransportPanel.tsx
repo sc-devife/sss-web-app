@@ -356,12 +356,12 @@ export function TransportPanel({
           rowKey={(t) => t.uid}
           searchPlaceholder="Search transport…"
           emptyMessage="No transport options yet — add your first one."
-          actions={(t) => (
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" size="sm" onClick={() => openEdit(t)}>Edit</Button>
-              <Button variant="danger" size="sm" disabled={deletingUid === t.uid} onClick={() => handleDelete(t)}>Archive</Button>
-            </div>
-          )}
+          onRowClick={(t) => openEdit(t)}
+          getRowLabel={(t) => MODE_OPTIONS.find((m) => m.value === t.modeCode)?.label ?? t.modeCode}
+          rowMenuActions={(t) => [
+            { key: "edit", label: "Edit", onSelect: () => openEdit(t) },
+            { key: "archive", label: "Archive", tone: "danger", disabled: deletingUid === t.uid, onSelect: () => handleDelete(t) },
+          ]}
         />
       )}
 

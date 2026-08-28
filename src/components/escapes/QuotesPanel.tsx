@@ -19,6 +19,8 @@ import {
   reviseQuote,
   deleteQuote,
   setQuoteTemplate,
+  markQuoteSent,
+  markQuoteRejected,
   computeQuote,
 } from "@/features/quotes/quotesThunks";
 import { selectQuotesForItinerary, selectQuotesStatus, selectCurrencies } from "@/features/quotes/quotesSelectors";
@@ -64,6 +66,7 @@ export function QuotesPanel({
   const [deletingUid, setDeletingUid] = useState<string | null>(null);
   const [revisingUid, setRevisingUid] = useState<string | null>(null);
   const [acceptingUid, setAcceptingUid] = useState<string | null>(null);
+  const [markingUid, setMarkingUid] = useState<string | null>(null);
   const [computingUid, setComputingUid] = useState<string | null>(null);
   const [computeForm, setComputeForm] = useState(emptyComputeForm);
   const [computeWarnings, setComputeWarnings] = useState<string[] | null>(null);
@@ -138,6 +141,36 @@ export function QuotesPanel({
     }
   }
 
+  async function handleMarkSent(uid: string) {
+    setBusy(true);
+    setMarkingUid(uid);
+    setError(undefined);
+    try {
+      await dispatch(markQuoteSent({ uid, itineraryUid })).unwrap();
+      refresh();
+    } catch (err) {
+      setError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to mark quote as sent"));
+    } finally {
+      setBusy(false);
+      setMarkingUid(null);
+    }
+  }
+
+  async function handleMarkRejected(uid: string) {
+    setBusy(true);
+    setMarkingUid(uid);
+    setError(undefined);
+    try {
+      await dispatch(markQuoteRejected({ uid, itineraryUid })).unwrap();
+      refresh();
+    } catch (err) {
+      setError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to mark quote as rejected"));
+    } finally {
+      setBusy(false);
+      setMarkingUid(null);
+    }
+  }
+
   async function handleSetTemplate(uid: string, templateId: string) {
     setBusy(true);
     try {
@@ -204,7 +237,17 @@ export function QuotesPanel({
             <div key={q.uid} className="flex flex-col gap-2 rounded border border-border px-3 py-2 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span>
-                  <Badge tone={q.status === "accepted" ? "success" : q.status === "superseded" ? "neutral" : "neutral"}>
+                  <Badge
+                    tone={
+                      q.status === "accepted"
+                        ? "success"
+                        : q.status === "rejected"
+                        ? "danger"
+                        : q.status === "sent"
+                        ? "warning"
+                        : "neutral"
+                    }
+                  >
                     v{q.version} · {q.status}
                   </Badge>{" "}
                   {q.totalUsd != null ? `$${q.totalUsd.toFixed(2)} USD` : "Not priced yet"}
@@ -224,6 +267,20 @@ export function QuotesPanel({
                     ) : (
                       <button type="button" onClick={() => handleAccept(q.uid)} disabled={busy} className="text-success hover:underline">Accept quote</button>
                     )
+                  )}
+                  {markingUid === q.uid ? (
+                    <span aria-label="Updating quote status" title="Updating…" className="inline-flex items-center">
+                      <Spinner size="sm" />
+                    </span>
+                  ) : (
+                    <>
+                      {q.status === "draft" && (
+                        <button type="button" onClick={() => handleMarkSent(q.uid)} disabled={busy} className="text-primary hover:underline">Mark as sent</button>
+                      )}
+                      {(q.status === "draft" || q.status === "sent") && (
+                        <button type="button" onClick={() => handleMarkRejected(q.uid)} disabled={busy} className="text-danger hover:underline">Mark as rejected</button>
+                      )}
+                    </>
                   )}
                   {revisingUid === q.uid ? (
                     <span aria-label="Revising quote" title="Revising…" className="inline-flex items-center">

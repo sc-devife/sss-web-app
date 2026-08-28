@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { Deal } from "@/features/deals/types";
-import { fetchDealForEscape, acceptQuote } from "@/features/deals/dealsThunks";
+import { fetchDealForEscape, acceptQuote, cancelDeal } from "@/features/deals/dealsThunks";
 
 type RequestStatus = "idle" | "loading" | "succeeded" | "failed";
 
@@ -11,6 +11,9 @@ interface DealsState {
 
   acceptStatus: RequestStatus;
   acceptError: string | null;
+
+  cancelStatus: RequestStatus;
+  cancelError: string | null;
 }
 
 const initialState: DealsState = {
@@ -19,6 +22,8 @@ const initialState: DealsState = {
   error: null,
   acceptStatus: "idle",
   acceptError: null,
+  cancelStatus: "idle",
+  cancelError: null,
 };
 
 const dealsSlice = createSlice({
@@ -55,6 +60,21 @@ const dealsSlice = createSlice({
       .addCase(acceptQuote.rejected, (state, action) => {
         state.acceptStatus = "failed";
         state.acceptError = action.payload ?? "Failed to accept quote";
+      })
+
+      .addCase(cancelDeal.pending, (state) => {
+        state.cancelStatus = "loading";
+        state.cancelError = null;
+      })
+      .addCase(cancelDeal.fulfilled, (state, action) => {
+        state.cancelStatus = "succeeded";
+        if (state.deal && state.deal.uid === action.meta.arg.uid) {
+          state.deal.status = "cancelled";
+        }
+      })
+      .addCase(cancelDeal.rejected, (state, action) => {
+        state.cancelStatus = "failed";
+        state.cancelError = action.payload ?? "Failed to cancel deal";
       });
   },
 });

@@ -12,7 +12,6 @@ import { Body } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import { formatDisplayDate } from "@/lib/date";
 import type { Lead } from "@/lib/leads";
-import type { AppUser } from "@/lib/users";
 import type { EscapePoint } from "@/lib/escape-points";
 import { LeadDetailModal } from "@/components/leads/LeadDetailModal";
 import { FaPlus } from "react-icons/fa";
@@ -26,6 +25,14 @@ import {
   selectCreateLeadStatus,
   selectCreateLeadError,
 } from "@/features/leads/leadsSelectors";
+
+const SOURCE_CHANNEL_OPTIONS = [
+  { value: "manual", label: "Manual" },
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "instagram", label: "Instagram" },
+  { value: "youtube", label: "YouTube" },
+  { value: "google_ads", label: "Google Ads" },
+];
 
 const emptyForm = {
   name: "",
@@ -41,6 +48,12 @@ const emptyForm = {
   travelType: "",
   isPriority: false,
   notes: "",
+  sourceType: "DIRECT" as "DIRECT" | "AGENCY",
+  sourceChannel: "manual",
+  agencyContactName: "",
+  agencyContactEmail: "",
+  agencyContactPhone: "",
+  agencyBillingName: "",
 };
 
 type FormState = typeof emptyForm;
@@ -48,10 +61,8 @@ type FormState = typeof emptyForm;
 const TERMINAL_STATUSES = ["Unqualified", "Lost", "Duplicate", "Converted"];
 
 export function LeadsPanel({
-  users,
   escapePoints,
 }: {
-  users: AppUser[];
   escapePoints: EscapePoint[];
 }) {
   const dispatch = useAppDispatch();
@@ -84,6 +95,7 @@ export function LeadsPanel({
   function validate(): string | undefined {
     if (!form.name.trim()) return "Name is required";
     if (!form.email.trim() && !form.phone.trim()) return "Provide at least an email or phone number";
+    if (form.sourceType === "AGENCY" && !form.agencyContactName.trim()) return "Agency contact name is required";
     return undefined;
   }
 
@@ -117,6 +129,25 @@ export function LeadsPanel({
           travelType: form.travelType || null,
           isPriority: form.isPriority,
           notes: form.notes || null,
+          sourceType: form.sourceType,
+          sourceChannel: form.sourceType === "DIRECT" ? form.sourceChannel : null,
+          agencyDetails:
+            form.sourceType === "AGENCY"
+              ? {
+                  contactName: form.agencyContactName,
+                  contactEmail: form.agencyContactEmail || null,
+                  contactPhone: form.agencyContactPhone || null,
+                  billingName: form.agencyBillingName || null,
+                  city: null,
+                  state: null,
+                  country: null,
+                  pincode: null,
+                  streetAddress: null,
+                  locality: null,
+                  landmark: null,
+                  additionalBillingDetails: null,
+                }
+              : null,
         }),
       ).unwrap();
       setModalOpen(false);
@@ -124,11 +155,6 @@ export function LeadsPanel({
     } catch {
       // createError is already set in the slice; the modal reads it directly.
     }
-  }
-
-  function userName(userId: number | null): string {
-    if (!userId) return "Unassigned";
-    return users.find((u) => u.seqp === userId)?.name ?? `User #${userId}`;
   }
 
   const columns: DataTableColumn<Lead>[] = [
@@ -161,14 +187,8 @@ export function LeadsPanel({
     {
       key: "source",
       header: "Source",
-      render: (l) => l.sourceCode ?? "—",
-      sortValue: (l) => l.sourceCode ?? "",
-    },
-    {
-      key: "assignedTo",
-      header: "Assigned to",
-      render: (l) => userName(l.assignedToUserId),
-      filterValue: (l) => userName(l.assignedToUserId),
+      render: (l) => (l.sourceType === "AGENCY" ? "Agency" : l.sourceChannel ?? "—"),
+      sortValue: (l) => l.sourceType ?? "",
     },
     {
       key: "followUpDueDate",
@@ -201,9 +221,7 @@ export function LeadsPanel({
           rowKey={(l) => l.uid}
           searchPlaceholder="Search leads…"
           emptyMessage="No leads yet."
-          actions={(l) => (
-            <Button variant="secondary" size="sm" onClick={() => setSelectedLead(l)}>View</Button>
-          )}
+          onRowClick={(l) => setSelectedLead(l)}
         />
       )}
 
@@ -252,6 +270,50 @@ export function LeadsPanel({
             />
           </div>
 
+          <div className="flex flex-col gap-3 rounded border border-border p-3">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-foreground">Source</span>
+              <div className="flex gap-4">
+                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="sourceType"
+                    checked={form.sourceType === "DIRECT"}
+                    onChange={() => update("sourceType", "DIRECT")}
+                    className="h-4 w-4 text-primary focus:ring-primary"
+                  />
+                  Direct
+                </label>
+                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="sourceType"
+                    checked={form.sourceType === "AGENCY"}
+                    onChange={() => update("sourceType", "AGENCY")}
+                    className="h-4 w-4 text-primary focus:ring-primary"
+                  />
+                  Agency
+                </label>
+              </div>
+            </div>
+
+            {form.sourceType === "DIRECT" ? (
+              <Select
+                label="Channel"
+                options={SOURCE_CHANNEL_OPTIONS}
+                value={form.sourceChannel}
+                onChange={(e) => update("sourceChannel", e.target.value)}
+              />
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <TextInput label="Agency contact name" value={form.agencyContactName} onChange={(e) => update("agencyContactName", e.target.value)} required />
+                <TextInput label="Contact email" type="email" value={form.agencyContactEmail} onChange={(e) => update("agencyContactEmail", e.target.value)} />
+                <PhoneInput label="Contact phone" value={form.agencyContactPhone} onChange={(v) => update("agencyContactPhone", v)} />
+                <TextInput label="Billing name" value={form.agencyBillingName} onChange={(e) => update("agencyBillingName", e.target.value)} placeholder="Defaults to contact name" />
+              </div>
+            )}
+          </div>
+
           <label className="flex items-center gap-2 text-sm text-foreground">
             <input
               type="checkbox"
@@ -283,7 +345,7 @@ export function LeadsPanel({
       </Modal>
 
       {selectedLead && (
-        <LeadDetailModal lead={selectedLead} users={users} escapePoints={escapePoints} onClose={() => setSelectedLead(null)} />
+        <LeadDetailModal lead={selectedLead} escapePoints={escapePoints} onClose={() => setSelectedLead(null)} />
       )}
     </div>
   );

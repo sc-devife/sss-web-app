@@ -5,17 +5,15 @@ import { Modal } from "@/components/ui/Modal";
 import { formatDisplayDate, formatDisplayDateTime } from "@/lib/date";
 import { formatAuditActor, formatAuditChange } from "@/lib/audit";
 import { Button } from "@/components/ui/Button";
-import { Select } from "@/components/ui/Select";
 import { TextInput } from "@/components/ui/TextInput";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import type { Lead } from "@/lib/leads";
-import type { AppUser } from "@/lib/users";
 import type { EscapePoint } from "@/lib/escape-points";
 import { ConvertToEscapeModal } from "@/components/leads/ConvertToEscapeModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchLeads, contactLead, qualifyLead, toggleLeadPriority, applyLeadReasonAction, assignLead, setLeadFollowUpDueDate, fetchLeadAuditLog } from "@/features/leads/leadsThunks";
+import { fetchLeads, contactLead, qualifyLead, toggleLeadPriority, applyLeadReasonAction, setLeadFollowUpDueDate, fetchLeadAuditLog } from "@/features/leads/leadsThunks";
 import { clearAuditLog } from "@/features/leads/leadsSlice";
 import type { LeadReasonAction } from "@/features/leads/types";
 import { selectLeadActionStatus, selectLeadActionError, selectLeadAuditLog, selectLeadAuditLogStatus } from "@/features/leads/leadsSelectors";
@@ -24,12 +22,10 @@ const TERMINAL_STATUSES = ["Unqualified", "Lost", "Duplicate", "Converted"];
 
 export function LeadDetailModal({
   lead,
-  users,
   escapePoints,
   onClose,
 }: {
   lead: Lead;
-  users: AppUser[];
   escapePoints: EscapePoint[];
   onClose: () => void;
 }) {
@@ -41,7 +37,6 @@ export function LeadDetailModal({
 
   const [reasonPrompt, setReasonPrompt] = useState<LeadReasonAction | null>(null);
   const [reason, setReason] = useState("");
-  const [assigneeId, setAssigneeId] = useState("");
   const [convertOpen, setConvertOpen] = useState(false);
   const [followUpDate, setFollowUpDate] = useState(lead.followUpDueDate ?? "");
 
@@ -52,7 +47,6 @@ export function LeadDetailModal({
     };
   }, [dispatch, lead.uid]);
 
-  const assignedUser = users.find((u) => u.seqp === lead.assignedToUserId);
   const isTerminal = TERMINAL_STATUSES.includes(lead.status);
 
   async function afterAction() {
@@ -98,16 +92,6 @@ export function LeadDetailModal({
     }
   }
 
-  async function handleAssign() {
-    if (!assigneeId) return;
-    try {
-      await dispatch(assignLead({ leadUid: lead.uid, userId: Number(assigneeId), reason: reason || undefined })).unwrap();
-      await afterAction();
-    } catch {
-      // actionError already set in the slice.
-    }
-  }
-
   async function handleSetFollowUpDate() {
     try {
       await dispatch(setLeadFollowUpDueDate({ leadUid: lead.uid, followUpDueDate: followUpDate || null })).unwrap();
@@ -123,7 +107,11 @@ export function LeadDetailModal({
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={isTerminal ? (lead.status === "Converted" ? "success" : "danger") : "neutral"}>{lead.status}</Badge>
           {lead.isPriority && <Badge tone="warning">Priority</Badge>}
-          {lead.sourceCode && <Badge tone="neutral">{lead.sourceCode}</Badge>}
+          {lead.sourceType === "AGENCY" ? (
+            <Badge tone="neutral">Agency</Badge>
+          ) : (
+            lead.sourceChannel && <Badge tone="neutral">{lead.sourceChannel}</Badge>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -136,9 +124,20 @@ export function LeadDetailModal({
           <div><Caption>Budget</Caption><Body>{lead.budget ?? "—"}</Body></div>
           <div><Caption>Origin city</Caption><Body>{lead.originCity || "—"}</Body></div>
           <div><Caption>Travel type</Caption><Body>{lead.travelType || "—"}</Body></div>
-          <div><Caption>Assigned to</Caption><Body>{assignedUser?.name ?? "Unassigned"}</Body></div>
           <div><Caption>Follow-up due</Caption><Body>{formatDisplayDate(lead.followUpDueDate) ?? "—"}</Body></div>
         </div>
+
+        {lead.sourceType === "AGENCY" && lead.agencyDetails && (
+          <div className="rounded border border-border p-3">
+            <Caption className="mb-1 block">Agency details</Caption>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+              <div><Caption>Contact</Caption><Body>{lead.agencyDetails.contactName}</Body></div>
+              {lead.agencyDetails.contactEmail && <div><Caption>Email</Caption><Body>{lead.agencyDetails.contactEmail}</Body></div>}
+              {lead.agencyDetails.contactPhone && <div><Caption>Phone</Caption><Body>{lead.agencyDetails.contactPhone}</Body></div>}
+              {lead.agencyDetails.billingName && <div><Caption>Billing name</Caption><Body>{lead.agencyDetails.billingName}</Body></div>}
+            </div>
+          </div>
+        )}
 
         {lead.notes && (
           <div>
@@ -193,21 +192,6 @@ export function LeadDetailModal({
                 </div>
               </div>
             )}
-
-            <div className="flex flex-col gap-2 rounded border border-border p-3">
-              <Caption>Assign to</Caption>
-              <div className="flex gap-2">
-                <Select
-                  label=""
-                  className="flex-1"
-                  options={users.map((u) => ({ value: String(u.seqp), label: u.name }))}
-                  value={assigneeId}
-                  onChange={(e) => setAssigneeId(e.target.value)}
-                  placeholder="Select a user"
-                />
-                <Button size="sm" disabled={busy || !assigneeId} onClick={handleAssign}>Assign</Button>
-              </div>
-            </div>
 
             <div className="flex flex-col gap-2 rounded border border-border p-3">
               <Caption>Follow-up due</Caption>

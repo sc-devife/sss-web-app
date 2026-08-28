@@ -142,12 +142,12 @@ export function RoomTypesPanel() {
           rowKey={(r) => r.uid}
           searchPlaceholder="Search room types…"
           emptyMessage="No room types yet — add your first one."
-          actions={(r) => (
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" size="sm" onClick={() => openEdit(r)}>Edit</Button>
-              <Button variant="danger" size="sm" disabled={deletingUid === r.uid} onClick={() => handleDelete(r)}>Delete</Button>
-            </div>
-          )}
+          onRowClick={(r) => openEdit(r)}
+          getRowLabel={(r) => r.name}
+          rowMenuActions={(r) => [
+            { key: "edit", label: "Edit", onSelect: () => openEdit(r) },
+            { key: "delete", label: "Delete", tone: "danger", disabled: deletingUid === r.uid, onSelect: () => handleDelete(r) },
+          ]}
         />
       )}
 

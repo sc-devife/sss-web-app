@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { Organization } from "@/features/organization/types";
-import { fetchMyOrganization, updateOrganization, uploadOrganizationLogo } from "@/features/organization/organizationThunks";
+import { fetchMyOrganization, updateOrganization, updateOrganizationSettings, uploadOrganizationLogo } from "@/features/organization/organizationThunks";
 
 type RequestStatus = "idle" | "loading" | "succeeded" | "failed";
 
@@ -12,6 +12,9 @@ interface OrganizationState {
   saveStatus: RequestStatus;
   saveError: string | null;
 
+  settingsSaveStatus: RequestStatus;
+  settingsSaveError: string | null;
+
   logoUploadStatus: RequestStatus;
   logoUploadError: string | null;
 }
@@ -22,6 +25,8 @@ const initialState: OrganizationState = {
   error: null,
   saveStatus: "idle",
   saveError: null,
+  settingsSaveStatus: "idle",
+  settingsSaveError: null,
   logoUploadStatus: "idle",
   logoUploadError: null,
 };
@@ -64,6 +69,21 @@ const organizationSlice = createSlice({
       .addCase(updateOrganization.rejected, (state, action) => {
         state.saveStatus = "failed";
         state.saveError = action.payload ?? "Failed to save organization";
+      })
+
+      .addCase(updateOrganizationSettings.pending, (state) => {
+        state.settingsSaveStatus = "loading";
+        state.settingsSaveError = null;
+      })
+      .addCase(updateOrganizationSettings.fulfilled, (state, action) => {
+        state.settingsSaveStatus = "succeeded";
+        if (state.current) {
+          state.current.settings = action.payload;
+        }
+      })
+      .addCase(updateOrganizationSettings.rejected, (state, action) => {
+        state.settingsSaveStatus = "failed";
+        state.settingsSaveError = action.payload ?? "Failed to save settings";
       })
 
       .addCase(uploadOrganizationLogo.pending, (state) => {

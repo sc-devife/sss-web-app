@@ -41,16 +41,16 @@ export const deletePriorityCalendarEntry = createAsyncThunk<void, string, { reje
   },
 );
 
-// Mutates the Organization entity (auto_assign_enabled), not this module's
-// own data — same "different entity as a side effect" shape as the quote/
-// invoice template "set default" thunks. Organization isn't Redux-managed
-// yet, so the panel calls router.refresh() afterward to pick up the new
-// value from its still-server-fetched organization prop.
+// Mutates OrganizationSettings, not this module's own data — same
+// "different entity as a side effect" shape as the quote/invoice template
+// "set default" thunks. Organization isn't Redux-managed yet, so the panel
+// calls router.refresh() afterward to pick up the new value from its still-
+// server-fetched organization prop.
 export const toggleAutoAssign = createAsyncThunk<void, ToggleAutoAssignPayload, { rejectValue: string }>(
   "assignmentRules/toggleAutoAssign",
-  async ({ organizationUid, enabled }, { rejectWithValue }) => {
+  async ({ enabled }, { rejectWithValue }) => {
     try {
-      await clientApi.put("/organizations", { uid: organizationUid, auto_assign_enabled: enabled });
+      await clientApi.put("/organizations/settings", { auto_assign_enabled: enabled });
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to update setting"));
     }

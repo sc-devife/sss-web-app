@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
-import RPNInput, { type Country, getCountries, getCountryCallingCode, isSupportedCountry } from "react-phone-number-input";
+import { useId } from "react";
+import RPNInput, { type Country, getCountries, getCountryCallingCode } from "react-phone-number-input";
 import baseLabels from "react-phone-number-input/locale/en.json";
 import { cn } from "@/lib/cn";
 
@@ -15,14 +15,6 @@ for (const country of getCountries()) {
   if (name) {
     labelsWithDialCode[country] = `${name} (+${getCountryCallingCode(country)})`;
   }
-}
-
-// SSR-safe: server render (and the client's first paint, to match hydration)
-// always default to "US". A client-only effect then swaps in the country
-// inferred from the browser's locale, if the user hasn't already picked one.
-function countryFromLocale(locale: string | undefined): Country | undefined {
-  const region = locale?.split("-")[1]?.toUpperCase();
-  return region && isSupportedCountry(region) ? (region as Country) : undefined;
 }
 
 interface PhoneInputProps {
@@ -41,9 +33,8 @@ interface PhoneInputProps {
   inputClassName?: string;
   /** Overrides the label's own classes, same reasoning as inputClassName. */
   labelClassName?: string;
-  /** Pins the initial country instead of the browser-locale auto-detect
-   * below — e.g. signup always wants India regardless of the visitor's
-   * locale. Omit to keep the existing auto-detect behavior. */
+  /** Overrides the default country (India) shown before the user picks one
+   * or types a number — e.g. a form specifically for a non-Indian region. */
   defaultCountry?: Country;
 }
 
@@ -59,17 +50,10 @@ export function PhoneInput({
   className,
   inputClassName,
   labelClassName,
-  defaultCountry: pinnedCountry,
+  defaultCountry = "IN",
 }: PhoneInputProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
-  const [defaultCountry, setDefaultCountry] = useState<Country>(pinnedCountry ?? "IN");
-
-  useEffect(() => {
-    if (pinnedCountry) return;
-    const detected = countryFromLocale(navigator.language) ?? navigator.languages?.map(countryFromLocale).find(Boolean);
-    if (detected) setDefaultCountry(detected);
-  }, [pinnedCountry]);
 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>

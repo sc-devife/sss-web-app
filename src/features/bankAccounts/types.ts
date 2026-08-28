@@ -16,6 +16,7 @@ export interface BankAccountPayload {
   branchCity: string;
   branchAddress: string;
   currency: string;
+  isDefault: boolean;
 }
 
 export interface CreateBankAccountPayload {
@@ -26,5 +27,5 @@ export interface CreateBankAccountPayload {
 export interface SetBankAccountStatusPayload {
   orgId: string;
   accountId: string;
-  action: "deactivate" | "reactivate";
+  action: "deactivate" | "reactivate" | "set-default";
 }

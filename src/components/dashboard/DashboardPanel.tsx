@@ -11,8 +11,6 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchDashboard } from "@/features/dashboard/dashboardThunks";
 import { selectDashboard, selectDashboardStatus, selectDashboardError } from "@/features/dashboard/dashboardSelectors";
 
-const TERMINAL_LEAD_STATUSES = ["Unqualified", "Lost", "Duplicate", "Converted"];
-
 export function DashboardPanel() {
   const dispatch = useAppDispatch();
   const dashboard = useAppSelector(selectDashboard);
@@ -54,25 +52,7 @@ export function DashboardPanel() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="flex flex-col gap-3">
-          <Heading as="h3">My leads</Heading>
-          {dashboard.myOpenLeads.length === 0 && <Body muted>No open leads assigned to you.</Body>}
-          {dashboard.myOpenLeads.map((lead) => (
-            <Card key={lead.uid} className="flex items-center justify-between">
-              <div>
-                <Body className="font-medium">{lead.name}</Body>
-                <Caption>{lead.destination || "No escape point set"}</Caption>
-              </div>
-              <div className="flex items-center gap-1">
-                {lead.isPriority && <Badge tone="warning">Priority</Badge>}
-                <Badge tone={TERMINAL_LEAD_STATUSES.includes(lead.status) ? "success" : "neutral"}>{lead.status}</Badge>
-              </div>
-            </Card>
-          ))}
-          <Link href="/leads" className="text-sm text-primary hover:underline">View all leads →</Link>
-        </div>
-
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="flex flex-col gap-3">
           <Heading as="h3">My escapes</Heading>
           {dashboard.myOpenEscapes.length === 0 && <Body muted>No open escapes assigned to you.</Body>}

@@ -11,8 +11,8 @@ import {
   PiBooksFill,
   PiBuildingOfficeFill,
   PiUsersThreeFill,
+  PiUsersFourFill,
   //PiShieldCheckFill,
-  PiIdentificationCardFill,
   PiBankFill,
   PiFileTextFill,
   PiGearSixFill,
@@ -23,6 +23,7 @@ import {
   PiDoorOpenFill,
 } from "react-icons/pi";
 import { TbKayak, TbBusFilled, TbRoute, TbPlug } from "react-icons/tb";
+import { FaBuildingUser } from "react-icons/fa6";
 
 // Nav is a plain data structure — the sidebar renders from it, and each
 // `path` maps 1:1 onto an `app/(protected)/<path>/page.tsx` route. Adding a
@@ -76,19 +77,20 @@ export const routeGroups: RouteGroup[] = [
     ],
   },
   {
-    id: "organization",
-    title: "Organization",
-    icon: PiBuildingOfficeFill,
+    id: "administration",
+    title: "Administration",
+    icon: FaBuildingUser,
     visibleToRoles: ["SUPER_ADMIN", "ADMIN"],
     routes: [
-      { path: "/organization/profile", title: "Profile", icon: PiIdentificationCardFill },
-      { path: "/organization/users", title: "Users", icon: PiUsersThreeFill },
-      //{ path: "/organization/roles", title: "Roles", icon: PiShieldCheckFill },
-      { path: "/organization/bank-accounts", title: "Bank Accounts", icon: PiBankFill },
-      { path: "/organization/assignment-rules", title: "Assignment Rules", icon: TbRoute },
-      { path: "/organization/integrations", title: "Integrations", icon: TbPlug },
-      { path: "/organization/templates", title: "Quote/Invoice Templates", icon: PiFileTextFill },
-      { path: "/organization/settings", title: "Settings", icon: PiGearSixFill },
+      { path: "/administration/organization", title: "Organization", icon: PiBuildingOfficeFill },
+      { path: "/administration/users", title: "Users", icon: PiUsersThreeFill },
+      { path: "/administration/teams", title: "Teams", icon: PiUsersFourFill },
+      //{ path: "/administration/roles", title: "Roles", icon: PiShieldCheckFill },
+      { path: "/administration/bank-accounts", title: "Bank Accounts", icon: PiBankFill },
+      { path: "/administration/assignment-rules", title: "Assignment Rules", icon: TbRoute },
+      { path: "/administration/integrations", title: "Integrations", icon: TbPlug },
+      { path: "/administration/templates", title: "Quote/Invoice Templates", icon: PiFileTextFill },
+      { path: "/administration/settings", title: "Settings", icon: PiGearSixFill },
     ],
   },
   {

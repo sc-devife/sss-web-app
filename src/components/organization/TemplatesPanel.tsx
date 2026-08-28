@@ -31,7 +31,7 @@ export function TemplatesPanel({ organization }: { organization: Organization })
     setBusy(templateId);
     setFormError(undefined);
     try {
-      await dispatch(setDefaultQuoteTemplate({ organizationUid: organization.uid, templateId })).unwrap();
+      await dispatch(setDefaultQuoteTemplate({ templateId })).unwrap();
       // Organization isn't Redux-managed yet — router.refresh() re-runs the
       // Server Component to pick up the new quote_template_id.
       router.refresh();
@@ -55,7 +55,7 @@ export function TemplatesPanel({ organization }: { organization: Organization })
       {formError && <p className="text-sm text-danger">{formError}</p>}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {templates.map((template) => {
-          const isDefault = organization.quote_template_id === template.id;
+          const isDefault = organization.settings?.quote_template_id === template.id;
           return (
             <Card key={template.id} className="flex flex-col gap-3">
               <div className="h-24 rounded" style={{ backgroundColor: template.accentColor }} />

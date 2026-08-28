@@ -77,6 +77,7 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [isDefault, setIsDefault] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
@@ -92,6 +93,7 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
 
   function openAddModal() {
     setForm(emptyForm);
+    setIsDefault(false);
     setErrors({});
     setFormError(undefined);
     setShowForm(true);
@@ -117,9 +119,10 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
     setErrors({});
     setSaving(true);
     try {
-      await dispatch(createBankAccount({ orgId, payload: form })).unwrap();
+      await dispatch(createBankAccount({ orgId, payload: { ...form, isDefault } })).unwrap();
       dispatch(fetchBankAccounts(orgId));
       setForm(emptyForm);
+      setIsDefault(false);
       setShowForm(false);
     } catch (err) {
       setFormError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to add account"));
@@ -128,7 +131,7 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
     }
   }
 
-  async function handleSetStatus(accountId: string, action: "deactivate" | "reactivate") {
+  async function handleSetStatus(accountId: string, action: "deactivate" | "reactivate" | "set-default") {
     setUpdatingId(accountId);
     try {
       await dispatch(setBankAccountStatus({ orgId, accountId, action }));
@@ -181,14 +184,28 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex min-w-0 items-start gap-3">
                     <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/50 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground"><FaUniversity className="size-5" /></div>
-                    <div className="flex min-w-0 flex-col gap-1"><Body className="truncate font-semibold">{account.bankName}</Body><Caption className="truncate text-muted-foreground">{account.bankShortName} · {account.branchName}</Caption></div>
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <Body className="truncate font-semibold">{account.bankName}</Body>
+                        {account.isDefault && <span className="shrink-0 rounded bg-success/15 px-1.5 py-0.5 text-[10px] font-medium text-success">Default</span>}
+                      </div>
+                      <Caption className="truncate text-muted-foreground">{account.bankShortName} · {account.branchName}</Caption>
+                    </div>
                   </div>
                   <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground"><span className={isActive ? "size-2 rounded-full bg-success" : "size-2 rounded-full bg-muted-foreground/50"} />{isActive ? "Active" : "Inactive"}</span>
                 </div>
 
                 <div className="rounded-xl border border-border/70 bg-muted/30 p-4"><Caption className="uppercase tracking-wider text-muted-foreground">Account number</Caption><Body className="mt-1 font-mono text-lg font-semibold tracking-widest">{maskAccountNumber(account.accountNumber)}</Body></div>
                 <div className="grid grid-cols-2 gap-4"><OptionalDetail label="Account holder" value={account.accountName} /><OptionalDetail label="IFSC" value={account.ifsc} /><OptionalDetail label="SWIFT" value={account.swiftCode} /><OptionalDetail label="MICR" value={account.micrCode} /></div>
-                <div className="mt-auto flex items-end justify-between gap-4 border-t border-border/70 pt-4"><div className="flex min-w-0 items-center gap-2 text-muted-foreground"><FaMapMarkerAlt className="size-3.5 shrink-0" /><Caption className="truncate">{account.branchCity}, {account.country} · {account.currency}</Caption></div>{isActive ? <Button variant="danger" size="sm" disabled={updatingId === account.uid} onClick={() => handleSetStatus(account.uid, "deactivate")}>Deactivate</Button> : <Button variant="secondary" size="sm" disabled={updatingId === account.uid} onClick={() => handleSetStatus(account.uid, "reactivate")}>Reactivate</Button>}</div>
+                <div className="mt-auto flex items-end justify-between gap-4 border-t border-border/70 pt-4">
+                  <div className="flex min-w-0 items-center gap-2 text-muted-foreground"><FaMapMarkerAlt className="size-3.5 shrink-0" /><Caption className="truncate">{account.branchCity}, {account.country} · {account.currency}</Caption></div>
+                  <div className="flex shrink-0 gap-2">
+                    {!account.isDefault && (
+                      <Button variant="secondary" size="sm" disabled={updatingId === account.uid} onClick={() => handleSetStatus(account.uid, "set-default")}>Set Default</Button>
+                    )}
+                    {isActive ? <Button variant="danger" size="sm" disabled={updatingId === account.uid} onClick={() => handleSetStatus(account.uid, "deactivate")}>Deactivate</Button> : <Button variant="secondary" size="sm" disabled={updatingId === account.uid} onClick={() => handleSetStatus(account.uid, "reactivate")}>Reactivate</Button>}
+                  </div>
+                </div>
               </Card>
             );
           })}
@@ -242,6 +259,15 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
               onChange={(e) => update("branchAddress", e.target.value)}
               className="sm:col-span-2"
             />
+            <label className="flex cursor-pointer items-center gap-2 text-sm sm:col-span-2">
+              <input
+                type="checkbox"
+                checked={isDefault}
+                onChange={(e) => setIsDefault(e.target.checked)}
+                className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+              />
+              Set as default account
+            </label>
           </fieldset>
 
           {formError && (

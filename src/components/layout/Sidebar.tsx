@@ -230,7 +230,7 @@ export function Sidebar({ roles }: { roles: string[] }) {
     setOpenGroupIds((current) => new Set(current).add(groupId));
   }
 
-  const groups = visibleGroupsForRoles(roles).filter((group) => ["sales", "library", "organization"].includes(group.id));
+  const groups = visibleGroupsForRoles(roles).filter((group) => ["sales", "library", "administration"].includes(group.id));
 
   useEffect(() => {
     dispatch(closeMobileAction());

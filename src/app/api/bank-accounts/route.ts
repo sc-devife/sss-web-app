@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   const { orgId, accountId, action } = await request.json();
-  const path = action === "reactivate" ? "reactivate" : "deactivate";
+  const path = action === "reactivate" ? "reactivate" : action === "set-default" ? "set-default" : "deactivate";
 
   const res = await backendFetch(`/api/bank-accounts/${orgId}/${accountId}/${path}`, { method: "PATCH" });
 
