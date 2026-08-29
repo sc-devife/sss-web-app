@@ -243,10 +243,10 @@ export function QuotesPanel({
                       q.status === "accepted"
                         ? "success"
                         : q.status === "rejected"
-                        ? "danger"
-                        : q.status === "sent"
-                        ? "warning"
-                        : "neutral"
+                          ? "danger"
+                          : q.status === "sent"
+                            ? "warning"
+                            : "neutral"
                     }
                   >
                     v{q.version} · {q.status}

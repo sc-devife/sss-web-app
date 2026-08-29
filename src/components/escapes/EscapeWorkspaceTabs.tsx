@@ -746,16 +746,18 @@ export function EscapeWorkspaceTabs({
                 return (
                   <div key={i} className="relative flex gap-3 pb-4 pl-1 last:pb-0">
                     {i < auditLog.length - 1 && (
-                      <span className="absolute left-[9px] top-6 h-full w-px bg-border" aria-hidden="true" />
+                      <span className="absolute left-[12px] top-6 h-full w-1 bg-border" aria-hidden="true" />
                     )}
                     <span className="relative z-10 mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15">
                       <span className="h-2 w-2 rounded-full bg-primary" />
                     </span>
                     <div className="min-w-0 flex-1 rounded-lg border border-border/60 bg-muted/40 p-2.5">
-                      <Body className="font-medium">{entry.action}</Body>
+                      <Body className="font-medium flex justify-between">{entry.action}
+                        <div>{formatDisplayDateTime(entry.createdAt)}</div>
+                      </Body>
                       {change && <Body className="text-sm text-muted-foreground">{change}</Body>}
                       <Caption>
-                        by {formatAuditActor(entry.performedByName)}, {formatDisplayDateTime(entry.createdAt)}
+                        by {formatAuditActor(entry.performedByName)}
                       </Caption>
                     </div>
                   </div>

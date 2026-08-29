@@ -203,10 +203,10 @@ export function DealPanel({ deal }: { deal: Deal }) {
                         m.status === "paid"
                           ? "success"
                           : m.status === "overdue"
-                          ? "danger"
-                          : m.status === "partially_paid" || m.status === "unverified"
-                          ? "warning"
-                          : "neutral"
+                            ? "danger"
+                            : m.status === "partially_paid" || m.status === "unverified"
+                              ? "warning"
+                              : "neutral"
                       }
                     >
                       {m.status}
