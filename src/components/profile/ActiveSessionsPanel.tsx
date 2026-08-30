@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PiDesktopFill, PiDeviceMobileFill, PiSignOut } from "react-icons/pi";
+import { PiDesktopFill, PiDeviceMobileFill, } from "react-icons/pi";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -13,6 +13,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchMySessions, revokeSession, revokeOtherSessions } from "@/features/sessions/sessionsThunks";
 import { selectMySessions, selectMySessionsStatus, selectMySessionsError } from "@/features/sessions/sessionsSelectors";
 import type { UserSessionInfo } from "@/lib/sessions";
+import { LuLogOut } from "react-icons/lu";
 
 // Good-enough device labeling from the raw User-Agent string — no parsing
 // library, just enough to tell "Chrome on Windows" apart from "Safari on
@@ -22,15 +23,15 @@ function deviceLabel(ua: string | null): { label: string; isMobile: boolean } {
   const isMobile = /Mobile|Android|iPhone|iPad/.test(ua);
   const os = /Windows/.test(ua) ? "Windows"
     : /Mac OS X/.test(ua) ? "macOS"
-    : /Android/.test(ua) ? "Android"
-    : /iPhone|iPad/.test(ua) ? "iOS"
-    : /Linux/.test(ua) ? "Linux"
-    : "Unknown OS";
+      : /Android/.test(ua) ? "Android"
+        : /iPhone|iPad/.test(ua) ? "iOS"
+          : /Linux/.test(ua) ? "Linux"
+            : "Unknown OS";
   const browser = /Edg\//.test(ua) ? "Edge"
     : /Chrome\//.test(ua) ? "Chrome"
-    : /Firefox\//.test(ua) ? "Firefox"
-    : /Safari\//.test(ua) ? "Safari"
-    : "Unknown browser";
+      : /Firefox\//.test(ua) ? "Firefox"
+        : /Safari\//.test(ua) ? "Safari"
+          : "Unknown browser";
   return { label: `${browser} on ${os}`, isMobile };
 }
 
@@ -57,7 +58,7 @@ function SessionRow({ session, onRevoke, revoking }: { session: UserSessionInfo;
       </div>
       {!session.isCurrent && (
         <Button variant="ghost" size="sm" disabled={revoking} onClick={onRevoke} className="shrink-0 text-danger hover:bg-danger/10">
-          <PiSignOut className="h-4 w-4" />
+          <LuLogOut className="h-4 w-4" />
           Log out
         </Button>
       )}

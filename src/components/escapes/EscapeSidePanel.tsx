@@ -5,7 +5,6 @@ import { PiSuitcaseRollingFill, PiFileTextFill } from "react-icons/pi";
 import { cn } from "@/lib/cn";
 import { ItineraryManagementCard } from "@/components/escapes/ItineraryManagementCard";
 import { DocumentsCard } from "@/components/escapes/DocumentsCard";
-import type { Escape } from "@/lib/escapes";
 import type { Deal } from "@/lib/deals";
 
 // Desktop-only: docked to the right edge of the *viewport* (not the page's
@@ -24,7 +23,6 @@ import type { Deal } from "@/lib/deals";
 // own edge-tab tracks its rail.
 export function EscapeSidePanel({
   escapeUid,
-  escape,
   deal,
   collapsed,
   onToggleCollapsed,
@@ -32,7 +30,6 @@ export function EscapeSidePanel({
   onSelectItinerary,
 }: {
   escapeUid: string;
-  escape: Escape;
   deal: Deal | null;
   collapsed: boolean;
   onToggleCollapsed: () => void;

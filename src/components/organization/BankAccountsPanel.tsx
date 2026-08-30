@@ -145,8 +145,6 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-5 border-b border-border/70 pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-2">
-          <Caption className="font-semibold uppercase tracking-[0.18em] text-primary">Organization finance</Caption>
-          <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Bank accounts</h1>
           <Body className="max-w-2xl text-muted-foreground">Manage settlement accounts and keep your organization&apos;s banking details organized in one secure place.</Body>
         </div>
         <Button className="shrink-0" onClick={openAddModal}>

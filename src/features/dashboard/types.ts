@@ -1,3 +1,12 @@
-import type { Dashboard, DashboardOrgMetrics } from "@/lib/dashboard";
+import type {
+  Dashboard,
+  DashboardOrgMetrics,
+  LeadsTrendPeriod,
+  LeadsTrendPoint,
+  NameCount,
+  PaymentStatusBreakdown,
+  QuoteAnalytics,
+  StatusCount,
+} from "@/lib/dashboard";
 
-export type { Dashboard, DashboardOrgMetrics };
+export type { Dashboard, DashboardOrgMetrics, LeadsTrendPeriod, LeadsTrendPoint, NameCount, PaymentStatusBreakdown, QuoteAnalytics, StatusCount };

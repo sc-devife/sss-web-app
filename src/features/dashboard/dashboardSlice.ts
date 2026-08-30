@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
-import type { Dashboard } from "@/features/dashboard/types";
-import { fetchDashboard } from "@/features/dashboard/dashboardThunks";
+import type { Dashboard, LeadsTrendPeriod, LeadsTrendPoint } from "@/features/dashboard/types";
+import { fetchDashboard, fetchLeadsTrend } from "@/features/dashboard/dashboardThunks";
 
 type RequestStatus = "idle" | "loading" | "succeeded" | "failed";
 
@@ -8,12 +8,20 @@ interface DashboardState {
   data: Dashboard | null;
   status: RequestStatus;
   error: string | null;
+  leadsTrend: LeadsTrendPoint[];
+  leadsTrendPeriod: LeadsTrendPeriod;
+  leadsTrendStatus: RequestStatus;
+  leadsTrendError: string | null;
 }
 
 const initialState: DashboardState = {
   data: null,
   status: "idle",
   error: null,
+  leadsTrend: [],
+  leadsTrendPeriod: "30d",
+  leadsTrendStatus: "idle",
+  leadsTrendError: null,
 };
 
 const dashboardSlice = createSlice({
@@ -33,6 +41,19 @@ const dashboardSlice = createSlice({
       .addCase(fetchDashboard.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload ?? "Failed to load dashboard";
+      })
+      .addCase(fetchLeadsTrend.pending, (state, action) => {
+        state.leadsTrendStatus = "loading";
+        state.leadsTrendError = null;
+        state.leadsTrendPeriod = action.meta.arg;
+      })
+      .addCase(fetchLeadsTrend.fulfilled, (state, action) => {
+        state.leadsTrendStatus = "succeeded";
+        state.leadsTrend = action.payload;
+      })
+      .addCase(fetchLeadsTrend.rejected, (state, action) => {
+        state.leadsTrendStatus = "failed";
+        state.leadsTrendError = action.payload ?? "Failed to load leads trend";
       });
   },
 });

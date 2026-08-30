@@ -26,6 +26,7 @@
     "react-phone-number-input": "^3.4.17",
     "react-redux": "^9.3.0",
     "react-toastify": "^11.1.0",
+    "recharts": "^3.10.1",
     "server-only": "^0.0.1"
   },
   "devDependencies": {

@@ -221,7 +221,7 @@ export function TeamsPanel({ escapePoints }: { escapePoints: EscapePoint[] }) {
                     ))}
                   </div>
                 ) : (
-                  <Caption className="text-muted-foreground">No members yet — assign teams from a user's edit panel.</Caption>
+                  <Caption className="text-muted-foreground">No members yet — assign teams from a user&apos;s edit panel.</Caption>
                 )}
               </div>
 

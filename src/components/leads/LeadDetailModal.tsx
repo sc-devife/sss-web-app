@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { formatDisplayDate, formatDisplayDateTime } from "@/lib/date";
+import { formatDisplayDate } from "@/lib/date";
 import { formatAuditActor, formatAuditChange } from "@/lib/audit";
 import { Button } from "@/components/ui/Button";
 import { DatePicker } from "@/components/ui/DatePicker";
@@ -212,16 +212,30 @@ export function LeadDetailModal({
           {loadingAudit && <LoadingState />}
           {!loadingAudit && auditLog && auditLog.length === 0 && <Body muted>No history yet.</Body>}
           {!loadingAudit && auditLog && auditLog.length > 0 && (
-            <div className="flex max-h-48 flex-col gap-2 overflow-y-auto">
+            <div className="flex max-h-48 flex-col overflow-y-auto">
               {auditLog.map((entry, i) => {
                 const change = formatAuditChange(entry.previousValue, entry.newValue);
+                const time = new Date(entry.createdAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+                const isNegative = /DISQUALIFI|LOST/.test(entry.action.toUpperCase());
                 return (
-                  <div key={i} className="text-sm">
-                    <span className="font-medium text-foreground">{entry.action}</span>{" "}
-                    <span className="text-muted-foreground">
-                      by {formatAuditActor(entry.performedByName)}, {formatDisplayDateTime(entry.createdAt)}
-                    </span>
-                    {change && <div className="text-xs text-muted-foreground">{change}</div>}
+                  <div key={i} className="flex gap-3 pb-4 last:pb-0">
+                    <div className="w-16 shrink-0 pt-0.5 text-right">
+                      <div className="text-xs font-medium text-foreground">{formatDisplayDate(entry.createdAt)}</div>
+                      <div className="text-xs text-muted-foreground">{time}</div>
+                    </div>
+                    <div className="relative flex w-5 shrink-0 flex-col items-center">
+                      {i < auditLog.length - 1 && (
+                        <span className="absolute left-1/2 top-5 h-full w-1 -translate-x-1/2 bg-border" aria-hidden="true" />
+                      )}
+                      <span className={`relative z-10 mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${isNegative ? "bg-danger/15" : "bg-primary/15"}`}>
+                        <span className={`h-2 w-2 rounded-full ${isNegative ? "bg-danger" : "bg-primary"}`} />
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1 text-sm">
+                      <span className="font-medium text-foreground">{entry.action}</span>{" "}
+                      <span className="text-muted-foreground">by {formatAuditActor(entry.performedByName)}</span>
+                      {change && <div className="mt-0.5 text-xs text-muted-foreground">{change}</div>}
+                    </div>
                   </div>
                 );
               })}

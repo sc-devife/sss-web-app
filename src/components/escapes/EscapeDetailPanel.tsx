@@ -177,7 +177,6 @@ export function EscapeDetailPanel({
 
       <EscapeSidePanel
         escapeUid={escape.uid}
-        escape={escape}
         deal={deal}
         collapsed={panelCollapsed}
         onToggleCollapsed={() => setPanelCollapsed((v) => !v)}
