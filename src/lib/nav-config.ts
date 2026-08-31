@@ -21,6 +21,8 @@ import {
   PiScrollFill,
   PiForkKnifeFill,
   PiDoorOpenFill,
+  PiCalculatorFill,
+  PiReceiptFill,
 } from "react-icons/pi";
 import { TbKayak, TbBusFilled, TbRoute, TbPlug } from "react-icons/tb";
 import { FaBuildingUser } from "react-icons/fa6";
@@ -91,6 +93,20 @@ export const routeGroups: RouteGroup[] = [
       { path: "/administration/integrations", title: "Integrations", icon: TbPlug },
       { path: "/administration/templates", title: "Quote/Invoice Templates", icon: PiFileTextFill },
       { path: "/administration/settings", title: "Settings", icon: PiGearSixFill },
+    ],
+  },
+  {
+    id: "accounting",
+    title: "Accounting",
+    icon: PiCalculatorFill,
+    // Financial ledger data — gated the same way as the other
+    // money-adjacent Administration screens (e.g. Bank Accounts).
+    visibleToRoles: ["SUPER_ADMIN", "ADMIN"],
+    // Incoming/Outgoing were split into their own nav items initially, but
+    // that's really just a filter on one combined ledger — kept as a single
+    // "Transactions" route; incoming/outgoing become filters inside it.
+    routes: [
+      { path: "/accounting/transactions", title: "Transactions", icon: PiReceiptFill },
     ],
   },
   {

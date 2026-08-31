@@ -9,6 +9,7 @@ export interface HotelPayload {
   escapePointId: string | null;
   mealPlanIds: string[];
   roomTypeIds: string[];
+  activityIds: string[];
   checkInTime: string | null;
   checkOutTime: string | null;
   childAgeForExtraBed: string;
@@ -19,9 +20,10 @@ export interface HotelPayload {
   images: string[];
   amenities: string[];
   status: string;
+  notes: string;
 }
 
 export interface UpdateHotelPayload {
   uid: string;
-  payload: HotelPayload;
+  payload: Partial<HotelPayload>;
 }

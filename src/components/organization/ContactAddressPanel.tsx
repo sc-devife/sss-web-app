@@ -9,7 +9,7 @@ import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Modal } from "@/components/ui/Modal";
-import { Body, Caption } from "@/components/ui/Typography";
+import { Body, Caption, Heading } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
@@ -293,7 +293,16 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
     <div className="space-y-4">
 
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-end">
+      <div className="flex flex-col gap-4 border-b pb-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="rounded-xl bg-primary/10 p-2 text-primary">
+            <PiMapPin className="h-5 w-5" />
+          </div>
+          <div>
+            <Heading as="h3" className="text-xl font-semibold">Contact Addresses</Heading>
+            <Body muted>Manage your headquarters and branch office locations.</Body>
+          </div>
+        </div>
         <Button
           onClick={openAddModal}
           className="self-start md:self-auto"

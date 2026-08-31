@@ -8,6 +8,7 @@ export interface Hotel {
   escapePoint: { uid: string; name: string } | null;
   mealPlans: { uid: string; code: string; name: string }[] | null;
   roomTypes: { uid: string; name: string }[] | null;
+  activities: { uid: string; name: string }[] | null;
   checkInTime: string | null;
   checkOutTime: string | null;
   childAgeForExtraBed: string | null;
@@ -19,6 +20,19 @@ export interface Hotel {
   images: string[] | null;
   amenities: string[] | null;
   status: string | null;
+  notes: string | null;
+}
+
+export interface HotelBooking {
+  itineraryItemUid: string;
+  escapeUid: string;
+  escapeStatus: string | null;
+  escapeStartDate: string | null;
+  escapeEndDate: string | null;
+  leadName: string | null;
+  dayNumber: number | null;
+  startTime: string | null;
+  notes: string | null;
 }
 
 export async function getHotels(): Promise<Hotel[]> {

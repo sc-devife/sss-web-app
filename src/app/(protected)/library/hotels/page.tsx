@@ -4,18 +4,26 @@ import { getLocations } from "@/lib/locations";
 import { getEscapePoints } from "@/lib/escape-points";
 import { getMealPlans } from "@/lib/meal-plans";
 import { getRoomTypes } from "@/lib/room-types";
+import { getActivities } from "@/lib/activities";
 
 export default async function Page() {
-  const [locations, escapePoints, mealPlans, roomTypes] = await Promise.all([
+  const [locations, escapePoints, mealPlans, roomTypes, activities] = await Promise.all([
     getLocations(),
     getEscapePoints(),
     getMealPlans(),
     getRoomTypes(),
+    getActivities(),
   ]);
 
   return (
     <Card variant="page" className="flex min-h-full flex-col gap-5">
-      <HotelsPanel locations={locations} escapePoints={escapePoints} mealPlans={mealPlans} roomTypes={roomTypes} />
+      <HotelsPanel
+        locations={locations}
+        escapePoints={escapePoints}
+        mealPlans={mealPlans}
+        roomTypes={roomTypes}
+        activities={activities}
+      />
     </Card>
   );
 }

@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import {
-  PiBuildings,
-  PiMapPin,
-} from "react-icons/pi";
+import { PiBuildings } from "react-icons/pi";
 
 import { Card } from "@/components/ui/Card";
 import { Heading, Body } from "@/components/ui/Typography";
@@ -66,26 +63,9 @@ export function OrganizationProfilePanel() {
         </div>
       </Card>
 
-      {/* Address Section */}
+      {/* Address Section — header lives inside ContactAddressPanel itself
+          (alongside the Add Address button), not duplicated here. */}
       <Card variant="elevated">
-        <div className="border-b px-6 py-5">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-primary/10 p-2 text-primary">
-              <PiMapPin className="h-5 w-5" />
-            </div>
-
-            <div>
-              <Heading as="h3" className="text-xl font-semibold">
-                Contact Addresses
-              </Heading>
-
-              <Body muted>
-                Manage your headquarters and branch office locations.
-              </Body>
-            </div>
-          </div>
-        </div>
-
         <div className="px-6 py-4">
           <ContactAddressPanel orgId={organization.uid} />
         </div>

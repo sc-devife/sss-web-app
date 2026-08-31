@@ -335,7 +335,7 @@ export function OrganizationForm({
           disabled={saving}
           loading={saving}
           loadingText="Saving..."
-          className="min-w-[170px]"
+          className="min-w-[160px]"
         >
           Save Changes
         </Button>

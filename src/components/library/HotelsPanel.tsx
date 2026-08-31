@@ -8,6 +8,7 @@ import { TimePicker } from "@/components/ui/TimePicker";
 import { Select } from "@/components/ui/Select";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { Modal } from "@/components/ui/Modal";
+import { Tabs } from "@/components/ui/Tabs";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { FileUpload } from "@/components/ui/FileUpload";
@@ -16,11 +17,12 @@ import { Alert } from "@/components/ui/Alert";
 import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import { resolveFileUrl } from "@/lib/files";
-import type { Hotel } from "@/lib/hotels";
+import type { Hotel, HotelBooking } from "@/lib/hotels";
 import type { LibraryLocation } from "@/lib/locations";
 import type { EscapePoint } from "@/lib/escape-points";
 import type { MealPlan } from "@/lib/meal-plans";
 import type { RoomType } from "@/lib/room-types";
+import type { Activity } from "@/lib/activities";
 import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
@@ -33,6 +35,7 @@ import { FaPlus } from "react-icons/fa";
 import { LuImport } from "react-icons/lu";
 import { FaLocationDot } from "react-icons/fa6";
 import { CiImageOff } from "react-icons/ci";
+import { PiClockCountdownFill } from "react-icons/pi";
 
 const AMENITY_OPTIONS = [
   { value: "wifi", label: "Wi-Fi" },
@@ -45,6 +48,25 @@ const AMENITY_OPTIONS = [
   { value: "breakfast", label: "Breakfast Included" },
 ];
 
+function InlineComingSoon({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-muted/30 py-14 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
+        <PiClockCountdownFill size={22} />
+      </div>
+      <div className="text-sm font-medium text-muted-foreground">{label} · coming soon</div>
+    </div>
+  );
+}
+
+function EmptyTabState({ message }: { message: string }) {
+  return (
+    <div className="flex items-center justify-center rounded-xl border border-border bg-muted/30 py-14 text-center text-sm font-medium text-muted-foreground">
+      {message}
+    </div>
+  );
+}
+
 const emptyForm = {
   name: "",
   stars: "",
@@ -52,6 +74,7 @@ const emptyForm = {
   locationId: "",
   mealPlanIds: [] as string[],
   roomTypeIds: [] as string[],
+  activityIds: [] as string[],
   checkInTime: "",
   checkOutTime: "",
   childAgeForExtraBed: "",
@@ -62,6 +85,7 @@ const emptyForm = {
   images: [] as string[],
   amenities: [] as string[],
   status: "active",
+  notes: "",
 };
 
 type FormState = typeof emptyForm;
@@ -94,11 +118,13 @@ export function HotelsPanel({
   escapePoints,
   mealPlans,
   roomTypes,
+  activities,
 }: {
   locations: LibraryLocation[];
   escapePoints: EscapePoint[];
   mealPlans: MealPlan[];
   roomTypes: RoomType[];
+  activities: Activity[];
 }) {
   const dispatch = useAppDispatch();
   const hotels = useAppSelector(selectHotels);
@@ -117,10 +143,40 @@ export function HotelsPanel({
   const [saving, setSaving] = useState(false);
   const [deletingUid, setDeletingUid] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | undefined>();
+  const [notesDraft, setNotesDraft] = useState("");
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [bookings, setBookings] = useState<HotelBooking[] | null>(null);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
 
   useEffect(() => {
     dispatch(fetchHotels());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!viewing) {
+      setBookings(null);
+      return;
+    }
+    setNotesDraft(viewing.notes ?? "");
+    setBookingsLoading(true);
+    clientApi
+      .get<HotelBooking[]>(`/library/hotels/${viewing.uid}/bookings`)
+      .then((res) => setBookings(res.data))
+      .catch(() => setBookings([]))
+      .finally(() => setBookingsLoading(false));
+  }, [viewing]);
+
+  async function handleSaveNotes() {
+    if (!viewing) return;
+    setSavingNotes(true);
+    try {
+      await dispatch(updateHotel({ uid: viewing.uid, payload: { notes: notesDraft } })).unwrap();
+      setViewing((v) => (v ? { ...v, notes: notesDraft } : v));
+      dispatch(fetchHotels());
+    } finally {
+      setSavingNotes(false);
+    }
+  }
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -145,6 +201,7 @@ export function HotelsPanel({
       locationId: hotel.location?.uid ?? "",
       mealPlanIds: hotel.mealPlans?.map((m) => m.uid) ?? [],
       roomTypeIds: hotel.roomTypes?.map((r) => r.uid) ?? [],
+      activityIds: hotel.activities?.map((a) => a.uid) ?? [],
       checkInTime: hotel.checkInTime ?? "",
       checkOutTime: hotel.checkOutTime ?? "",
       childAgeForExtraBed: hotel.childAgeForExtraBed ?? "",
@@ -155,6 +212,7 @@ export function HotelsPanel({
       images: hotel.images ?? [],
       amenities: hotel.amenities ?? [],
       status: hotel.status ?? "active",
+      notes: hotel.notes ?? "",
     };
     setEditing(hotel);
     setForm(snapshot);
@@ -162,6 +220,7 @@ export function HotelsPanel({
       ...snapshot,
       mealPlanIds: [...snapshot.mealPlanIds],
       roomTypeIds: [...snapshot.roomTypeIds],
+      activityIds: [...snapshot.activityIds],
       images: [...snapshot.images],
       amenities: [...snapshot.amenities],
     });
@@ -208,6 +267,7 @@ export function HotelsPanel({
         escapePointId: form.escapePointId || null,
         mealPlanIds: form.mealPlanIds,
         roomTypeIds: form.roomTypeIds,
+        activityIds: form.activityIds,
         checkInTime: form.checkInTime || null,
         checkOutTime: form.checkOutTime || null,
         childAgeForExtraBed: form.childAgeForExtraBed,
@@ -218,6 +278,7 @@ export function HotelsPanel({
         images: form.images,
         amenities: form.amenities,
         status: form.status,
+        notes: form.notes,
       };
 
       if (editing) {
@@ -334,15 +395,15 @@ export function HotelsPanel({
 
       <Modal open={!!viewing} onClose={() => setViewing(null)} title={viewing?.name ?? "Hotel"}>
         {viewing && (
-          <div className="flex max-h-[65vh] flex-col">
-            <div className="overflow-y-auto pr-1">
+          <div className="flex max-h-[75vh] flex-col">
+            <div className="shrink-0 overflow-y-auto pr-1">
               {viewing.images && viewing.images.length > 0 ? (
                 <div className="relative overflow-hidden rounded-xl">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={resolveFileUrl(viewing.images[0])}
                     alt={viewing.name}
-                    className="h-56 w-full object-cover"
+                    className="h-40 w-full object-cover"
                   />
                   {viewing.images.length > 1 && (
                     <div className="absolute bottom-3 right-3 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
@@ -351,7 +412,7 @@ export function HotelsPanel({
                   )}
                 </div>
               ) : (
-                <div className="flex h-56 flex-col items-center justify-center gap-3 rounded-xl border border-border bg-muted/30">
+                <div className="flex h-40 flex-col items-center justify-center gap-3 rounded-xl border border-border bg-muted/30">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
                     <CiImageOff size={22} />
                   </div>
@@ -374,127 +435,208 @@ export function HotelsPanel({
                 </div>
                 <Badge tone={viewing.status === "archived" ? "danger" : "success"}>{viewing.status ?? "active"}</Badge>
               </div>
+            </div>
 
-              <div className="mt-4 rounded-xl border border-border bg-muted/20 p-4">
-                <div className="flex items-start gap-2">
-                  <span className="mt-0.5 text-muted-foreground"><FaLocationDot /></span>
-                  <Body className="font-medium">{viewing.location?.displayName || "No location available"}</Body>
-                </div>
-                {viewing.escapePoint && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    <Badge tone="neutral">{viewing.escapePoint.name}</Badge>
+            <div className="mt-4 min-h-0 flex-1">
+              <Tabs
+                tabs={[
+                  { id: "details", label: "Details" },
+                  { id: "notes", label: "Hotel Notes" },
+                  { id: "bookings", label: "Bookings" },
+                  { id: "payments", label: "Payments" },
+                  { id: "accounting", label: "Accounting" },
+                  { id: "activities", label: "Activities" },
+                ]}
+              >
+                {(activeTab) => (
+                  <div className="flex flex-col gap-4 overflow-y-auto p-1">
+                    {activeTab === "details" && (
+                      <>
+                        <div className="rounded-xl border border-border bg-muted/20 p-4">
+                          <div className="flex items-start gap-2">
+                            <span className="mt-0.5 text-muted-foreground"><FaLocationDot /></span>
+                            <Body className="font-medium">{viewing.location?.displayName || "No location available"}</Body>
+                          </div>
+                          <div className="mt-3">
+                            <Caption>Escape Point</Caption>
+                            <div className="mt-1 flex flex-wrap gap-1.5">
+                              {viewing.escapePoint ? (
+                                <Badge tone="neutral">{viewing.escapePoint.name}</Badge>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">No escape point assigned</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Caption>Meal Plans</Caption>
+                            <div className="mt-1 flex flex-wrap gap-1.5">
+                              {viewing.mealPlans && viewing.mealPlans.length > 0 ? (
+                                viewing.mealPlans.map((m) => (
+                                  <Badge key={m.uid} tone="neutral">{m.code}</Badge>
+                                ))
+                              ) : (
+                                <span className="text-sm text-muted-foreground">—</span>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <Caption>Room Types</Caption>
+                            <div className="mt-1 flex flex-wrap gap-1.5">
+                              {viewing.roomTypes && viewing.roomTypes.length > 0 ? (
+                                viewing.roomTypes.map((r) => (
+                                  <Badge key={r.uid} tone="neutral">{r.name}</Badge>
+                                ))
+                              ) : (
+                                <span className="text-sm text-muted-foreground">—</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <Caption>Details</Caption>
+                          <div className="mt-1 grid grid-cols-2 gap-3">
+                            <div className="rounded-xl border border-border bg-background p-3">
+                              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Check-in</div>
+                              <div className="mt-1 text-sm font-semibold text-foreground">{formatDisplayTime(viewing.checkInTime) || "—"}</div>
+                            </div>
+                            <div className="rounded-xl border border-border bg-background p-3">
+                              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Check-out</div>
+                              <div className="mt-1 text-sm font-semibold text-foreground">{formatDisplayTime(viewing.checkOutTime) || "—"}</div>
+                            </div>
+                            <div className="rounded-xl border border-border bg-background p-3">
+                              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Rate Valid</div>
+                              <div className="mt-1 text-sm font-semibold text-foreground">
+                                {viewing.rateValidFrom || viewing.rateValidTo
+                                  ? `${formatDisplayDate(viewing.rateValidFrom) ?? "—"} to ${formatDisplayDate(viewing.rateValidTo) ?? "—"}`
+                                  : "—"}
+                              </div>
+                            </div>
+                            {viewing.childAgeForExtraBed && (
+                              <div className="rounded-xl border border-border bg-background p-3">
+                                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Child Extra-bed Age</div>
+                                <div className="mt-1 text-sm font-semibold text-foreground">{viewing.childAgeForExtraBed}</div>
+                              </div>
+                            )}
+                            {viewing.address && (
+                              <div className="rounded-xl border border-border bg-background p-3">
+                                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Address</div>
+                                <div className="mt-1 text-sm font-semibold text-foreground">{viewing.address}</div>
+                              </div>
+                            )}
+                            {viewing.contactInfo && (
+                              <div className="rounded-xl border border-border bg-background p-3">
+                                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contact Info</div>
+                                <div className="mt-1 text-sm font-semibold text-foreground">{viewing.contactInfo}</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {viewing.amenities && viewing.amenities.length > 0 && (
+                          <div>
+                            <Caption>Amenities</Caption>
+                            <div className="mt-1 flex flex-wrap gap-1.5">
+                              {viewing.amenities.map((a) => (
+                                <Badge key={a} tone="neutral">
+                                  {AMENITY_OPTIONS.find((o) => o.value === a)?.label ?? a}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {viewing.images && viewing.images.length > 1 && (
+                          <div>
+                            <Caption>Gallery</Caption>
+                            <div className="mt-1 grid grid-cols-4 gap-2">
+                              {viewing.images.map((url) => (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  key={url}
+                                  src={resolveFileUrl(url)}
+                                  alt={viewing.name}
+                                  className="aspect-square w-full rounded-lg border border-border object-cover transition-transform hover:scale-[1.02]"
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {activeTab === "notes" && (
+                      <div className="flex flex-col gap-3">
+                        <textarea
+                          value={notesDraft}
+                          onChange={(e) => setNotesDraft(e.target.value)}
+                          placeholder="No notes yet — add internal notes about this hotel."
+                          rows={8}
+                          className="w-full rounded-xl border border-border bg-background p-3 text-sm text-foreground outline-none focus:border-primary"
+                        />
+                        <Button
+                          className="self-end"
+                          onClick={handleSaveNotes}
+                          disabled={savingNotes || notesDraft === (viewing.notes ?? "")}
+                          loading={savingNotes}
+                          loadingText="Saving…"
+                        >
+                          Save notes
+                        </Button>
+                      </div>
+                    )}
+
+                    {activeTab === "bookings" && (
+                      bookingsLoading ? (
+                        <LoadingState label="Loading bookings…" />
+                      ) : bookings && bookings.length > 0 ? (
+                        <div className="flex flex-col gap-2">
+                          {bookings.map((b) => (
+                            <div key={b.itineraryItemUid} className="rounded-xl border border-border bg-background p-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="text-sm font-semibold text-foreground">{b.leadName || "Untitled trip"}</div>
+                                  <div className="mt-0.5 text-xs text-muted-foreground">
+                                    {b.escapeStartDate || b.escapeEndDate
+                                      ? `${formatDisplayDate(b.escapeStartDate) ?? "—"} to ${formatDisplayDate(b.escapeEndDate) ?? "—"}`
+                                      : "—"}
+                                    {" · "}Day {b.dayNumber ?? "—"}
+                                    {b.startTime ? ` · ${formatDisplayTime(b.startTime)}` : ""}
+                                  </div>
+                                </div>
+                                {b.escapeStatus && <Badge tone="neutral">{b.escapeStatus}</Badge>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <EmptyTabState message="No bookings found for this hotel." />
+                      )
+                    )}
+
+                    {activeTab === "payments" && <InlineComingSoon label="Payments" />}
+
+                    {activeTab === "accounting" && <InlineComingSoon label="Accounting" />}
+
+                    {activeTab === "activities" && (
+                      viewing.activities && viewing.activities.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {viewing.activities.map((a) => (
+                            <Badge key={a.uid} tone="neutral">{a.name}</Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <EmptyTabState message="No activities found for this hotel." />
+                      )
+                    )}
                   </div>
                 )}
-              </div>
-
-              {(viewing.mealPlans && viewing.mealPlans.length > 0) || (viewing.roomTypes && viewing.roomTypes.length > 0) ? (
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  {viewing.mealPlans && viewing.mealPlans.length > 0 && (
-                    <div>
-                      <Caption>Meal Plans</Caption>
-                      <div className="mt-1 flex flex-wrap gap-1.5">
-                        {viewing.mealPlans.map((m) => (
-                          <Badge key={m.uid} tone="neutral">{m.code}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {viewing.roomTypes && viewing.roomTypes.length > 0 && (
-                    <div>
-                      <Caption>Room Types</Caption>
-                      <div className="mt-1 flex flex-wrap gap-1.5">
-                        {viewing.roomTypes.map((r) => (
-                          <Badge key={r.uid} tone="neutral">{r.name}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : null}
-
-              <div className="mt-4">
-                <Caption>Details</Caption>
-                <div className="mt-1 grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-border bg-background p-3">
-                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Check-in</div>
-                    <div className="mt-1 text-sm font-semibold text-foreground">{formatDisplayTime(viewing.checkInTime) || "—"}</div>
-                  </div>
-                  <div className="rounded-xl border border-border bg-background p-3">
-                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Check-out</div>
-                    <div className="mt-1 text-sm font-semibold text-foreground">{formatDisplayTime(viewing.checkOutTime) || "—"}</div>
-                  </div>
-                  <div className="rounded-xl border border-border bg-background p-3">
-                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Rate Valid</div>
-                    <div className="mt-1 text-sm font-semibold text-foreground">
-                      {viewing.rateValidFrom || viewing.rateValidTo
-                        ? `${formatDisplayDate(viewing.rateValidFrom) ?? "—"} to ${formatDisplayDate(viewing.rateValidTo) ?? "—"}`
-                        : "—"}
-                    </div>
-                  </div>
-                  {viewing.childAgeForExtraBed && (
-                    <div className="rounded-xl border border-border bg-background p-3">
-                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Child Extra-bed Age</div>
-                      <div className="mt-1 text-sm font-semibold text-foreground">{viewing.childAgeForExtraBed}</div>
-                    </div>
-                  )}
-                  {viewing.address && (
-                    <div className="rounded-xl border border-border bg-background p-3">
-                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Address</div>
-                      <div className="mt-1 text-sm font-semibold text-foreground">{viewing.address}</div>
-                    </div>
-                  )}
-                  {viewing.contactInfo && (
-                    <div className="rounded-xl border border-border bg-background p-3">
-                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contact Info</div>
-                      <div className="mt-1 text-sm font-semibold text-foreground">{viewing.contactInfo}</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {viewing.amenities && viewing.amenities.length > 0 && (
-                <div className="mt-4">
-                  <Caption>Amenities</Caption>
-                  <div className="mt-1 flex flex-wrap gap-1.5">
-                    {viewing.amenities.map((a) => (
-                      <Badge key={a} tone="neutral">
-                        {AMENITY_OPTIONS.find((o) => o.value === a)?.label ?? a}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {viewing.images && viewing.images.length > 1 && (
-                <div className="mt-4">
-                  <Caption>Gallery</Caption>
-                  <div className="mt-1 grid grid-cols-4 gap-2">
-                    {viewing.images.map((url) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        key={url}
-                        src={resolveFileUrl(url)}
-                        alt={viewing.name}
-                        className="aspect-square w-full rounded-lg border border-border object-cover transition-transform hover:scale-[1.02]"
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+              </Tabs>
             </div>
 
-            <div className="mt-4 flex shrink-0 justify-end gap-2 border-t border-border pt-4">
-              <Button variant="secondary" onClick={() => setViewing(null)}>Close</Button>
-              <Button
-                onClick={() => {
-                  const hotel = viewing;
-                  setViewing(null);
-                  openEdit(hotel);
-                }}
-              >
-                Edit
-              </Button>
-            </div>
           </div>
         )}
       </Modal>
@@ -605,6 +747,13 @@ export function HotelsPanel({
               options={roomTypes.map((r) => ({ value: r.uid, label: r.name }))}
               value={form.roomTypeIds}
               onChange={(v) => update("roomTypeIds", v)}
+            />
+
+            <MultiSelect
+              label="Activities"
+              options={activities.map((a) => ({ value: a.uid, label: a.name }))}
+              value={form.activityIds}
+              onChange={(v) => update("activityIds", v)}
             />
 
             <div className="grid grid-cols-2 gap-3">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { IoChevronUpOutline, IoChevronDownOutline, IoPencilOutline, IoTrashOutline } from "react-icons/io5";
-import { PiPlusFill, PiPlusBold } from "react-icons/pi";
+import { PiPlusFill } from "react-icons/pi";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { TimePicker } from "@/components/ui/TimePicker";
@@ -36,7 +36,7 @@ import {
 import { selectItineraryItems, selectItineraryItemsStatus } from "@/features/itineraryItems/itineraryItemsSelectors";
 import { fetchEscapeById, updateEscapeDuration } from "@/features/escapes/escapesThunks";
 import { selectCurrentEscape } from "@/features/escapes/escapesSelectors";
-import { AddActivityModal } from "@/components/escapes/AddActivityModal";
+import { AddPlanningItemModal, type PlanningLibraryOption } from "@/components/escapes/AddPlanningItemModal";
 
 interface ModalState {
   open: boolean;
@@ -63,6 +63,15 @@ function editModalState(item: ItineraryItem): ModalState {
     notes: item.notes ?? "",
   };
 }
+
+type QuickAddType = "transport" | "hotel" | "meal" | "activity";
+
+const QUICK_ADD_BUTTONS: { itemType: QuickAddType; label: string }[] = [
+  { itemType: "transport", label: "Transport" },
+  { itemType: "hotel", label: "Hotel" },
+  { itemType: "meal", label: "Meal" },
+  { itemType: "activity", label: "Activity" },
+];
 
 function TimelineRow({
   item,
@@ -165,7 +174,7 @@ export function ItineraryDayPlanner({
 
   const [deletingUid, setDeletingUid] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState | null>(null);
-  const [addingActivity, setAddingActivity] = useState(false);
+  const [addingType, setAddingType] = useState<QuickAddType | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
   const [openDay, setOpenDay] = useState(1);
@@ -311,6 +320,58 @@ export function ItineraryDayPlanner({
 
   const activeDayItems = (itemsByDay[openDay] ?? []).slice().sort((a, b) => a.sortOrder - b.sortOrder);
 
+  const quickAddConfig: Record<
+    QuickAddType,
+    {
+      title: string;
+      searchPlaceholder: string;
+      libraryEmptyLabel: string;
+      nameFieldLabel: string;
+      namePlaceholder: string;
+      libraryOptions: PlanningLibraryOption[];
+    }
+  > = {
+    transport: {
+      title: "Add Transport",
+      searchPlaceholder: "Search transport…",
+      libraryEmptyLabel: "No transport options in the library yet.",
+      nameFieldLabel: "Transport name",
+      namePlaceholder: "e.g. Private cab to airport",
+      libraryOptions: transports.map((t) => ({
+        uid: t.uid,
+        label: `${t.modeCode}${t.vehicleTypeCode ? " — " + t.vehicleTypeCode : ""}`,
+      })),
+    },
+    hotel: {
+      title: "Add Hotel",
+      searchPlaceholder: "Search hotels…",
+      libraryEmptyLabel: "No hotels in the library yet.",
+      nameFieldLabel: "Hotel name",
+      namePlaceholder: "e.g. Wildflower Resort",
+      libraryOptions: hotels.map((h) => ({
+        uid: h.uid,
+        label: h.name,
+        roomTypes: h.roomTypes ?? [],
+      })),
+    },
+    meal: {
+      title: "Add Meal",
+      searchPlaceholder: "Search service providers…",
+      libraryEmptyLabel: "No service providers in the library yet.",
+      nameFieldLabel: "Meal name",
+      namePlaceholder: "e.g. Dinner at Spice Route",
+      libraryOptions: serviceProviders.map((p) => ({ uid: p.uid, label: p.name })),
+    },
+    activity: {
+      title: "Add Activity",
+      searchPlaceholder: "Search activities…",
+      libraryEmptyLabel: "No activities in the library yet.",
+      nameFieldLabel: "Activity name",
+      namePlaceholder: "e.g. Sunset boat ride",
+      libraryOptions: activities.map((a) => ({ uid: a.uid, label: a.name })),
+    },
+  };
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="relative z-10 flex shrink-0 items-center gap-1.5 overflow-x-auto">
@@ -358,15 +419,22 @@ export function ItineraryDayPlanner({
           {activeDayItems.length === 0 ? (
             <>
               <Body muted>No items planned for this day yet.</Body>
-              <button
-                type="button"
-                onClick={() => setAddingActivity(true)}
-                aria-label="Add Activity"
-                title="Add Activity"
-                className="flex h-7 w-16 shrink-0 items-center justify-center rounded-full border border-primary bg-transparent text-primary shadow-sm transition-colors hover:bg-primary hover:text-primary-foreground"
-              >
-                <PiPlusBold className="h-3.5 w-3.5" />
-              </button>
+              <div className="flex flex-wrap items-center justify-center gap-1.5">
+                {QUICK_ADD_BUTTONS.map(({ itemType, label }) => {
+                  const ButtonIcon = PLANNING_ITEM_ICON[itemType];
+                  return (
+                    <button
+                      key={itemType}
+                      type="button"
+                      onClick={() => setAddingType(itemType)}
+                      className="flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-primary bg-transparent px-3 text-xs font-semibold text-primary shadow-sm transition-colors hover:bg-primary hover:text-primary-foreground"
+                    >
+                      <ButtonIcon className="h-3.5 w-3.5" />
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
             </>
           ) : (
             activeDayItems.map((item, i) => (
@@ -384,26 +452,36 @@ export function ItineraryDayPlanner({
           )}
         </div>
         {activeDayItems.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setAddingActivity(true)}
-            aria-label="Add Activity"
-            title="Add Activity"
-            className="flex h-7 w-16 shrink-0 items-center justify-center self-start rounded-full border border-primary bg-transparent text-primary shadow-sm transition-colors hover:bg-primary hover:text-primary-foreground"
-          >
-            <PiPlusBold className="h-3.5 w-3.5" />
-          </button>
+          <div className="flex flex-wrap items-center gap-1.5 self-start">
+            {QUICK_ADD_BUTTONS.map(({ itemType, label }) => {
+              const ButtonIcon = PLANNING_ITEM_ICON[itemType];
+              return (
+                <button
+                  key={itemType}
+                  type="button"
+                  onClick={() => setAddingType(itemType)}
+                  className="flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-primary bg-transparent px-3 text-xs font-semibold text-primary shadow-sm transition-colors hover:bg-primary hover:text-primary-foreground"
+                >
+                  <ButtonIcon className="h-3.5 w-3.5" />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
 
-      <AddActivityModal
-        open={addingActivity}
-        onClose={() => setAddingActivity(false)}
-        itineraryUid={itineraryUid}
-        dayNumber={openDay}
-        activities={activities}
-        onCreated={loadItems}
-      />
+      {addingType && (
+        <AddPlanningItemModal
+          open={!!addingType}
+          onClose={() => setAddingType(null)}
+          itineraryUid={itineraryUid}
+          dayNumber={openDay}
+          itemType={addingType}
+          onCreated={loadItems}
+          {...quickAddConfig[addingType]}
+        />
+      )}
 
       <Modal open={!!modal} onClose={() => setModal(null)} title="Edit planning item">
         {modal && (
