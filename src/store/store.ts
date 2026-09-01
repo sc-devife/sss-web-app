@@ -29,6 +29,7 @@ import addressesReducer from "@/features/addresses/addressesSlice";
 import profileReducer from "@/features/profile/profileSlice";
 import mealPlansReducer from "@/features/mealPlans/mealPlansSlice";
 import roomTypesReducer from "@/features/roomTypes/roomTypesSlice";
+import servicesReducer from "@/features/services/servicesSlice";
 import teamsReducer from "@/features/teams/teamsSlice";
 import sessionsReducer from "@/features/sessions/sessionsSlice";
 
@@ -65,6 +66,7 @@ export function makeStore() {
       profile: profileReducer,
       mealPlans: mealPlansReducer,
       roomTypes: roomTypesReducer,
+      services: servicesReducer,
       teams: teamsReducer,
       sessions: sessionsReducer,
     },

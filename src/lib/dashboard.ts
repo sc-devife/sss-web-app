@@ -15,8 +15,8 @@ export interface NameCount {
 export interface PaymentStatusBreakdown {
   status: string;
   count: number;
-  totalUsd: number;
-  paidUsd: number;
+  totalInr: number;
+  paidInr: number;
 }
 
 export interface QuoteAnalytics {
@@ -24,8 +24,8 @@ export interface QuoteAnalytics {
   acceptedQuotes: number;
   rejectedQuotes: number;
   acceptanceRatePercent: number;
-  averageQuoteValueUsd: number;
-  totalQuoteValueUsd: number;
+  averageQuoteValueInr: number;
+  totalQuoteValueInr: number;
   statusBreakdown: StatusCount[];
 }
 
@@ -33,16 +33,16 @@ export interface DashboardOrgMetrics {
   leadsInLast30Days: number;
   conversionRatePercent: number;
   escapesInProgress: number;
-  revenuePipelineUsd: number;
+  revenuePipelineInr: number;
 
   // Only present for genuine period-flow metrics — see DashboardServiceImpl.
   previousPeriodLeadsCount: number;
-  previousPeriodRevenueCollectedUsd: number;
+  previousPeriodRevenueCollectedInr: number;
 
-  revenueCollectedUsd: number;
+  revenueCollectedInr: number;
   overduePaymentsCount: number;
-  overduePaymentsAmountUsd: number;
-  totalRevenueUsd: number;
+  overduePaymentsAmountInr: number;
+  totalRevenueInr: number;
 
   leadFunnel: StatusCount[];
   leadSourceBreakdown: NameCount[];

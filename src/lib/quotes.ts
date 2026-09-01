@@ -8,10 +8,10 @@ export interface Quote {
   status: string;
   currencyCode: string | null;
   fxRateSnapshot: number | null;
-  subtotalUsd: number | null;
+  subtotalInr: number | null;
   taxProfileId: string | null;
-  taxAmountUsd: number | null;
-  totalUsd: number | null;
+  taxAmountInr: number | null;
+  totalInr: number | null;
   discountType: string;
   discountValue: number | null;
   templateId: string | null; // per-quote template override — falls back to the org default when null

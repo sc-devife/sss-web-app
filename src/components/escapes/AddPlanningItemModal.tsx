@@ -13,16 +13,37 @@ import { useAppDispatch } from "@/store/hooks";
 import { createItineraryItem } from "@/features/itineraryItems/itineraryItemsThunks";
 import type { PlanningItemType } from "@/lib/itinerary-items";
 import { PLANNING_ITEM_ICON, PLANNING_ITEM_BADGE_CLASS } from "@/lib/itinerary-planning";
+import { transportModeIcon } from "@/lib/transport-modes";
+import {
+  TransportDetailFields,
+  emptyTransportDetailForm,
+  toTransportDetailPayload,
+  type TransportDetailFormState,
+} from "@/components/escapes/TransportDetailFields";
+import {
+  HotelDetailFields,
+  emptyHotelDetailForm,
+  toHotelDetailPayload,
+  type HotelDetailFormState,
+} from "@/components/escapes/HotelDetailFields";
 
 type Source = "library" | "custom";
 
 export interface PlanningLibraryOption {
   uid: string;
   label: string;
-  // Only populated for hotel options — lets the picker offer a follow-up
-  // "which room type" step without needing a second reference field on the
-  // itinerary item itself (the room type name just gets folded into notes).
+  // Only populated for hotel options — the hotel's own meal plans/room
+  // types, scoped to what that hotel actually offers rather than a global
+  // list, used by HotelDetailFields.
   roomTypes?: { uid: string; name: string }[];
+  mealPlans?: { uid: string; code: string; name: string }[];
+  // Only populated for transport options — prefills the Mode/Vehicle
+  // type/Price fields when a library Transport record is picked (still
+  // fully editable from there).
+  transportPrefill?: { modeCode: string; vehicleTypeCode: string | null; price: number | null };
+  // Only populated for activity options — prefills the Price field from the
+  // library Activity's own basePrice when picked (still fully editable).
+  activityPrefill?: { price: number | null };
 }
 
 // Generalized version of the day planner's "+"-triggered create flow, driven
@@ -41,6 +62,8 @@ export function AddPlanningItemModal({
   nameFieldLabel,
   namePlaceholder,
   onCreated,
+  defaultPax,
+  onMealPlanCreated,
 }: {
   open: boolean;
   onClose: () => void;
@@ -54,17 +77,30 @@ export function AddPlanningItemModal({
   nameFieldLabel: string;
   namePlaceholder: string;
   onCreated: () => void;
+  // Real Adults/Children/Infants counts from the escape's travellers, used
+  // to pre-fill the flight pricing grid instead of starting it blank.
+  defaultPax?: { adults: number; children: number; infants: number };
+  // Bubbles a meal plan created via HotelDetailFields' "+ Add Meal" up to
+  // the day planner, so the hotel's meal plan list stays current after this
+  // modal closes (this modal's own selectedOption is updated locally too).
+  onMealPlanCreated?: (hotelUid: string, mealPlan: { uid: string; code: string; name: string }) => void;
 }) {
   const dispatch = useAppDispatch();
-  const [step, setStep] = useState<"select" | "roomType" | "details">("select");
+  const [step, setStep] = useState<"select" | "details">("select");
   const [source, setSource] = useState<Source>("library");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<{ referenceId: string | null; name: string } | null>(null);
-  const [pendingHotel, setPendingHotel] = useState<PlanningLibraryOption | null>(null);
+  const [selectedOption, setSelectedOption] = useState<PlanningLibraryOption | null>(null);
   const [startTime, setStartTime] = useState("");
   const [notes, setNotes] = useState("");
+  const [price, setPrice] = useState("");
+  const [transportForm, setTransportForm] = useState<TransportDetailFormState>(emptyTransportDetailForm());
+  const [hotelForm, setHotelForm] = useState<HotelDetailFormState>(emptyHotelDetailForm());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  const isTransport = itemType === "transport";
+  const isHotel = itemType === "hotel";
+  const isActivity = itemType === "activity";
 
   const Icon = PLANNING_ITEM_ICON[itemType];
   const badgeClass = PLANNING_ITEM_BADGE_CLASS[itemType];
@@ -79,9 +115,12 @@ export function AddPlanningItemModal({
     setSource("library");
     setQuery("");
     setSelected(null);
-    setPendingHotel(null);
+    setSelectedOption(null);
     setStartTime("");
     setNotes("");
+    setPrice("");
+    setTransportForm(emptyTransportDetailForm());
+    setHotelForm(emptyHotelDetailForm());
     setError(undefined);
   }
 
@@ -92,22 +131,19 @@ export function AddPlanningItemModal({
   }
 
   function pickLibraryOption(option: PlanningLibraryOption) {
-    if (option.roomTypes && option.roomTypes.length > 0) {
-      setPendingHotel(option);
-      setStep("roomType");
-      return;
-    }
     setSelected({ referenceId: option.uid, name: option.label });
-    setStep("details");
-  }
-
-  function pickRoomType(roomTypeName: string | null) {
-    if (!pendingHotel) return;
-    setSelected({ referenceId: pendingHotel.uid, name: pendingHotel.label });
-    if (roomTypeName) {
-      setNotes((n) => (n ? n : `Room type: ${roomTypeName}`));
+    setSelectedOption(option);
+    if (option.transportPrefill) {
+      setTransportForm((f) => ({
+        ...f,
+        modeCode: option.transportPrefill!.modeCode,
+        vehicleTypeCode: option.transportPrefill!.vehicleTypeCode ?? "",
+        price: option.transportPrefill!.price != null ? String(option.transportPrefill!.price) : f.price,
+      }));
     }
-    setPendingHotel(null);
+    if (option.activityPrefill?.price != null) {
+      setPrice(String(option.activityPrefill.price));
+    }
     setStep("details");
   }
 
@@ -115,6 +151,7 @@ export function AddPlanningItemModal({
     e.preventDefault();
     if (!query.trim()) return;
     setSelected({ referenceId: null, name: query.trim() });
+    setSelectedOption(null);
     setStep("details");
   }
 
@@ -132,6 +169,9 @@ export function AddPlanningItemModal({
           title: selected.referenceId ? undefined : selected.name,
           startTime: startTime || undefined,
           notes: notes.trim() || undefined,
+          price: isActivity && price ? Number(price) : undefined,
+          transportDetail: isTransport ? toTransportDetailPayload(transportForm) : undefined,
+          hotelDetail: isHotel ? toHotelDetailPayload(hotelForm) : undefined,
         }),
       ).unwrap();
       onCreated();
@@ -144,7 +184,7 @@ export function AddPlanningItemModal({
     }
   }
 
-  const modalTitle = step === "select" ? title : step === "roomType" ? "Select room type" : `${title} details`;
+  const modalTitle = step === "select" ? title : `${title} details`;
 
   return (
     <Modal open={open} onClose={handleClose} title={modalTitle} className="rounded-2xl border-none shadow-2xl">
@@ -188,7 +228,9 @@ export function AddPlanningItemModal({
                     {libraryOptions.length === 0 ? libraryEmptyLabel : "No matches."}
                   </p>
                 ) : (
-                  filteredOptions.map((option) => (
+                  filteredOptions.map((option) => {
+                    const OptionIcon = isTransport ? transportModeIcon(option.transportPrefill?.modeCode) : Icon;
+                    return (
                     <button
                       key={option.uid}
                       type="button"
@@ -196,11 +238,12 @@ export function AddPlanningItemModal({
                       className="flex items-center gap-2.5 rounded-lg border border-border/60 bg-card px-3 py-2 text-left shadow-sm transition-all hover:-translate-y-px hover:border-primary/40 hover:shadow-md"
                     >
                       <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", badgeClass)}>
-                        <Icon className="h-4 w-4" />
+                        <OptionIcon className="h-4 w-4" />
                       </span>
                       <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{option.label}</span>
                     </button>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </>
@@ -220,32 +263,6 @@ export function AddPlanningItemModal({
             </form>
           )}
         </div>
-      ) : step === "roomType" ? (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm text-muted-foreground">
-            {pendingHotel?.label} has room types on file — pick one for this stay, or skip.
-          </p>
-          <div className="show-scrollbar flex max-h-72 flex-col gap-1.5 overflow-y-auto">
-            {pendingHotel?.roomTypes?.map((rt) => (
-              <button
-                key={rt.uid}
-                type="button"
-                onClick={() => pickRoomType(rt.name)}
-                className="flex items-center gap-2.5 rounded-lg border border-border/60 bg-card px-3 py-2 text-left shadow-sm transition-all hover:-translate-y-px hover:border-primary/40 hover:shadow-md"
-              >
-                <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{rt.name}</span>
-              </button>
-            ))}
-          </div>
-          <div className="flex justify-between gap-2 border-t border-border pt-3">
-            <Button type="button" variant="ghost" onClick={() => setStep("select")}>
-              Back
-            </Button>
-            <Button type="button" variant="secondary" onClick={() => pickRoomType(null)}>
-              Skip
-            </Button>
-          </div>
-        </div>
       ) : (
         <div className="flex flex-col gap-3">
           <button
@@ -262,6 +279,40 @@ export function AddPlanningItemModal({
             </span>
             <span className="shrink-0 text-xs font-medium text-primary">Change</span>
           </button>
+
+          {isTransport && (
+            <TransportDetailFields
+              value={transportForm}
+              onChange={setTransportForm}
+              defaultPax={defaultPax ?? { adults: 0, children: 0, infants: 0 }}
+            />
+          )}
+
+          {isHotel && (
+            <HotelDetailFields
+              value={hotelForm}
+              onChange={setHotelForm}
+              mealPlans={selectedOption?.mealPlans ?? []}
+              roomTypes={selectedOption?.roomTypes ?? []}
+              hotelName={selected?.name ?? ""}
+              hotelUid={selected?.referenceId ?? null}
+              onMealPlanCreated={(mealPlan) => {
+                setSelectedOption((opt) => (opt ? { ...opt, mealPlans: [...(opt.mealPlans ?? []), mealPlan] } : opt));
+                if (selected?.referenceId) onMealPlanCreated?.(selected.referenceId, mealPlan);
+              }}
+            />
+          )}
+
+          {isActivity && (
+            <TextInput
+              label="Price (INR)"
+              type="number"
+              min={0}
+              step="0.01"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+            />
+          )}
 
           <TimePicker label="Start time" value={startTime} onChange={setStartTime} />
           <TextInput

@@ -5,8 +5,8 @@ export interface PaymentMilestone {
   dealUid: string;
   label: string;
   dueDate: string;
-  amountUsd: number;
-  amountPaidUsd: number;
+  amountInr: number;
+  amountPaidInr: number;
   status: string;
   markedPaidBy: number | null;
   markedPaidByName: string | null;

@@ -44,6 +44,20 @@ export function formatDisplayTime(value: string | null | undefined): string | nu
   return `${h12}:${String(m).padStart(2, "0")} ${period}`;
 }
 
+// "HH:mm" + a duration in minutes -> "HH:mm" (24-hour, same shape), wrapping
+// past midnight — used to derive a service's end time from its start time.
+export function addMinutesToTime(value: string, minutes: number): string | null {
+  const match = /^(\d{1,2}):(\d{2})/.exec(value.trim());
+  if (!match) return null;
+  const h24 = Number(match[1]);
+  const m = Number(match[2]);
+  if (Number.isNaN(h24) || Number.isNaN(m) || Number.isNaN(minutes)) return null;
+  const total = ((h24 * 60 + m + minutes) % 1440 + 1440) % 1440;
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+  return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+}
+
 // "2h ago" / "Just now" style — for presence-style timestamps (last active,
 // last synced) where a relative sense of recency matters more than the exact
 // moment. Falls back to the absolute date once it's more than a week old,

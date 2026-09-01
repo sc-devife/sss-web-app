@@ -6,7 +6,7 @@ export interface CreatePaymentMilestonePayload {
   dealUid: string;
   label: string;
   dueDate: string;
-  amountUsd: number;
+  amountInr: number;
 }
 
 export interface RecordPaymentPayload {

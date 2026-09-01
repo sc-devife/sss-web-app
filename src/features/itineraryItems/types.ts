@@ -1,6 +1,6 @@
-import type { ItineraryItem, PlanningItemType } from "@/lib/itinerary-items";
+import type { ItineraryItem, PlanningItemType, TransportDetail, HotelDetail } from "@/lib/itinerary-items";
 
-export type { ItineraryItem, PlanningItemType };
+export type { ItineraryItem, PlanningItemType, TransportDetail, HotelDetail };
 
 export interface CreateItineraryItemPayload {
   itineraryUid: string;
@@ -10,6 +10,9 @@ export interface CreateItineraryItemPayload {
   title?: string;
   startTime?: string;
   notes?: string;
+  price?: number;
+  transportDetail?: TransportDetail;
+  hotelDetail?: HotelDetail;
 }
 
 export interface UpdateItineraryItemPayload {
@@ -21,6 +24,9 @@ export interface UpdateItineraryItemPayload {
   title?: string;
   startTime?: string;
   notes?: string;
+  price?: number;
+  transportDetail?: TransportDetail;
+  hotelDetail?: HotelDetail;
 }
 
 export interface DeleteItineraryItemPayload {

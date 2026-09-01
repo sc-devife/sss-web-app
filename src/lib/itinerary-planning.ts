@@ -1,6 +1,6 @@
 import type { IconType } from "react-icons";
 import { PiCarFill, PiTaxiFill, PiBedFill, PiMountainsFill, PiBinocularsFill, PiForkKnifeFill, PiSunFill, PiDotsThreeCircleFill } from "react-icons/pi";
-import type { PlanningItemType } from "@/lib/itinerary-items";
+import type { ItineraryItem, PlanningItemType } from "@/lib/itinerary-items";
 
 // "hotel" is deliberately excluded here — this list only drives the Add
 // Activity form's Type select, and hotels aren't added through it. The
@@ -84,4 +84,30 @@ export function formatDayDateWithWeekday(date: Date | null): string {
 // "HH:mm:ss" (backend LocalTime JSON) -> "HH:mm" for display.
 export function formatStartTime(startTime: string | null): string | null {
   return startTime ? startTime.slice(0, 5) : null;
+}
+
+// The one customer-facing "total price" for an item, regardless of which
+// itemType-specific shape it actually lives in — Hotel's own totalPrice
+// field, Activity's base price, or (for Transport) the simple mode price /
+// flight's selling price (times pax, if it's marked per-person). Used by
+// both the per-item price badge and the day-total sum, so both always agree
+// on what "this item's price" means.
+export function getItemTotalPrice(item: ItineraryItem): number | null {
+  if (item.itemType === "hotel") {
+    return item.hotelDetail?.totalPrice ?? null;
+  }
+  if (item.itemType === "activity" || item.itemType === "sightseeing") {
+    return item.price;
+  }
+  if (item.itemType === "transport" || item.itemType === "pickup_drop") {
+    const detail = item.transportDetail;
+    if (!detail) return null;
+    if (detail.modeCode === "flight") {
+      if (detail.sellingPrice == null) return null;
+      const pax = (detail.adultsCount ?? 0) + (detail.childrenCount ?? 0) + (detail.infantsCount ?? 0);
+      return detail.sellingPricePerPerson ? detail.sellingPrice * Math.max(pax, 1) : detail.sellingPrice;
+    }
+    return detail.price;
+  }
+  return null;
 }

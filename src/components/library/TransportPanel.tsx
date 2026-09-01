@@ -22,135 +22,7 @@ import { fetchTransports, createTransport, updateTransport, deleteTransport } fr
 import { selectTransports, selectTransportsStatus, selectTransportsError } from "@/features/transports/transportsSelectors";
 import { FaPlus } from "react-icons/fa";
 import { LuImport } from "react-icons/lu";
-
-const MODE_OPTIONS = [
-  { value: "flight", label: "Flight" },
-  { value: "train", label: "Train" },
-  { value: "bus", label: "Bus" },
-  { value: "coach", label: "Coach" },
-  { value: "car", label: "Car" },
-  { value: "taxi", label: "Taxi / Cab" },
-  { value: "van", label: "Van" },
-  { value: "boat", label: "Boat" },
-  { value: "ferry", label: "Ferry" },
-  { value: "cruise", label: "Cruise" },
-  { value: "helicopter", label: "Helicopter" },
-  { value: "motorcycle", label: "Motorcycle" },
-  { value: "bicycle", label: "Bicycle" },
-  { value: "walking", label: "Walking" },
-  { value: "cable_car", label: "Cable Car / Gondola" },
-  { value: "funicular", label: "Funicular" },
-  { value: "camel", label: "Camel" },
-  { value: "horse", label: "Horse" },
-  { value: "atv", label: "ATV / Jeep Safari" },
-  { value: "other", label: "Other" },
-];
-
-const VEHICLE_TYPE_OPTIONS: Record<string, { value: string; label: string }[]> = {
-  flight: [
-    { value: "economy", label: "Economy" },
-    { value: "premium_economy", label: "Premium Economy" },
-    { value: "business", label: "Business" },
-    { value: "first", label: "First Class" },
-  ],
-
-  train: [
-    { value: "chair_car", label: "Chair Car" },
-    { value: "sleeper", label: "Sleeper" },
-    { value: "ac_3_tier", label: "AC 3 Tier" },
-    { value: "ac_2_tier", label: "AC 2 Tier" },
-    { value: "first_class", label: "First Class" },
-  ],
-
-  bus: [
-    { value: "mini_bus", label: "Mini Bus" },
-    { value: "coach", label: "Coach" },
-    { value: "sleeper_bus", label: "Sleeper Bus" },
-    { value: "volvo", label: "Volvo Bus" },
-  ],
-
-  coach: [
-    { value: "standard_coach", label: "Standard Coach" },
-    { value: "luxury_coach", label: "Luxury Coach" },
-  ],
-
-  car: [
-    { value: "hatchback", label: "Hatchback" },
-    { value: "sedan", label: "Sedan" },
-    { value: "suv", label: "SUV" },
-    { value: "luxury", label: "Luxury Car" },
-  ],
-
-  taxi: [
-    { value: "sedan", label: "Sedan" },
-    { value: "suv", label: "SUV" },
-    { value: "premium", label: "Premium Cab" },
-  ],
-
-  van: [
-    { value: "minivan", label: "Minivan" },
-    { value: "tempo_traveller", label: "Tempo Traveller" },
-    { value: "passenger_van", label: "Passenger Van" },
-  ],
-
-  boat: [
-    { value: "speed_boat", label: "Speed Boat" },
-    { value: "houseboat", label: "Houseboat" },
-    { value: "yacht", label: "Yacht" },
-  ],
-
-  ferry: [
-    { value: "passenger_ferry", label: "Passenger Ferry" },
-    { value: "vehicle_ferry", label: "Vehicle Ferry" },
-  ],
-
-  cruise: [
-    { value: "river_cruise", label: "River Cruise" },
-    { value: "ocean_cruise", label: "Ocean Cruise" },
-  ],
-
-  helicopter: [
-    { value: "shared", label: "Shared Helicopter" },
-    { value: "private", label: "Private Charter" },
-  ],
-
-  motorcycle: [
-    { value: "motorcycle", label: "Motorcycle" },
-    { value: "scooter", label: "Scooter" },
-  ],
-
-  bicycle: [
-    { value: "standard", label: "Standard Bicycle" },
-    { value: "mountain", label: "Mountain Bike" },
-    { value: "electric", label: "Electric Bike" },
-  ],
-
-  walking: [],
-
-  cable_car: [
-    { value: "gondola", label: "Gondola" },
-    { value: "cable_car", label: "Cable Car" },
-  ],
-
-  funicular: [
-    { value: "funicular", label: "Funicular" },
-  ],
-
-  camel: [
-    { value: "camel", label: "Camel" },
-  ],
-
-  horse: [
-    { value: "horse", label: "Horse" },
-  ],
-
-  atv: [
-    { value: "atv", label: "ATV" },
-    { value: "jeep", label: "4x4 Jeep" },
-  ],
-
-  other: [],
-};
+import { MODE_OPTIONS, VEHICLE_TYPE_OPTIONS } from "@/lib/transport-modes";
 
 
 const emptyForm = {
@@ -317,8 +189,8 @@ export function TransportPanel({
     },
     {
       key: "basePrice",
-      header: "Base price (USD)",
-      render: (t) => (t.basePrice != null ? `$${t.basePrice.toFixed(2)}` : "—"),
+      header: "Base price (INR)",
+      render: (t) => (t.basePrice != null ? `₹${t.basePrice.toFixed(2)}` : "—"),
       sortValue: (t) => t.basePrice ?? 0,
     },
     {
@@ -432,7 +304,7 @@ export function TransportPanel({
             />
 
             <TextInput
-              label="Base price (USD)"
+              label="Base price (INR)"
               type="number"
               min={0}
               step="0.01"

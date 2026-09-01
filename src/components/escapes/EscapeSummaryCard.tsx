@@ -198,7 +198,7 @@ export function EscapeSummaryCard({
                 <InfoRow
                   icon={PiCurrencyDollarFill}
                   label="Budget"
-                  value={lead.budget != null ? `$${lead.budget.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null}
+                  value={lead.budget != null ? `₹${lead.budget.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null}
                 />
               </div>
             </>

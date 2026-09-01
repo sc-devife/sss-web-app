@@ -22,8 +22,8 @@ export default async function InvoicePreviewPage({ params }: { params: { uid: st
 
   const template = templates.find((t) => t.id === organization.settings?.invoice_template_id) ?? templates[0];
 
-  const totalPaid = milestones.reduce((sum, m) => sum + m.amountPaidUsd, 0);
-  const totalDue = milestones.reduce((sum, m) => sum + m.amountUsd, 0);
+  const totalPaid = milestones.reduce((sum, m) => sum + m.amountPaidInr, 0);
+  const totalDue = milestones.reduce((sum, m) => sum + m.amountInr, 0);
   const totalOutstanding = totalDue - totalPaid;
 
   return (
@@ -65,7 +65,7 @@ export default async function InvoicePreviewPage({ params }: { params: { uid: st
         <div className="mb-8 rounded border border-gray-200 p-4 text-sm">
           <div className="flex justify-between border-b pb-2 text-base font-bold" style={{ borderColor: template.accentColor }}>
             <span>Total booking value</span>
-            <span>{quote.totalUsd != null ? `$${quote.totalUsd.toFixed(2)}` : "—"} USD</span>
+            <span>{quote.totalInr != null ? `₹${quote.totalInr.toFixed(2)}` : "—"} INR</span>
           </div>
         </div>
 
@@ -81,7 +81,7 @@ export default async function InvoicePreviewPage({ params }: { params: { uid: st
               </div>
               <div className="text-right">
                 <p className="capitalize text-gray-500">{m.status.replace("_", " ")}</p>
-                <p>${m.amountPaidUsd.toFixed(2)} / ${m.amountUsd.toFixed(2)} USD</p>
+                <p>₹{m.amountPaidInr.toFixed(2)} / ₹{m.amountInr.toFixed(2)} INR</p>
               </div>
             </div>
           ))}
@@ -91,11 +91,11 @@ export default async function InvoicePreviewPage({ params }: { params: { uid: st
         <div className="rounded border border-gray-200 p-4 text-sm">
           <div className="flex justify-between py-1">
             <span className="text-gray-500">Total paid</span>
-            <span>${totalPaid.toFixed(2)} USD</span>
+            <span>₹{totalPaid.toFixed(2)} INR</span>
           </div>
           <div className="mt-2 flex justify-between border-t pt-2 text-base font-bold" style={{ borderColor: template.accentColor }}>
             <span>Balance outstanding</span>
-            <span>${totalOutstanding.toFixed(2)} USD</span>
+            <span>₹{totalOutstanding.toFixed(2)} INR</span>
           </div>
         </div>
 

@@ -168,7 +168,7 @@ export function DocumentsCard({
                       </div>
                     )}
                     <span className="truncate text-[11px] text-muted-foreground">
-                      {quote.totalUsd != null ? `$${quote.totalUsd.toFixed(2)} USD` : "Not priced yet"}
+                      {quote.totalInr != null ? `₹${quote.totalInr.toFixed(2)} INR` : "Not priced yet"}
                     </span>
                   </div>
                   <div className="flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">

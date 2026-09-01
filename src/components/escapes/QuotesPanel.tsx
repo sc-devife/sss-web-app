@@ -251,7 +251,7 @@ export function QuotesPanel({
                   >
                     v{q.version} · {q.status}
                   </Badge>{" "}
-                  {q.totalUsd != null ? `$${q.totalUsd.toFixed(2)} USD` : "Not priced yet"}
+                  {q.totalInr != null ? `₹${q.totalInr.toFixed(2)} INR` : "Not priced yet"}
                   {q.validUntil && <span className="text-muted-foreground"> · valid until {formatDisplayDate(q.validUntil)}</span>}
                   <span className="block text-xs text-muted-foreground">
                     Created {formatDisplayDateTime(q.createdAt)} by {formatAuditActor(q.createdByName)}
@@ -342,11 +342,11 @@ export function QuotesPanel({
                       options={currencies.map((c) => ({ value: c.code, label: `${c.code} — ${c.name}` }))}
                       value={computeForm.displayCurrencyCode}
                       onChange={(e) => setComputeForm((f) => ({ ...f, displayCurrencyCode: e.target.value }))}
-                      placeholder="USD only"
+                      placeholder="INR only"
                     />
-                    {computeForm.displayCurrencyCode && computeForm.displayCurrencyCode !== "USD" && (
+                    {computeForm.displayCurrencyCode && computeForm.displayCurrencyCode !== "INR" && (
                       <TextInput
-                        label={`1 USD = ? ${computeForm.displayCurrencyCode}`}
+                        label={`1 INR = ? ${computeForm.displayCurrencyCode}`}
                         type="number"
                         min={0}
                         step="0.0001"

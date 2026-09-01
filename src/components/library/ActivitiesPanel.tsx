@@ -189,8 +189,8 @@ export function ActivitiesPanel({
     },
     {
       key: "basePrice",
-      header: "Base price (USD)",
-      render: (a) => (a.basePrice != null ? `$${a.basePrice.toFixed(2)}` : "—"),
+      header: "Base price (INR)",
+      render: (a) => (a.basePrice != null ? `₹${a.basePrice.toFixed(2)}` : "—"),
       sortValue: (a) => a.basePrice ?? 0,
     },
     {
@@ -310,7 +310,7 @@ export function ActivitiesPanel({
                   <div className="rounded-xl border border-border bg-background p-3">
                     <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Base Price</div>
                     <div className="mt-1 text-sm font-semibold text-foreground">
-                      {viewing.basePrice != null ? `$${viewing.basePrice.toFixed(2)}` : "—"}
+                      {viewing.basePrice != null ? `₹${viewing.basePrice.toFixed(2)}` : "—"}
                     </div>
                   </div>
                   <div className="rounded-xl border border-border bg-background p-3">
@@ -425,7 +425,7 @@ export function ActivitiesPanel({
             <FileUpload label="Images" value={form.images} onChange={(images) => update("images", images)} />
 
             <TextInput
-              label="Base price (USD)"
+              label="Base price (INR)"
               type="number"
               min={0}
               step="0.01"

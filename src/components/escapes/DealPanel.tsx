@@ -19,7 +19,7 @@ import { fetchMilestonesForDeal, createPaymentMilestone, recordPayment, verifyPa
 import { selectPaymentMilestones, selectPaymentMilestonesStatus, selectPaymentMilestonesError } from "@/features/paymentMilestones/paymentMilestonesSelectors";
 import { cancelDeal } from "@/features/deals/dealsThunks";
 
-const emptyForm = { label: "", dueDate: "", amountUsd: "" };
+const emptyForm = { label: "", dueDate: "", amountInr: "" };
 
 export function DealPanel({ deal }: { deal: Deal }) {
   const dispatch = useAppDispatch();
@@ -47,7 +47,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
   useEffect(() => {
     clientApi
       .get<Quote>(`/quotes/${deal.acceptedQuoteUid}`)
-      .then((res) => setQuoteTotal(res.data.totalUsd))
+      .then((res) => setQuoteTotal(res.data.totalInr))
       .catch(() => setQuoteTotal(null));
   }, [deal.acceptedQuoteUid]);
 
@@ -65,7 +65,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
           dealUid: deal.uid,
           label: form.label,
           dueDate: form.dueDate,
-          amountUsd: Number(form.amountUsd),
+          amountInr: Number(form.amountInr),
         }),
       ).unwrap();
       refresh();
@@ -129,7 +129,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
     }
   }
 
-  const milestonesTotal = milestones.reduce((sum, m) => sum + m.amountUsd, 0);
+  const milestonesTotal = milestones.reduce((sum, m) => sum + m.amountInr, 0);
   const milestonesMismatch =
     quoteTotal != null && milestones.length > 0 && Math.abs(milestonesTotal - quoteTotal) > 0.01;
 
@@ -176,7 +176,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
 
       {milestonesMismatch && (
         <div className="rounded border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
-          Payment milestones total ${milestonesTotal.toFixed(2)} USD, which doesn&apos;t match the accepted quote&apos;s total of ${quoteTotal!.toFixed(2)} USD.
+          Payment milestones total ₹{milestonesTotal.toFixed(2)} INR, which doesn&apos;t match the accepted quote&apos;s total of ₹{quoteTotal!.toFixed(2)} INR.
         </div>
       )}
 
@@ -213,7 +213,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
                     </Badge>{" "}
                     <span className="font-medium text-foreground">{m.label}</span>{" "}
                     <span className="text-muted-foreground">
-                      due {formatDisplayDate(m.dueDate)} · ${m.amountPaidUsd.toFixed(2)} / ${m.amountUsd.toFixed(2)} USD
+                      due {formatDisplayDate(m.dueDate)} · ₹{m.amountPaidInr.toFixed(2)} / ₹{m.amountInr.toFixed(2)} INR
                     </span>
                     {m.markedPaidAt && (
                       <span className="block text-xs text-muted-foreground">
@@ -272,12 +272,12 @@ export function DealPanel({ deal }: { deal: Deal }) {
           <TextInput label="Label" value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} required />
           <DatePicker label="Due date" value={form.dueDate} onChange={(v) => setForm((f) => ({ ...f, dueDate: v }))} required />
           <TextInput
-            label="Amount (USD)"
+            label="Amount (INR)"
             type="number"
             min={0}
             step="0.01"
-            value={form.amountUsd}
-            onChange={(e) => setForm((f) => ({ ...f, amountUsd: e.target.value }))}
+            value={form.amountInr}
+            onChange={(e) => setForm((f) => ({ ...f, amountInr: e.target.value }))}
             required
           />
           {formError && <p className="col-span-full text-sm text-danger">{formError}</p>}

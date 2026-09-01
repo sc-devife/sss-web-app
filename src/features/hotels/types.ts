@@ -9,7 +9,7 @@ export interface HotelPayload {
   escapePointId: string | null;
   mealPlanIds: string[];
   roomTypeIds: string[];
-  activityIds: string[];
+  serviceIds: string[];
   checkInTime: string | null;
   checkOutTime: string | null;
   childAgeForExtraBed: string;

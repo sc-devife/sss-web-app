@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Heading, Body, Caption } from "@/components/ui/Typography";
 import { formatDisplayDate } from "@/lib/date";
-import { formatUsd, formatUsdCompact } from "@/lib/currency";
+import { formatInr, formatInrCompact } from "@/lib/currency";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchDashboard, fetchLeadsTrend } from "@/features/dashboard/dashboardThunks";
 import {
@@ -114,7 +114,7 @@ function MyUpcomingPayments({ milestones }: { milestones: PaymentMilestone[] }) 
             <Badge tone={milestone.status === "overdue" ? "danger" : milestone.status === "partially_paid" ? "warning" : "neutral"}>
               {milestone.status}
             </Badge>
-            <Caption>${(milestone.amountUsd - milestone.amountPaidUsd).toFixed(2)} remaining</Caption>
+            <Caption>₹{(milestone.amountInr - milestone.amountPaidInr).toFixed(2)} remaining</Caption>
           </div>
         </Card>
       ))}
@@ -164,16 +164,16 @@ export function DashboardPanel() {
             />
             <KpiCard label="Conversion Rate" value={`${metrics.conversionRatePercent.toFixed(1)}%`} />
             <KpiCard label="Active Escapes" value={metrics.escapesInProgress} />
-            <KpiCard label="Revenue Pipeline" value={formatUsdCompact(metrics.revenuePipelineUsd)} />
+            <KpiCard label="Revenue Pipeline" value={formatInrCompact(metrics.revenuePipelineInr)} />
             <KpiCard
               label="Revenue Collected"
-              value={formatUsdCompact(metrics.revenueCollectedUsd)}
-              trend={trendFor(metrics.revenueCollectedUsd, metrics.previousPeriodRevenueCollectedUsd)}
+              value={formatInrCompact(metrics.revenueCollectedInr)}
+              trend={trendFor(metrics.revenueCollectedInr, metrics.previousPeriodRevenueCollectedInr)}
             />
             <KpiCard
               label="Overdue Payments"
               value={metrics.overduePaymentsCount}
-              icon={metrics.overduePaymentsCount > 0 ? <Badge tone="danger">{formatUsdCompact(metrics.overduePaymentsAmountUsd)}</Badge> : undefined}
+              icon={metrics.overduePaymentsCount > 0 ? <Badge tone="danger">{formatInrCompact(metrics.overduePaymentsAmountInr)}</Badge> : undefined}
             />
           </div>
 
@@ -192,19 +192,19 @@ export function DashboardPanel() {
                 <div className="grid grid-cols-2 gap-3 sm:w-48 sm:shrink-0">
                   <div>
                     <Caption>Total Revenue</Caption>
-                    <Body className="font-semibold">{formatUsd(metrics.totalRevenueUsd)}</Body>
+                    <Body className="font-semibold">{formatInr(metrics.totalRevenueInr)}</Body>
                   </div>
                   <div>
                     <Caption>Collected</Caption>
-                    <Body className="font-semibold text-success">{formatUsd(metrics.revenueCollectedUsd)}</Body>
+                    <Body className="font-semibold text-success">{formatInr(metrics.revenueCollectedInr)}</Body>
                   </div>
                   <div>
                     <Caption>Outstanding</Caption>
-                    <Body className="font-semibold">{formatUsd(metrics.revenuePipelineUsd)}</Body>
+                    <Body className="font-semibold">{formatInr(metrics.revenuePipelineInr)}</Body>
                   </div>
                   <div>
                     <Caption>Overdue</Caption>
-                    <Body className="font-semibold text-danger">{formatUsd(metrics.overduePaymentsAmountUsd)}</Body>
+                    <Body className="font-semibold text-danger">{formatInr(metrics.overduePaymentsAmountInr)}</Body>
                   </div>
                 </div>
               </div>
@@ -283,11 +283,11 @@ export function DashboardPanel() {
                   </div>
                   <div>
                     <Caption>Avg Quote Value</Caption>
-                    <Body className="font-semibold">{formatUsd(metrics.quoteAnalytics.averageQuoteValueUsd)}</Body>
+                    <Body className="font-semibold">{formatInr(metrics.quoteAnalytics.averageQuoteValueInr)}</Body>
                   </div>
                   <div>
                     <Caption>Total Quote Value</Caption>
-                    <Body className="font-semibold">{formatUsd(metrics.quoteAnalytics.totalQuoteValueUsd)}</Body>
+                    <Body className="font-semibold">{formatInr(metrics.quoteAnalytics.totalQuoteValueInr)}</Body>
                   </div>
                 </div>
               </div>

@@ -4,15 +4,15 @@ import { getLocations } from "@/lib/locations";
 import { getEscapePoints } from "@/lib/escape-points";
 import { getMealPlans } from "@/lib/meal-plans";
 import { getRoomTypes } from "@/lib/room-types";
-import { getActivities } from "@/lib/activities";
+import { getServices } from "@/lib/services";
 
 export default async function Page() {
-  const [locations, escapePoints, mealPlans, roomTypes, activities] = await Promise.all([
+  const [locations, escapePoints, mealPlans, roomTypes, services] = await Promise.all([
     getLocations(),
     getEscapePoints(),
     getMealPlans(),
     getRoomTypes(),
-    getActivities(),
+    getServices(),
   ]);
 
   return (
@@ -22,7 +22,7 @@ export default async function Page() {
         escapePoints={escapePoints}
         mealPlans={mealPlans}
         roomTypes={roomTypes}
-        activities={activities}
+        services={services}
       />
     </Card>
   );

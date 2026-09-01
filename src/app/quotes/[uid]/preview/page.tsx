@@ -102,11 +102,11 @@ export default async function QuotePreviewPage({ params }: { params: { uid: stri
         <div className={isMinimal ? "border-t pt-4 text-sm" : "rounded border border-gray-200 p-4 text-sm"}>
           <div className="flex justify-between py-1">
             <span className="text-gray-500">Subtotal</span>
-            <span>{quote.subtotalUsd != null ? `$${quote.subtotalUsd.toFixed(2)}` : "—"} USD</span>
+            <span>{quote.subtotalInr != null ? `₹${quote.subtotalInr.toFixed(2)}` : "—"} INR</span>
           </div>
           <div className="flex justify-between py-1">
             <span className="text-gray-500">Tax</span>
-            <span>{quote.taxAmountUsd != null ? `$${quote.taxAmountUsd.toFixed(2)}` : "—"} USD</span>
+            <span>{quote.taxAmountInr != null ? `₹${quote.taxAmountInr.toFixed(2)}` : "—"} INR</span>
           </div>
           {quote.discountType !== "none" && (
             <div className="flex justify-between py-1">
@@ -116,12 +116,12 @@ export default async function QuotePreviewPage({ params }: { params: { uid: stri
           )}
           <div className="mt-2 flex justify-between border-t pt-2 text-base font-bold" style={{ borderColor: template.accentColor }}>
             <span>Total</span>
-            <span>{quote.totalUsd != null ? `$${quote.totalUsd.toFixed(2)}` : "—"} USD</span>
+            <span>{quote.totalInr != null ? `₹${quote.totalInr.toFixed(2)}` : "—"} INR</span>
           </div>
-          {quote.currencyCode && quote.currencyCode !== "USD" && quote.fxRateSnapshot && quote.totalUsd != null && (
+          {quote.currencyCode && quote.currencyCode !== "INR" && quote.fxRateSnapshot && quote.totalInr != null && (
             <div className="flex justify-between text-sm text-gray-500">
               <span>Approx. in {quote.currencyCode}</span>
-              <span>{(quote.totalUsd * quote.fxRateSnapshot).toFixed(2)} {quote.currencyCode}</span>
+              <span>{(quote.totalInr * quote.fxRateSnapshot).toFixed(2)} {quote.currencyCode}</span>
             </div>
           )}
         </div>

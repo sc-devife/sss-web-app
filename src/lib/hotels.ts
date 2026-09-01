@@ -8,7 +8,7 @@ export interface Hotel {
   escapePoint: { uid: string; name: string } | null;
   mealPlans: { uid: string; code: string; name: string }[] | null;
   roomTypes: { uid: string; name: string }[] | null;
-  activities: { uid: string; name: string }[] | null;
+  services: { uid: string; name: string; description: string | null }[] | null;
   checkInTime: string | null;
   checkOutTime: string | null;
   childAgeForExtraBed: string | null;
@@ -37,4 +37,8 @@ export interface HotelBooking {
 
 export async function getHotels(): Promise<Hotel[]> {
   return backendJson<Hotel[]>("/api/v1/hotels");
+}
+
+export async function getHotelByUid(uid: string): Promise<Hotel> {
+  return backendJson<Hotel>(`/api/v1/hotels/${uid}`);
 }
