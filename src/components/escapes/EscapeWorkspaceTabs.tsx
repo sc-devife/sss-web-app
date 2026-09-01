@@ -136,7 +136,16 @@ function TravellerFormFields({
         <PhoneInput label="Phone" value={phone} onChange={setPhone} defaultCountry="IN" error={phoneError} />
         <DatePicker label="Date of birth" value={dateOfBirth} onChange={setDateOfBirth} />
         <TextInput label="Age" type="number" min={0} value={age} onChange={(e) => setAge(e.target.value)} />
-        <TextInput label="Nationality" value={nationality} onChange={(e) => setNationality(e.target.value)} />
+        {/* Stored/matched by country name, not code like Issuing country below
+            — nationality was a free-text field before this dropdown, so
+            existing saved values (a name, e.g. "India") still round-trip. */}
+        <Select
+          label="Nationality"
+          options={countryOptions.map((c) => ({ value: c.label, label: c.label }))}
+          value={nationality}
+          onChange={(e) => setNationality(e.target.value)}
+          placeholder="Select a country"
+        />
       </div>
 
       <div className="flex flex-col gap-2 border-t border-border pt-3">

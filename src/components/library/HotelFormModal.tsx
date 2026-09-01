@@ -20,6 +20,8 @@ import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
 import { required, requiredSelection, runValidators } from "@/lib/validators";
+import { fetchCountryOptions, fetchRegionOptions } from "@/lib/reference-data-client";
+import type { ReferenceOption } from "@/lib/reference-data-client";
 import { useAppDispatch } from "@/store/hooks";
 import { createHotel, updateHotel, fetchHotels } from "@/features/hotels/hotelsThunks";
 
@@ -136,6 +138,27 @@ export function HotelFormModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
+
+  // For the new-location "Country" field below — fetched once regardless of
+  // whether "+ Add a new location" is ever opened, same idiom used wherever
+  // else this app needs a searchable country list.
+  const [countryOptions, setCountryOptions] = useState<ReferenceOption[]>([]);
+  useEffect(() => {
+    fetchCountryOptions().then(setCountryOptions).catch(() => {});
+  }, []);
+
+  // State options for the new-location form are scoped to its selected
+  // country — resolve the stored country name back to an ISO code and
+  // refetch whenever it changes.
+  const newLocationCountryCode = countryOptions.find((c) => c.label === newLocation.country)?.code;
+  const [newLocationRegionOptions, setNewLocationRegionOptions] = useState<ReferenceOption[]>([]);
+  useEffect(() => {
+    if (!newLocationCountryCode) {
+      setNewLocationRegionOptions([]);
+      return;
+    }
+    fetchRegionOptions(newLocationCountryCode).then(setNewLocationRegionOptions).catch(() => setNewLocationRegionOptions([]));
+  }, [newLocationCountryCode]);
 
   // The `services` prop is the global master-data list, fetched once at the
   // page level with no hotel context. When editing a real hotel, that hotel
@@ -351,8 +374,25 @@ export function HotelFormModal({
                   error={errors.newLocationCity}
                   required
                 />
-                <TextInput label="State" value={newLocation.state} onChange={(e) => setNewLocation((l) => ({ ...l, state: e.target.value }))} />
-                <TextInput label="Country" value={newLocation.country} onChange={(e) => setNewLocation((l) => ({ ...l, country: e.target.value }))} />
+                {/* Stored/matched by state name, not code — mirrors Country
+                    below. Options are scoped to the selected country. */}
+                <Select
+                  label="State"
+                  options={newLocationRegionOptions.map((r) => ({ value: r.label, label: r.label }))}
+                  value={newLocation.state}
+                  onChange={(e) => setNewLocation((l) => ({ ...l, state: e.target.value }))}
+                  placeholder={newLocationCountryCode ? "Select a state" : "Select a country first"}
+                  disabled={!newLocationCountryCode}
+                />
+                {/* Stored/matched by country name, not code — this field held
+                    free text before this dropdown, so existing saved values round-trip. */}
+                <Select
+                  label="Country"
+                  options={countryOptions.map((c) => ({ value: c.label, label: c.label }))}
+                  value={newLocation.country}
+                  onChange={(e) => setNewLocation((l) => ({ ...l, country: e.target.value }))}
+                  placeholder="Select a country"
+                />
                 <TextInput
                   label="Display name"
                   value={newLocation.displayName}

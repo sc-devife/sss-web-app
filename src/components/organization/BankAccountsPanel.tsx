@@ -4,11 +4,14 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
 import { Alert } from "@/components/ui/Alert";
 import { Body, Caption } from "@/components/ui/Typography";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { accountNumberField, ifscField, pattern, required, runValidators, swiftField } from "@/lib/validators";
+import { fetchCountryOptions, fetchRegionOptions } from "@/lib/reference-data-client";
+import type { ReferenceOption } from "@/lib/reference-data-client";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchBankAccounts, createBankAccount, setBankAccountStatus } from "@/features/bankAccounts/bankAccountsThunks";
 import { selectBankAccounts, selectBankAccountsStatus, selectBankAccountsError } from "@/features/bankAccounts/bankAccountsSelectors";
@@ -82,6 +85,23 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const [countryOptions, setCountryOptions] = useState<ReferenceOption[]>([]);
+  useEffect(() => {
+    fetchCountryOptions().then(setCountryOptions).catch(() => {});
+  }, []);
+
+  // Branch-state options are scoped to the selected country — resolve the
+  // stored country name back to an ISO code and refetch whenever it changes.
+  const branchCountryCode = countryOptions.find((c) => c.label === form.country)?.code;
+  const [branchStateOptions, setBranchStateOptions] = useState<ReferenceOption[]>([]);
+  useEffect(() => {
+    if (!branchCountryCode) {
+      setBranchStateOptions([]);
+      return;
+    }
+    fetchRegionOptions(branchCountryCode).then(setBranchStateOptions).catch(() => setBranchStateOptions([]));
+  }, [branchCountryCode]);
 
   useEffect(() => {
     dispatch(fetchBankAccounts(orgId));
@@ -223,9 +243,6 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
                 ["ifsc", "IFSC"],
                 ["swiftCode", "SWIFT code"],
                 ["micrCode", "MICR code"],
-                ["country", "Country"],
-                ["branchState", "Branch state"],
-                ["branchCity", "Branch city"],
               ] as const
             ).map(([key, label]) => (
               <TextInput
@@ -240,6 +257,45 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
                 required={key !== "swiftCode" && key !== "micrCode"}
               />
             ))}
+            {/* Stored/matched by country name, not code — this field held
+                free text before this dropdown, so existing saved values round-trip. */}
+            <Select
+              label="Country"
+              options={countryOptions.map((c) => ({ value: c.label, label: c.label }))}
+              value={form.country}
+              onChange={(e) => {
+                update("country", e.target.value);
+                setErrors((p) => ({ ...p, country: "" }));
+              }}
+              error={errors.country}
+              placeholder="Select a country"
+              required
+            />
+            {/* Stored/matched by state name, not code — mirrors Country
+                above. Options are scoped to the selected country. */}
+            <Select
+              label="Branch state"
+              options={branchStateOptions.map((r) => ({ value: r.label, label: r.label }))}
+              value={form.branchState}
+              onChange={(e) => {
+                update("branchState", e.target.value);
+                setErrors((p) => ({ ...p, branchState: "" }));
+              }}
+              error={errors.branchState}
+              placeholder={branchCountryCode ? "Select a state" : "Select a country first"}
+              disabled={!branchCountryCode}
+              required
+            />
+            <TextInput
+              label="Branch city"
+              value={form.branchCity}
+              onChange={(e) => {
+                update("branchCity", e.target.value);
+                setErrors((p) => ({ ...p, branchCity: "" }));
+              }}
+              error={errors.branchCity}
+              required
+            />
             <TextInput
               label="Currency"
               value={form.currency}

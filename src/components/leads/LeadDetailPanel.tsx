@@ -137,7 +137,7 @@ export function LeadDetailPanel({
       <div className="rounded-2xl border border-border bg-muted/20 p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="truncate text-2xl font-bold tracking-tight text-foreground md:text-3xl">{lead.name}</h1>
+            <h1 className="truncate text-xl font-bold tracking-tight text-foreground md:text-2xl">{lead.name}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <Badge tone={isTerminal ? (lead.status === "Converted" ? "success" : "danger") : "neutral"}>{lead.status}</Badge>
               {lead.isPriority && <Badge tone="warning">Priority</Badge>}

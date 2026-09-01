@@ -5,6 +5,7 @@ import { PiPencilSimple, PiTrash } from "react-icons/pi";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import { Select } from "@/components/ui/Select";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -14,6 +15,8 @@ import { LoadingState } from "@/components/ui/Spinner";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
 import { countryCodeField, emailField, mobileField, required, runValidators } from "@/lib/validators";
+import { fetchCountryOptions, fetchRegionOptions } from "@/lib/reference-data-client";
+import type { ReferenceOption } from "@/lib/reference-data-client";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchAddresses, createAddress, updateAddress, deleteAddress } from "@/features/addresses/addressesThunks";
 import { selectAddresses, selectAddressesStatus, selectAddressesError } from "@/features/addresses/addressesSelectors";
@@ -89,18 +92,33 @@ function AddressFormFields({
   setAddressTypes,
   setPrimaryAddress,
   errors,
+  countryOptions,
 }: {
   form: FormState;
   update: <K extends keyof FormState>(key: K, value: string) => void;
   setAddressTypes: (types: AddressType[]) => void;
   setPrimaryAddress: (value: boolean) => void;
   errors: Record<string, string>;
+  countryOptions: ReferenceOption[];
 }) {
   function toggleType(type: AddressType) {
     const has = form.addressTypes.includes(type);
     const next = has ? form.addressTypes.filter((t) => t !== type) : [...form.addressTypes, type];
     setAddressTypes(next);
   }
+
+  // State/Region options are scoped to the selected country, so resolve the
+  // stored country name back to its ISO code (see the Country field below)
+  // and refetch whenever it changes.
+  const countryCode = countryOptions.find((c) => c.label === form.country)?.code;
+  const [regionOptions, setRegionOptions] = useState<ReferenceOption[]>([]);
+  useEffect(() => {
+    if (!countryCode) {
+      setRegionOptions([]);
+      return;
+    }
+    fetchRegionOptions(countryCode).then(setRegionOptions).catch(() => setRegionOptions([]));
+  }, [countryCode]);
 
   return (
     <>
@@ -124,8 +142,29 @@ function AddressFormFields({
       </div>
       <TextInput label="Street Address" value={form.streetFirst} onChange={(e) => update("streetFirst", e.target.value)} error={errors.streetFirst} required />
       <TextInput label="City/Town/District" value={form.city} onChange={(e) => update("city", e.target.value)} error={errors.city} required />
-      <TextInput label="State/Region" value={form.state} onChange={(e) => update("state", e.target.value)} error={errors.state} required />
-      <TextInput label="Country" value={form.country} onChange={(e) => update("country", e.target.value)} error={errors.country} required />
+      {/* Stored/matched by state name, not code — mirrors Country below.
+          Options are scoped to the selected country. */}
+      <Select
+        label="State/Region"
+        options={regionOptions.map((r) => ({ value: r.label, label: r.label }))}
+        value={form.state}
+        onChange={(e) => update("state", e.target.value)}
+        error={errors.state}
+        placeholder={countryCode ? "Select a state" : "Select a country first"}
+        disabled={!countryCode}
+        required
+      />
+      {/* Stored/matched by country name, not code — this field held free
+          text before this dropdown, so existing saved values round-trip. */}
+      <Select
+        label="Country"
+        options={countryOptions.map((c) => ({ value: c.label, label: c.label }))}
+        value={form.country}
+        onChange={(e) => update("country", e.target.value)}
+        error={errors.country}
+        placeholder="Select a country"
+        required
+      />
       <TextInput label="Pincode" value={form.zipCode} onChange={(e) => update("zipCode", e.target.value)} error={errors.zipCode} required />
       <PhoneInput label="Contact Number" value={form.contactNumber} onChange={(v) => update("contactNumber", v)} error={errors.contactNumber} />
       <TextInput label="Contact Email" type="email" value={form.contactEmail} onChange={(e) => update("contactEmail", e.target.value)} error={errors.contactEmail} />
@@ -168,6 +207,13 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
   const [editError, setEditError] = useState<string | undefined>();
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Fetched once here (rather than per-form) since both the Add and Edit
+  // address forms need the same country list for their Country picker.
+  const [countryOptions, setCountryOptions] = useState<ReferenceOption[]>([]);
+  useEffect(() => {
+    fetchCountryOptions().then(setCountryOptions).catch(() => {});
+  }, []);
 
   useEffect(() => {
     dispatch(fetchAddresses(orgId));
@@ -486,7 +532,7 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
           <fieldset disabled={saving} className="contents">
 
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              <AddressFormFields form={form} update={update} setAddressTypes={setFormAddressTypes} setPrimaryAddress={setFormPrimary} errors={errors} />
+              <AddressFormFields form={form} update={update} setAddressTypes={setFormAddressTypes} setPrimaryAddress={setFormPrimary} errors={errors} countryOptions={countryOptions} />
             </div>
           </fieldset>
 
@@ -514,7 +560,7 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
           <fieldset disabled={editSaving} className="contents">
 
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              <AddressFormFields form={editForm} update={updateEdit} setAddressTypes={setEditFormAddressTypes} setPrimaryAddress={setEditFormPrimary} errors={editErrors} />
+              <AddressFormFields form={editForm} update={updateEdit} setAddressTypes={setEditFormAddressTypes} setPrimaryAddress={setEditFormPrimary} errors={editErrors} countryOptions={countryOptions} />
             </div>
           </fieldset>
 
