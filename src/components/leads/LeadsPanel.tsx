@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { DatePicker } from "@/components/ui/DatePicker";
@@ -15,7 +16,6 @@ import { formatDisplayDate } from "@/lib/date";
 import { countryCodeField, runValidators } from "@/lib/validators";
 import type { Lead } from "@/lib/leads";
 import type { EscapePoint } from "@/lib/escape-points";
-import { LeadDetailModal } from "@/components/leads/LeadDetailModal";
 import { FaPlus } from "react-icons/fa";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchLeads, createLead } from "@/features/leads/leadsThunks";
@@ -67,6 +67,7 @@ export function LeadsPanel({
 }: {
   escapePoints: EscapePoint[];
 }) {
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const leads = useAppSelector(selectLeads);
   const status = useAppSelector(selectLeadsStatus);
@@ -79,7 +80,6 @@ export function LeadsPanel({
   const [validationError, setValidationError] = useState<string | undefined>();
   const [phoneError, setPhoneError] = useState<string | undefined>();
   const [agencyPhoneError, setAgencyPhoneError] = useState<string | undefined>();
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   useEffect(() => {
     dispatch(fetchLeads());
@@ -234,7 +234,7 @@ export function LeadsPanel({
           rowKey={(l) => l.uid}
           searchPlaceholder="Search leads…"
           emptyMessage="No leads yet."
-          onRowClick={(l) => setSelectedLead(l)}
+          onRowClick={(l) => router.push(`/leads/${l.uid}`)}
         />
       )}
 
@@ -372,10 +372,6 @@ export function LeadsPanel({
           </div>
         </form>
       </Modal>
-
-      {selectedLead && (
-        <LeadDetailModal lead={selectedLead} escapePoints={escapePoints} onClose={() => setSelectedLead(null)} />
-      )}
     </div>
   );
 }

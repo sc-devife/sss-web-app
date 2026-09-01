@@ -11,9 +11,13 @@ export interface ActivityPayload {
   images: string[];
   basePrice: number | null;
   status: string;
+  notes?: string;
 }
 
 export interface UpdateActivityPayload {
   uid: string;
-  payload: ActivityPayload;
+  // Partial, same as Hotel's update payload — the backend mapper ignores
+  // null/omitted fields (NullValuePropertyMappingStrategy.IGNORE), so a
+  // caller can send just e.g. { notes } without resending the whole form.
+  payload: Partial<ActivityPayload>;
 }

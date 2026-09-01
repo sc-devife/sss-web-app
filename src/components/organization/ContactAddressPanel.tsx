@@ -432,13 +432,13 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
 
                       {(address.contactNumber || address.contactEmail) && (
 
-                        <div className="mt-4 space-y-3 border-t pt-4">
+                        <div className="mt-2 space-y-2 border-t pt-2 flex justify-between flex-col gap-2 md:flex-row md:items-center">
 
                           {address.contactNumber && (
 
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
 
-                              <FaPhoneAlt className="text-primary" />
+                              <FaPhoneAlt size={14} className="text-primary" />
 
                               <span className="text-sm">
                                 {address.contactNumber}
@@ -450,7 +450,7 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
 
                           {address.contactEmail && (
 
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
 
                               <FaEnvelope className="text-primary" />
 
@@ -483,12 +483,12 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
       {/* Add Address */}
       <Modal open={showForm} onClose={closeAddModal} title="Add Address" className="max-w-2xl">
         <form onSubmit={handleAdd} className="space-y-6">
-        <fieldset disabled={saving} className="contents">
+          <fieldset disabled={saving} className="contents">
 
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <AddressFormFields form={form} update={update} setAddressTypes={setFormAddressTypes} setPrimaryAddress={setFormPrimary} errors={errors} />
-          </div>
-        </fieldset>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <AddressFormFields form={form} update={update} setAddressTypes={setFormAddressTypes} setPrimaryAddress={setFormPrimary} errors={errors} />
+            </div>
+          </fieldset>
 
           {formError && (
             <Alert tone="danger" autoClose={false}>
@@ -511,12 +511,12 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
       {/* Edit Address */}
       <Modal open={editingId !== null} onClose={closeEditModal} title="Edit Address" className="max-w-2xl">
         <form onSubmit={(e) => editingId !== null && handleUpdate(e, editingId)} className="space-y-6">
-        <fieldset disabled={editSaving} className="contents">
+          <fieldset disabled={editSaving} className="contents">
 
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <AddressFormFields form={editForm} update={updateEdit} setAddressTypes={setEditFormAddressTypes} setPrimaryAddress={setEditFormPrimary} errors={editErrors} />
-          </div>
-        </fieldset>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <AddressFormFields form={editForm} update={updateEdit} setAddressTypes={setEditFormAddressTypes} setPrimaryAddress={setEditFormPrimary} errors={editErrors} />
+            </div>
+          </fieldset>
 
           {editError && (
             <Alert tone="danger" autoClose={false}>

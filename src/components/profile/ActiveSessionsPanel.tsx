@@ -57,7 +57,15 @@ function SessionRow({ session, onRevoke, revoking }: { session: UserSessionInfo;
         </div>
       </div>
       {!session.isCurrent && (
-        <Button variant="ghost" size="sm" disabled={revoking} onClick={onRevoke} className="shrink-0 text-danger hover:bg-danger/10">
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={revoking}
+          loading={revoking}
+          loadingText="Logging out…"
+          onClick={onRevoke}
+          className="shrink-0 text-danger hover:bg-danger/10"
+        >
           <LuLogOut className="h-4 w-4" />
           Log out
         </Button>

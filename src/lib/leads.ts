@@ -57,3 +57,7 @@ export interface AuditLogEntry {
 export async function getLeads(): Promise<Lead[]> {
   return backendJson<Lead[]>("/leads");
 }
+
+export async function getLeadByUid(uid: string): Promise<Lead> {
+  return backendJson<Lead>(`/leads/${uid}`);
+}

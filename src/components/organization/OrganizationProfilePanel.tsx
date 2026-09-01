@@ -31,7 +31,7 @@ export function OrganizationProfilePanel() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-4">
+    <div className="mx-auto w-full max-w-7xl space-y-2">
 
       {/* Organization Information */}
       <Card variant="elevated">
