@@ -18,6 +18,7 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Caption } from "@/components/ui/Typography";
+import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/cn";
 import { resolveFileUrl } from "@/lib/files";
 import { escapeStatusTone, escapeStatusIcon } from "@/lib/escape-status";
@@ -25,6 +26,10 @@ import { formatDisplayDate, formatDisplayDateTime } from "@/lib/date";
 import type { Escape } from "@/lib/escapes";
 import type { EscapeAuditLogEntry } from "@/features/escapes/types";
 import { FaLocationArrow } from "react-icons/fa";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { advanceEscapeStatus, fetchEscapeById, fetchEscapeAuditLog } from "@/features/escapes/escapesThunks";
+import { selectAdvanceStatus, selectAdvanceError, selectCurrentEscapeStatus } from "@/features/escapes/escapesSelectors";
+import { resetAdvanceStatus } from "@/features/escapes/escapesSlice";
 
 // Sizing here is done via plain styled spans rather than the shared
 // Typography components (Heading/Body) in places that need a size the
@@ -69,6 +74,27 @@ function InfoRow({ icon: Icon, label, value }: { icon: IconType; label: string; 
   );
 }
 
+// Escape Confirmed -> Ongoing and Ongoing -> Completed are date-gated: the
+// trip's own start/end date decides when the next step becomes available,
+// not the operator's say-so — otherwise a future trip could be marked
+// Ongoing or Completed before it's actually happened. Fully Paid -> Escape
+// Confirmed has nothing to gate on; paying in full is itself the signal.
+function resolveNextStep(escape: Escape): { targetStatus: string; label: string } | null {
+  const today = new Date();
+  const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  if (escape.status === "Fully Paid") {
+    return { targetStatus: "Escape Confirmed", label: "Mark as Escape Confirmed" };
+  }
+  if (escape.status === "Escape Confirmed" && escape.startDate && escape.startDate <= todayIso) {
+    return { targetStatus: "Ongoing", label: "Mark as Ongoing" };
+  }
+  if (escape.status === "Ongoing" && escape.endDate && escape.endDate <= todayIso) {
+    return { targetStatus: "Completed", label: "Mark as Completed" };
+  }
+  return null;
+}
+
 export function EscapeSummaryCard({
   escape,
   collapsed = false,
@@ -90,6 +116,39 @@ export function EscapeSummaryCard({
   }, [cover]);
 
   const leadName = lead?.name ?? `Escape #${escape.uid}`;
+
+  // The lifecycle's other stages either advance themselves as a side effect
+  // of a real action elsewhere (accepting a quote, verifying a payment) or
+  // stay manual-only forever (Ongoing/Completed only make sense once the
+  // trip's own dates say so). These three are the only forward transitions
+  // that need an operator-facing trigger, each offered right on the status
+  // it changes.
+  const dispatch = useAppDispatch();
+  const advanceStatus = useAppSelector(selectAdvanceStatus);
+  const advanceError = useAppSelector(selectAdvanceError);
+  const currentEscapeStatus = useAppSelector(selectCurrentEscapeStatus);
+  // advanceStatus alone flips to "succeeded" as soon as the status-change
+  // call resolves — before the escape has actually been refetched with its
+  // new status, which would otherwise flash the button back while the badge
+  // is still showing the old value. Stay busy through that refetch too,
+  // reusing the same currentEscapeStatus EscapeDetailPanel already tracks.
+  const advancing = advanceStatus === "loading" || (advanceStatus === "succeeded" && currentEscapeStatus === "loading");
+  const nextStep = resolveNextStep(escape);
+
+  async function handleAdvance(targetStatus: string) {
+    dispatch(resetAdvanceStatus());
+    try {
+      await dispatch(advanceEscapeStatus({ escapeUid: escape.uid, targetStatus })).unwrap();
+      await dispatch(fetchEscapeById(escape.uid));
+      // History (audit log) is otherwise only fetched once on mount — without
+      // this, the STATUS_ADVANCED entry this action just created wouldn't
+      // show up there until the page was reloaded, same staleness bug this
+      // whole flow was built to avoid.
+      dispatch(fetchEscapeAuditLog(escape.uid));
+    } catch {
+      // advanceError below already surfaces the failure
+    }
+  }
 
   return (
     <div
@@ -156,7 +215,23 @@ export function EscapeSummaryCard({
             <Badge tone={escapeStatusTone(escape.status)} icon={escapeStatusIcon(escape.status)}>
               {escape.status}
             </Badge>
+            {nextStep && (
+              advancing ? (
+                <span aria-label={`Marking as ${nextStep.targetStatus}`} title="Updating…" className="inline-flex items-center">
+                  <Spinner size="sm" />
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleAdvance(nextStep.targetStatus)}
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  {nextStep.label}
+                </button>
+              )
+            )}
           </div>
+          {advanceError && <p className="text-xs text-danger">{advanceError}</p>}
           {escapePoint ? (
             <div className="flex flex-col gap-1.5 border-t border-border pt-2">
               <div className="flex flex-wrap items-center gap-1.5">

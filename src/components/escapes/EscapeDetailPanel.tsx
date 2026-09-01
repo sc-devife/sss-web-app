@@ -78,6 +78,12 @@ export function EscapeDetailPanel({
 
   function handleDealChanged() {
     dispatch(fetchDealForEscape(escapeUid));
+    // Accepting a quote also advances the escape itself (Planning -> Quote
+    // Accepted) server-side — refetch it and its audit log too, or the
+    // status badge and History tab would only show the change after a
+    // manual reload, same staleness bug as the payment-verify flow.
+    dispatch(fetchEscapeById(escapeUid));
+    dispatch(fetchEscapeAuditLog(escapeUid));
   }
 
   if (escapeStatus === "loading" && !escape) {

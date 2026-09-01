@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { DatePicker } from "@/components/ui/DatePicker";
+import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
@@ -18,8 +19,24 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchMilestonesForDeal, createPaymentMilestone, recordPayment, verifyPaymentMilestone, deletePaymentMilestone } from "@/features/paymentMilestones/paymentMilestonesThunks";
 import { selectPaymentMilestones, selectPaymentMilestonesStatus, selectPaymentMilestonesError } from "@/features/paymentMilestones/paymentMilestonesSelectors";
 import { cancelDeal } from "@/features/deals/dealsThunks";
+import { fetchEscapeById, fetchEscapeAuditLog } from "@/features/escapes/escapesThunks";
 
 const emptyForm = { label: "", dueDate: "", amountInr: "" };
+
+// No existing payment-method taxonomy anywhere in the app (checked) — this
+// is a new, deliberately small fixed list rather than free text, so
+// reporting/filtering on it later isn't stuck parsing inconsistent spelling.
+const PAYMENT_METHOD_OPTIONS = [
+  { value: "upi", label: "UPI" },
+  { value: "neft", label: "NEFT" },
+  { value: "rtgs", label: "RTGS" },
+  { value: "imps", label: "IMPS" },
+  { value: "bank_transfer", label: "Bank Transfer" },
+  { value: "card", label: "Card" },
+  { value: "cash", label: "Cash" },
+  { value: "cheque", label: "Cheque" },
+  { value: "other", label: "Other" },
+];
 
 export function DealPanel({ deal }: { deal: Deal }) {
   const dispatch = useAppDispatch();
@@ -30,6 +47,8 @@ export function DealPanel({ deal }: { deal: Deal }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [payAmounts, setPayAmounts] = useState<Record<string, string>>({});
+  const [payMethods, setPayMethods] = useState<Record<string, string>>({});
+  const [payReferences, setPayReferences] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
 
@@ -78,14 +97,26 @@ export function DealPanel({ deal }: { deal: Deal }) {
     }
   }
 
-  async function handleRecordPayment(uid: string) {
+  function canRecordPayment(uid: string): boolean {
     const amount = Number(payAmounts[uid]);
-    if (!amount || amount <= 0) return;
+    return !!amount && amount > 0 && !!payMethods[uid] && !!payReferences[uid]?.trim();
+  }
+
+  async function handleRecordPayment(uid: string) {
+    if (!canRecordPayment(uid)) return;
+    const amount = Number(payAmounts[uid]);
+    const paymentMethod = payMethods[uid];
+    const paymentReference = payReferences[uid].trim();
     setBusy(true);
     try {
-      await dispatch(recordPayment({ uid, dealUid: deal.uid, amount }));
+      await dispatch(recordPayment({ uid, dealUid: deal.uid, amount, paymentMethod, paymentReference }));
       setPayAmounts((p) => ({ ...p, [uid]: "" }));
+      setPayMethods((p) => ({ ...p, [uid]: "" }));
+      setPayReferences((p) => ({ ...p, [uid]: "" }));
       refresh();
+      // The PAYMENT_RECORDED audit entry now carries the method/reference
+      // just captured — refresh History too, or it'd only show up on reload.
+      dispatch(fetchEscapeAuditLog(deal.escapeUid));
     } finally {
       setBusy(false);
     }
@@ -96,6 +127,12 @@ export function DealPanel({ deal }: { deal: Deal }) {
     try {
       await dispatch(verifyPaymentMilestone(uid));
       refresh();
+      // Verifying a milestone can advance the escape's own payment stage
+      // (Partially Paid / Fully Paid) server-side — refetch it and its
+      // audit log too, or the status badge and History tab would only show
+      // the change after a manual reload.
+      dispatch(fetchEscapeById(deal.escapeUid));
+      dispatch(fetchEscapeAuditLog(deal.escapeUid));
     } finally {
       setBusy(false);
     }
@@ -195,46 +232,50 @@ export function DealPanel({ deal }: { deal: Deal }) {
               {milestones.map((m) => (
                 <div
                   key={m.uid}
-                  className="flex flex-col gap-2 rounded border border-border px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-2 rounded border border-border px-3 py-2 text-sm"
                 >
-                  <span>
-                    <Badge
-                      tone={
-                        m.status === "paid"
-                          ? "success"
-                          : m.status === "overdue"
-                            ? "danger"
-                            : m.status === "partially_paid" || m.status === "unverified"
-                              ? "warning"
-                              : "neutral"
-                      }
-                    >
-                      {m.status}
-                    </Badge>{" "}
-                    <span className="font-medium text-foreground">{m.label}</span>{" "}
-                    <span className="text-muted-foreground">
-                      due {formatDisplayDate(m.dueDate)} · ₹{m.amountPaidInr.toFixed(2)} / ₹{m.amountInr.toFixed(2)} INR
-                    </span>
-                    {m.markedPaidAt && (
-                      <span className="block text-xs text-muted-foreground">
-                        Paid by {formatAuditActor(m.markedPaidByName)} on {formatDisplayDateTime(m.markedPaidAt)}
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <span>
+                      <Badge
+                        tone={
+                          m.status === "paid"
+                            ? "success"
+                            : m.status === "overdue"
+                              ? "danger"
+                              : m.status === "partially_paid" || m.status === "unverified"
+                                ? "warning"
+                                : "neutral"
+                        }
+                      >
+                        {m.status}
+                      </Badge>{" "}
+                      <span className="font-medium text-foreground">{m.label}</span>{" "}
+                      <span className="text-muted-foreground">
+                        due {formatDisplayDate(m.dueDate)} · ₹{m.amountPaidInr.toFixed(2)} / ₹{m.amountInr.toFixed(2)} INR
                       </span>
+                      {m.markedPaidAt && (
+                        <span className="block text-xs text-muted-foreground">
+                          Paid by {formatAuditActor(m.markedPaidByName)} on {formatDisplayDateTime(m.markedPaidAt)}
+                          {m.paymentMethod && ` · ${PAYMENT_METHOD_OPTIONS.find((o) => o.value === m.paymentMethod)?.label ?? m.paymentMethod}`}
+                          {m.paymentReference && ` · Ref: ${m.paymentReference}`}
+                        </span>
+                      )}
+                    </span>
+                    {m.status === "unverified" && (
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" disabled={busy || isCancelled} onClick={() => handleVerify(m.uid)}>
+                          Verify payment
+                        </Button>
+                        <button type="button" onClick={() => handleDelete(m.uid)} disabled={busy} className="text-danger hover:underline">
+                          Delete
+                        </button>
+                      </div>
                     )}
-                  </span>
-                  {m.status === "unverified" && (
-                    <div className="flex items-center gap-2">
-                      <Button size="sm" disabled={busy || isCancelled} onClick={() => handleVerify(m.uid)}>
-                        Verify payment
-                      </Button>
-                      <button type="button" onClick={() => handleDelete(m.uid)} disabled={busy} className="text-danger hover:underline">
-                        Delete
-                      </button>
-                    </div>
-                  )}
+                  </div>
                   {m.status !== "paid" && m.status !== "unverified" && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-2 border-t border-border pt-2 sm:flex-row sm:flex-wrap sm:items-end">
                       <TextInput
-                        label=""
+                        label="Amount (INR)"
                         type="number"
                         min={0}
                         step="0.01"
@@ -243,13 +284,35 @@ export function DealPanel({ deal }: { deal: Deal }) {
                         onChange={(e) => setPayAmounts((p) => ({ ...p, [m.uid]: e.target.value }))}
                         className="w-28"
                         disabled={isCancelled}
+                        required
                       />
-                      <Button size="sm" disabled={busy || isCancelled} onClick={() => handleRecordPayment(m.uid)}>
-                        Record payment
-                      </Button>
-                      <button type="button" onClick={() => handleDelete(m.uid)} disabled={busy} className="text-danger hover:underline">
-                        Delete
-                      </button>
+                      <Select
+                        label="Payment method"
+                        options={PAYMENT_METHOD_OPTIONS}
+                        value={payMethods[m.uid] ?? ""}
+                        onChange={(e) => setPayMethods((p) => ({ ...p, [m.uid]: e.target.value }))}
+                        placeholder="Select method"
+                        disabled={isCancelled}
+                        className="w-40"
+                        required
+                      />
+                      <TextInput
+                        label="Payment ID / UTR Number"
+                        placeholder="e.g. UPI ref, bank UTR"
+                        value={payReferences[m.uid] ?? ""}
+                        onChange={(e) => setPayReferences((p) => ({ ...p, [m.uid]: e.target.value }))}
+                        className="min-w-[10rem] flex-1"
+                        disabled={isCancelled}
+                        required
+                      />
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" disabled={busy || isCancelled || !canRecordPayment(m.uid)} onClick={() => handleRecordPayment(m.uid)}>
+                          Record payment
+                        </Button>
+                        <button type="button" onClick={() => handleDelete(m.uid)} disabled={busy} className="text-danger hover:underline">
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

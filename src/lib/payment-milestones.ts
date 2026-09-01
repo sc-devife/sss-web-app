@@ -11,6 +11,8 @@ export interface PaymentMilestone {
   markedPaidBy: number | null;
   markedPaidByName: string | null;
   markedPaidAt: string | null;
+  paymentMethod: string | null;
+  paymentReference: string | null;
 }
 
 export async function getMilestonesForDeal(dealUid: string): Promise<PaymentMilestone[]> {

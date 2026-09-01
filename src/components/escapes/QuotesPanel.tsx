@@ -355,7 +355,7 @@ export function QuotesPanel({
                       />
                     )}
                   </div>
-                  <Caption>Pricing sums Activity/Transport items with a base price set. Hotels aren&apos;t priced yet — see below for excluded items.</Caption>
+                  <Caption>Pricing sums Activity/Transport items with a base price set and Hotel items with booking details filled in (plus any add-on services) — see below for anything excluded.</Caption>
                   {computeWarnings && computeWarnings.length > 0 && (
                     <div className="rounded border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
                       {computeWarnings.map((w, i) => <div key={i}>{w}</div>)}

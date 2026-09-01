@@ -13,6 +13,8 @@ export interface RecordPaymentPayload {
   uid: string;
   dealUid: string;
   amount: number;
+  paymentMethod: string;
+  paymentReference: string;
 }
 
 export interface DeletePaymentMilestonePayload {
