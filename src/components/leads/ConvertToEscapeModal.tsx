@@ -42,15 +42,18 @@ export function ConvertToEscapeModal({
   const convertStatus = useAppSelector(selectConvertStatus);
   const convertError = useAppSelector(selectConvertError);
 
-  // The Lead already carries its Escape Point and traveller count — this
+  // The Lead already carries its Escape Point(s) and traveller count — this
   // popup shouldn't ask for either again, it just uses what's on the lead.
-  // Leads can name their escape point two ways (see LeadsPanel's form): a
-  // direct library link (escapePointId) or free text (destination) typed
-  // instead of picking one — fall back to matching that text against the
+  // Leads can name their escape point(s) two ways (see LeadsPanel's form): a
+  // direct library link (escapePointIds) or free text (destination) typed
+  // instead of picking any — fall back to matching that text against the
   // library by name so leads created either way still resolve here.
-  const leadEscapePoint =
-    escapePoints.find((d) => d.uid === lead.escapePointId) ??
-    escapePoints.find((d) => lead.destination && d.name.trim().toLowerCase() === lead.destination.trim().toLowerCase());
+  const leadEscapePoints =
+    lead.escapePointIds.length > 0
+      ? escapePoints.filter((d) => lead.escapePointIds.includes(d.uid))
+      : escapePoints.filter(
+          (d) => lead.destination && d.name.trim().toLowerCase() === lead.destination.trim().toLowerCase(),
+        );
   const travellerCount = Math.max(1, lead.numberOfPeople ?? 1);
 
   const [travellerForms, setTravellerForms] = useState<TravellerFormState[]>(() =>
@@ -69,7 +72,7 @@ export function ConvertToEscapeModal({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!leadEscapePoint) {
+    if (leadEscapePoints.length === 0) {
       setFormError("This lead has no escape point assigned");
       return;
     }
@@ -110,7 +113,7 @@ export function ConvertToEscapeModal({
         convertLeadToEscape({
           leadUid: lead.uid,
           travellerUids: created.map((t) => t.uid),
-          escapePointUids: [leadEscapePoint.uid],
+          escapePointUids: leadEscapePoints.map((d) => d.uid),
           startDate,
           numberOfDays: Number(numberOfDays),
         }),
@@ -130,10 +133,12 @@ export function ConvertToEscapeModal({
     <Modal open onClose={onClose} title="Convert to escape" className="max-w-xl">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
-          <Caption>Escape Point</Caption>
-          <div className="mt-1">
-            {leadEscapePoint ? (
-              <Badge tone="neutral">{leadEscapePoint.name}</Badge>
+          <Caption>Escape Point{leadEscapePoints.length > 1 ? "s" : ""}</Caption>
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            {leadEscapePoints.length > 0 ? (
+              leadEscapePoints.map((d) => (
+                <Badge key={d.uid} tone="neutral">{d.name}</Badge>
+              ))
             ) : (
               <span className="text-sm text-danger">This lead has no escape point assigned</span>
             )}

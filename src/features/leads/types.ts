@@ -7,7 +7,7 @@ export interface CreateLeadPayload {
   email: string;
   phone: string;
   destination: string | null;
-  escapePointId: string | null;
+  escapePointIds: string[];
   numberOfPeople: number | null;
   travelDate: string | null;
   durationDays: number | null;

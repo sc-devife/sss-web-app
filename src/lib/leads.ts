@@ -35,7 +35,7 @@ export interface Lead {
   sourceChannel: string | null;
   sourceRefId: string | null;
   agencyDetails: LeadAgencyDetails | null;
-  escapePointId: string | null;
+  escapePointIds: string[];
   isPriority: boolean | null;
   originCity: string | null;
   travelType: string | null;

@@ -32,6 +32,7 @@ import roomTypesReducer from "@/features/roomTypes/roomTypesSlice";
 import servicesReducer from "@/features/services/servicesSlice";
 import teamsReducer from "@/features/teams/teamsSlice";
 import sessionsReducer from "@/features/sessions/sessionsSlice";
+import transactionsReducer from "@/features/transactions/transactionsSlice";
 
 export function makeStore() {
   return configureStore({
@@ -69,6 +70,7 @@ export function makeStore() {
       services: servicesReducer,
       teams: teamsReducer,
       sessions: sessionsReducer,
+      transactions: transactionsReducer,
     },
   });
 }

@@ -232,12 +232,15 @@ export function ItineraryDayPlanner({
     setLocalHotels((hs) => hs.map((h) => (h.uid === hotelUid ? { ...h, mealPlans: [...(h.mealPlans ?? []), mealPlan] } : h)));
   }
 
-  // Only hotels/activities linked to one of this escape's own escape points
-  // belong in the itinerary's pickers — the full library list would
-  // otherwise mix in options from unrelated destinations.
+  // Only hotels/activities/transports linked to one of this escape's own
+  // escape points belong in the itinerary's pickers — the full library list
+  // would otherwise mix in options from unrelated destinations. An escape
+  // with multiple escape points (e.g. Bali + Lakshadweep) ORs across all of
+  // them, not just the first.
   const escapePointUids = new Set((escape?.escapePoints ?? []).map((ep) => ep.uid));
   const hotelsForEscape = localHotels.filter((h) => h.escapePoint && escapePointUids.has(h.escapePoint.uid));
   const activitiesForEscape = activities.filter((a) => a.escapePoint && escapePointUids.has(a.escapePoint.uid));
+  const transportsForEscape = transports.filter((t) => t.escapePoint && escapePointUids.has(t.escapePoint.uid));
 
   // Real pax counts from the escape's travellers — used to pre-fill the
   // flight pricing grid instead of starting it blank.
@@ -346,7 +349,7 @@ export function ItineraryDayPlanner({
     if (kind === "hotel") return hotelsForEscape.map((h) => ({ value: h.uid, label: h.name }));
     if (kind === "activity") return activitiesForEscape.map((a) => ({ value: a.uid, label: a.name }));
     if (kind === "transport")
-      return transports.map((t) => ({ value: t.uid, label: `${t.modeCode}${t.vehicleTypeCode ? " — " + t.vehicleTypeCode : ""}` }));
+      return transportsForEscape.map((t) => ({ value: t.uid, label: `${t.modeCode}${t.vehicleTypeCode ? " — " + t.vehicleTypeCode : ""}` }));
     if (kind === "serviceProvider") return serviceProviders.map((p) => ({ value: p.uid, label: p.name }));
     return [];
   })();
@@ -428,10 +431,10 @@ export function ItineraryDayPlanner({
     transport: {
       title: "Add Transport",
       searchPlaceholder: "Search transport…",
-      libraryEmptyLabel: "No transport options in the library yet.",
+      libraryEmptyLabel: "No transport linked to this escape's destination yet.",
       nameFieldLabel: "Transport name",
       namePlaceholder: "e.g. Private cab to airport",
-      libraryOptions: transports.map((t) => ({
+      libraryOptions: transportsForEscape.map((t) => ({
         uid: t.uid,
         label: `${t.modeCode}${t.vehicleTypeCode ? " — " + t.vehicleTypeCode : ""}`,
         transportPrefill: { modeCode: t.modeCode, vehicleTypeCode: t.vehicleTypeCode, price: t.basePrice },

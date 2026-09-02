@@ -105,8 +105,9 @@ export function EscapeSummaryCard({
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
 }) {
+  // Only the cover image and the collapsed rail's title need a single
+  // representative escape point — the full list below renders every one.
   const escapePoint = escape.escapePoints[0];
-  const extraEscapePoints = Math.max(escape.escapePoints.length - 1, 0);
   const lead = escape.lead;
 
   const cover = escapePoint?.images?.[0];
@@ -232,17 +233,20 @@ export function EscapeSummaryCard({
             )}
           </div>
           {advanceError && <p className="text-xs text-danger">{advanceError}</p>}
-          {escapePoint ? (
-            <div className="flex flex-col gap-1.5 border-t border-border pt-2">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <FaLocationArrow className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <span className="text-xs font-medium text-foreground">{escapePoint.name}</span>
-                {extraEscapePoints > 0 && <Badge>+{extraEscapePoints} more</Badge>}
-              </div>
-              {escapePoint.locationLabel && <IconLine icon={PiMapPinFill}>{escapePoint.locationLabel}</IconLine>}
-              {escapePoint.description && (
-                <span className="text-[11px] leading-snug text-muted-foreground">{escapePoint.description}</span>
-              )}
+          {escape.escapePoints.length > 0 ? (
+            <div className="flex flex-col gap-2 border-t border-border pt-2">
+              {escape.escapePoints.map((ep) => (
+                <div key={ep.uid} className="flex flex-col gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <FaLocationArrow className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    <span className="text-xs font-medium text-foreground">{ep.name}</span>
+                  </div>
+                  {ep.locationLabel && <IconLine icon={PiMapPinFill}>{ep.locationLabel}</IconLine>}
+                  {ep.description && (
+                    <span className="text-[11px] leading-snug text-muted-foreground">{ep.description}</span>
+                  )}
+                </div>
+              ))}
             </div>
           ) : (
             <span className="text-xs text-muted-foreground">No escape point selected</span>

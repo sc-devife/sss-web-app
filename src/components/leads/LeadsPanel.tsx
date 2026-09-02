@@ -7,6 +7,7 @@ import { TextInput } from "@/components/ui/TextInput";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Select } from "@/components/ui/Select";
+import { MultiSelect } from "@/components/ui/MultiSelect";
 import { Modal } from "@/components/ui/Modal";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
@@ -41,7 +42,7 @@ const emptyForm = {
   email: "",
   phone: "",
   destination: "",
-  escapePointId: "",
+  escapePointIds: [] as string[],
   numberOfPeople: "",
   travelDate: "",
   durationDays: "",
@@ -133,7 +134,7 @@ export function LeadsPanel({
           email: form.email,
           phone: form.phone,
           destination: form.destination || null,
-          escapePointId: form.escapePointId || null,
+          escapePointIds: form.escapePointIds,
           numberOfPeople: form.numberOfPeople ? Number(form.numberOfPeople) : null,
           travelDate: form.travelDate || null,
           durationDays: form.durationDays ? Number(form.durationDays) : null,
@@ -256,12 +257,11 @@ export function LeadsPanel({
           <p className="-mt-2 text-xs text-muted-foreground">Email or phone is required (at least one).</p>
 
           <TextInput label="Escape Point (free text)" value={form.destination} onChange={(e) => update("destination", e.target.value)} placeholder="e.g. Bali" />
-          <Select
-            label="Escape Point (library)"
+          <MultiSelect
+            label="Escape Point (library) — optional, select one or more"
             options={escapePoints.map((d) => ({ value: d.uid, label: d.name }))}
-            value={form.escapePointId}
-            onChange={(e) => update("escapePointId", e.target.value)}
-            placeholder="Optional — link to a library escape point"
+            value={form.escapePointIds}
+            onChange={(next) => update("escapePointIds", next)}
           />
 
           <div className="grid grid-cols-2 gap-4">
