@@ -33,6 +33,7 @@ import servicesReducer from "@/features/services/servicesSlice";
 import teamsReducer from "@/features/teams/teamsSlice";
 import sessionsReducer from "@/features/sessions/sessionsSlice";
 import transactionsReducer from "@/features/transactions/transactionsSlice";
+import quotationTemplatesReducer from "@/features/quotationTemplates/quotationTemplatesSlice";
 
 export function makeStore() {
   return configureStore({
@@ -71,6 +72,7 @@ export function makeStore() {
       teams: teamsReducer,
       sessions: sessionsReducer,
       transactions: transactionsReducer,
+      quotationTemplates: quotationTemplatesReducer,
     },
   });
 }

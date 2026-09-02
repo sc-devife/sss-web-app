@@ -7,6 +7,7 @@ import { DatePicker } from "@/components/ui/DatePicker";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
+import { QuotationPreviewModal } from "@/components/quotation/QuotationPreviewModal";
 import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState, Spinner } from "@/components/ui/Spinner";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
@@ -30,7 +31,6 @@ import { selectTaxProfiles } from "@/features/taxProfiles/taxProfilesSelectors";
 import { fetchQuoteTemplates } from "@/features/quoteTemplates/quoteTemplatesThunks";
 import { selectQuoteTemplates } from "@/features/quoteTemplates/quoteTemplatesSelectors";
 import { acceptQuote } from "@/features/deals/dealsThunks";
-import { selectDeal } from "@/features/deals/dealsSelectors";
 
 const emptyForm = { validUntil: "" };
 
@@ -57,7 +57,6 @@ export function QuotesPanel({
   const currencies = useAppSelector(selectCurrencies);
   const taxProfiles = useAppSelector(selectTaxProfiles);
   const templates = useAppSelector(selectQuoteTemplates);
-  const deal = useAppSelector(selectDeal);
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -71,6 +70,7 @@ export function QuotesPanel({
   const [computingUid, setComputingUid] = useState<string | null>(null);
   const [computeForm, setComputeForm] = useState(emptyComputeForm);
   const [computeWarnings, setComputeWarnings] = useState<string[] | null>(null);
+  const [showQuotationPreview, setShowQuotationPreview] = useState(false);
 
   useEffect(() => {
     dispatch(fetchQuotesForItinerary(itineraryUid));
@@ -224,9 +224,12 @@ export function QuotesPanel({
     <div className="flex flex-col gap-2 border-t border-border pt-3">
       <div className="flex items-center justify-between">
         <Caption>Quotes</Caption>
-        <Button size="sm" variant="secondary" onClick={() => setShowForm((s) => !s)}>
-          {showForm ? "Cancel" : "Add quote"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="secondary" onClick={() => setShowQuotationPreview(true)}>Quotation preview</Button>
+          <Button size="sm" variant="secondary" onClick={() => setShowForm((s) => !s)}>
+            {showForm ? "Cancel" : "Add quote"}
+          </Button>
+        </div>
       </div>
 
       {quotesStatus === "loading" && quotes.length === 0 && <LoadingState />}
@@ -259,8 +262,7 @@ export function QuotesPanel({
                 </span>
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={() => openCompute(q.uid)} disabled={busy} className="text-primary hover:underline">Compute pricing</button>
-                  <a href={`/quotes/${q.uid}/preview`} target="_blank" rel="noreferrer" className="text-primary hover:underline">Preview</a>
-                  {!deal && !["accepted", "superseded", "rejected"].includes(q.status) && (
+                  {q.status !== "accepted" && q.status !== "rejected" && (
                     acceptingUid === q.uid ? (
                       <span aria-label="Accepting quote" title="Accepting…" className="inline-flex items-center">
                         <Spinner size="sm" />
@@ -379,6 +381,15 @@ export function QuotesPanel({
           <DatePicker label="Valid until" value={form.validUntil} onChange={(v) => setForm({ validUntil: v })} />
           <Button type="submit" size="sm" disabled={busy} loading={busy} loadingText="Saving…">Save quote</Button>
         </form>
+      )}
+
+      {showQuotationPreview && (
+        <QuotationPreviewModal
+          open
+          onClose={() => setShowQuotationPreview(false)}
+          title="Quotation preview"
+          src={`/api/escapes/${escapeUid}/quotation-preview`}
+        />
       )}
     </div>
   );

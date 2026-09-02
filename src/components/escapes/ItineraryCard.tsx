@@ -9,18 +9,20 @@ import type { Activity } from "@/lib/activities";
 import type { Transport } from "@/lib/transports";
 import type { ServiceProvider } from "@/lib/service-providers";
 import { QuotesPanel } from "@/components/escapes/QuotesPanel";
+import { SummaryPanel } from "@/components/escapes/SummaryPanel";
 import { ItineraryContentSection } from "@/components/escapes/ItineraryContentSection";
 import { ItineraryDayPlanner } from "@/components/escapes/ItineraryDayPlanner";
 import { useAppDispatch } from "@/store/hooks";
 import { deleteItinerary, duplicateItinerary } from "@/features/itineraries/itinerariesThunks";
 import { createQuote, fetchQuotesForItinerary } from "@/features/quotes/quotesThunks";
 
-type SubTab = "itinerary" | "terms" | "inclusions" | "quote";
+type SubTab = "itinerary" | "terms" | "inclusions" | "summary" | "quote";
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "itinerary", label: "Itinerary" },
   { id: "terms", label: "Terms" },
   { id: "inclusions", label: "Inclusions & Exclusions" },
+  { id: "summary", label: "Summary" },
   { id: "quote", label: "Quote" },
 ];
 
@@ -172,6 +174,8 @@ export function ItineraryCard({
         {subTab === "inclusions" && (
           <ItineraryContentSection itineraryUid={itinerary.uid} types={["INCLUSION", "EXCLUSION"]} />
         )}
+
+        {subTab === "summary" && <SummaryPanel itineraryUid={itinerary.uid} />}
 
         {subTab === "quote" && (
           <QuotesPanel itineraryUid={itinerary.uid} escapeUid={escapeUid} onDealChanged={onDealChanged} />

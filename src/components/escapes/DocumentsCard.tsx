@@ -11,6 +11,13 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchQuotesForItinerary, createQuote, renameQuote, deleteQuote } from "@/features/quotes/quotesThunks";
 import { selectQuotesForItinerary, selectQuotesStatus, selectQuotesError } from "@/features/quotes/quotesSelectors";
 import type { Deal } from "@/lib/deals";
+import type { Quote } from "@/features/quotes/types";
+
+// Stable reference (not a fresh `[]` literal per render) for when no
+// itinerary is selected — useSelector compares by reference, so a new array
+// every render trips its "selector returned a different result" warning
+// even though the value is equivalently empty each time.
+const EMPTY_QUOTES: Quote[] = [];
 
 // Lists the Quote records for whichever itinerary is currently selected in
 // the sibling ItineraryManagementCard — same row-list visual language, one
@@ -30,7 +37,7 @@ export function DocumentsCard({
   bare?: boolean;
 }) {
   const dispatch = useAppDispatch();
-  const quotes = useAppSelector((s) => (selectedItineraryUid ? selectQuotesForItinerary(s, selectedItineraryUid) : []));
+  const quotes = useAppSelector((s) => (selectedItineraryUid ? selectQuotesForItinerary(s, selectedItineraryUid) : EMPTY_QUOTES));
   const quotesStatus = useAppSelector((s) => (selectedItineraryUid ? selectQuotesStatus(s, selectedItineraryUid) : "idle"));
   const quotesError = useAppSelector((s) => (selectedItineraryUid ? selectQuotesError(s, selectedItineraryUid) : null));
 

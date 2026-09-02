@@ -40,8 +40,8 @@ import { fetchQuotesForItinerary } from "@/features/quotes/quotesThunks";
 import { selectQuotesForItinerary } from "@/features/quotes/quotesSelectors";
 
 const TABS = [
-  { id: "planning", label: "Planning" },
   { id: "travellers", label: "Travellers" },
+  { id: "planning", label: "Planning" },
   { id: "payments", label: "Payments" },
   { id: "history", label: "History" },
 ];

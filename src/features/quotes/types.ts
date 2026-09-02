@@ -31,8 +31,16 @@ export interface ComputeQuotePayload {
   fxRateSnapshot: number | null;
 }
 
+export interface PricingBreakdown {
+  hotelsInr: number;
+  activitiesInr: number;
+  transportInr: number;
+  otherInr: number;
+}
+
 export interface ComputeQuoteResult {
   pricingWarnings: string[];
+  breakdown: PricingBreakdown | null;
 }
 
 export interface QuoteUidWithItinerary {
