@@ -31,6 +31,8 @@ export interface Organization {
   cin: string | null;
   business_email: string | null;
   website_url: string | null;
+  instagram_url: string | null;
+  linkedin_url: string | null;
   whatsapp_number: string | null;
   tagline: string | null;
   about_text: string | null;

@@ -25,6 +25,7 @@ export interface ComputeQuotePayload {
   uid: string;
   itineraryUid: string;
   taxProfileUid: string | null;
+  tcsRatePercent: number | null;
   discountType: string;
   discountValue: number | null;
   displayCurrencyCode: string | null;

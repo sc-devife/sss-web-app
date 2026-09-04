@@ -39,14 +39,6 @@ export function Header() {
   return (
     <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-card px-4 md:px-5">
       <div className="flex items-center gap-3">
-        <Link
-          href="/dashboard"
-          aria-label="Dashboard"
-          className="-ml-1 flex items-center rounded-lg p-1.5 text-black transition-colors hover:bg-muted"
-          title="Dashboard"
-        >
-          <PiHouseFill className="h-4 w-4" />
-        </Link>
         <button
           type="button"
           onClick={() => dispatch(toggleMobile())}
@@ -56,6 +48,14 @@ export function Header() {
         >
           <RiMenuUnfoldLine className="h-5 w-5" />
         </button>
+        <Link
+          href="/dashboard"
+          aria-label="Dashboard"
+          className="-ml-1 flex items-center rounded-lg p-1.5 text-black transition-colors hover:bg-muted"
+          title="Dashboard"
+        >
+          <PiHouseFill className="h-4 w-4" />
+        </Link>
         <span className="h-3 w-px bg-border/50" aria-hidden="true" />
         {route?.icon && <route.icon className="h-4 w-4 text-black" />}
         <h1 className="text-base font-semibold text-foreground">{route?.title ?? "Dashboard"}</h1>

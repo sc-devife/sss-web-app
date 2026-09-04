@@ -34,6 +34,7 @@ export function SummaryPanel({ itineraryUid }: { itineraryUid: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [taxProfileUid, setTaxProfileUid] = useState("");
+  const [tcsRatePercent, setTcsRatePercent] = useState("");
   const [discountType, setDiscountType] = useState("none");
   const [discountValue, setDiscountValue] = useState("");
 
@@ -63,8 +64,9 @@ export function SummaryPanel({ itineraryUid }: { itineraryUid: string }) {
   // where state setters haven't committed yet, so reading state here would
   // silently recompute with the PREVIOUS (often empty/default) values
   // instead of the quote's own saved discount/tax.
-  async function recompute(uid: string, overrides?: { taxProfileUid: string; discountType: string; discountValue: string }) {
+  async function recompute(uid: string, overrides?: { taxProfileUid: string; tcsRatePercent: string; discountType: string; discountValue: string }) {
     const effectiveTaxProfileUid = overrides?.taxProfileUid ?? taxProfileUid;
+    const effectiveTcsRatePercent = overrides?.tcsRatePercent ?? tcsRatePercent;
     const effectiveDiscountType = overrides?.discountType ?? discountType;
     const effectiveDiscountValue = overrides?.discountValue ?? discountValue;
     setBusy(true);
@@ -75,6 +77,7 @@ export function SummaryPanel({ itineraryUid }: { itineraryUid: string }) {
           uid,
           itineraryUid,
           taxProfileUid: effectiveTaxProfileUid || null,
+          tcsRatePercent: effectiveTcsRatePercent ? Number(effectiveTcsRatePercent) : null,
           discountType: effectiveDiscountType,
           discountValue: effectiveDiscountValue ? Number(effectiveDiscountValue) : null,
           displayCurrencyCode: null,
@@ -100,10 +103,12 @@ export function SummaryPanel({ itineraryUid }: { itineraryUid: string }) {
     if (!targetQuote) return;
     const seeded = {
       taxProfileUid: targetQuote.taxProfileId ?? "",
+      tcsRatePercent: targetQuote.tcsRatePercent != null ? String(targetQuote.tcsRatePercent) : "",
       discountType: targetQuote.discountType ?? "none",
       discountValue: targetQuote.discountValue != null ? String(targetQuote.discountValue) : "",
     };
     setTaxProfileUid(seeded.taxProfileUid);
+    setTcsRatePercent(seeded.tcsRatePercent);
     setDiscountType(seeded.discountType);
     setDiscountValue(seeded.discountValue);
     recompute(targetQuote.uid, seeded);
@@ -150,7 +155,8 @@ export function SummaryPanel({ itineraryUid }: { itineraryUid: string }) {
           <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Totals</div>
           <dl className="flex flex-col gap-1.5 text-sm">
             <div className="flex justify-between"><dt>Subtotal</dt><dd>{money(q.subtotalInr)}</dd></div>
-            <div className="flex justify-between"><dt>Tax</dt><dd>{money(q.taxAmountInr)}</dd></div>
+            <div className="flex justify-between"><dt>Tax (GST)</dt><dd>{money(q.taxAmountInr)}</dd></div>
+            <div className="flex justify-between"><dt>TCS{q.tcsRatePercent != null ? ` (${q.tcsRatePercent}%)` : ""}</dt><dd>{money(q.tcsAmountInr)}</dd></div>
             <div className="flex justify-between"><dt>Discount</dt><dd>-{money(q.discountValue)}</dd></div>
             <div className="flex justify-between border-t border-border pt-1.5 font-semibold text-foreground"><dt>Total</dt><dd>{money(q.totalInr)}</dd></div>
           </dl>
@@ -158,14 +164,23 @@ export function SummaryPanel({ itineraryUid }: { itineraryUid: string }) {
       </div>
 
       <div className="rounded border border-border p-3">
-        <div className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Update discount &amp; GST</div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Update discount, GST &amp; TCS</div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Select
             label="Tax profile (GST)"
             options={taxProfiles.filter((t) => t.status === "active").map((t) => ({ value: t.uid, label: `${t.displayName} (${t.ratePercent}%)` }))}
             value={taxProfileUid}
             onChange={(e) => setTaxProfileUid(e.target.value)}
             placeholder="No tax"
+          />
+          <TextInput
+            label="TCS rate (%)"
+            type="number"
+            min={0}
+            step="0.01"
+            value={tcsRatePercent}
+            onChange={(e) => setTcsRatePercent(e.target.value)}
+            placeholder="No TCS"
           />
           <Select
             label="Discount type"

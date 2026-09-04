@@ -45,7 +45,7 @@ const emptyForm = {
   escapePointIds: [] as string[],
   numberOfPeople: "",
   travelDate: "",
-  durationDays: "",
+  durationNights: "",
   budget: "",
   originCity: "",
   travelType: "",
@@ -106,10 +106,12 @@ export function LeadsPanel({
     return undefined;
   }
 
-  const durationDaysNumber = Number(form.durationDays);
+  // Day = No. of Night + 1 — surfaced live under the field so it's obvious
+  // what stay length a given night count implies, without doing the math.
+  const durationNightsNumber = Number(form.durationNights);
   const durationInfoMessage =
-    Number.isInteger(durationDaysNumber) && durationDaysNumber >= 1
-      ? `${durationDaysNumber} Night${durationDaysNumber === 1 ? "" : "s"}, ${durationDaysNumber + 1} Days`
+    Number.isInteger(durationNightsNumber) && durationNightsNumber >= 1
+      ? `Day ${durationNightsNumber + 1} Night ${durationNightsNumber}`
       : "";
 
   async function handleSubmit(e: FormEvent) {
@@ -137,7 +139,7 @@ export function LeadsPanel({
           escapePointIds: form.escapePointIds,
           numberOfPeople: form.numberOfPeople ? Number(form.numberOfPeople) : null,
           travelDate: form.travelDate || null,
-          durationDays: form.durationDays ? Number(form.durationDays) : null,
+          durationNights: form.durationNights ? Number(form.durationNights) : null,
           budget: form.budget ? Number(form.budget) : null,
           originCity: form.originCity || null,
           travelType: form.travelType || null,
@@ -267,7 +269,7 @@ export function LeadsPanel({
           <div className="grid grid-cols-2 gap-4">
             <TextInput label="Travellers" type="number" min={1} value={form.numberOfPeople} onChange={(e) => update("numberOfPeople", e.target.value)} />
             <div>
-              <TextInput label="No. of Nights" type="number" min={1} value={form.durationDays} onChange={(e) => update("durationDays", e.target.value)} />
+              <TextInput label="No. of Night" type="number" min={1} value={form.durationNights} onChange={(e) => update("durationNights", e.target.value)} />
               {durationInfoMessage ? (
                 <p className="mt-1 text-xs text-muted-foreground">{durationInfoMessage}</p>
               ) : null}

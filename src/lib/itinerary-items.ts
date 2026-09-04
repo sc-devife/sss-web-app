@@ -49,6 +49,8 @@ export interface HotelInclusion {
 export interface HotelDetail {
   mealPlanId: string | null;
   roomTypeId: string | null;
+  /** Consecutive nights this stay covers, starting from the item's own day (check-in day). */
+  nights: number | null;
   paxPerRoom: number | null;
   roomCount: number | null;
   adultsWithExtraBed: number | null;
@@ -71,6 +73,7 @@ export interface ItineraryItem {
   title: string | null;
   startTime: string | null;
   notes: string | null;
+  longDescription: string | null;
   price: number | null;
   sortOrder: number;
   transportDetail: TransportDetail | null;

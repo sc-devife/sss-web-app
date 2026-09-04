@@ -61,7 +61,9 @@ export function ConvertToEscapeModal({
   );
   const [travellerErrors, setTravellerErrors] = useState<Record<number, string>>({});
   const [startDate, setStartDate] = useState(lead.travelDate ?? "");
-  const [numberOfDays, setNumberOfDays] = useState(lead.durationDays ? String(lead.durationDays) : "");
+  // Escape.numberOfDays is a day count (Day 1..Day N), while the lead's
+  // duration is entered in nights — a 3-night lead pre-fills a 4-day escape.
+  const [numberOfDays, setNumberOfDays] = useState(lead.durationNights ? String(lead.durationNights + 1) : "");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
 

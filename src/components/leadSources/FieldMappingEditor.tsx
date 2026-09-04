@@ -22,6 +22,7 @@ const CRM_FIELD_OPTIONS = [
   { value: "travel_date", label: "Travel date" },
   { value: "number_of_people", label: "Number of people" },
   { value: "duration_days", label: "Duration (days)" },
+  { value: "duration_nights", label: "Duration (nights)" },
   { value: "notes", label: "Notes" },
   { value: "ignore", label: "Ignore this field" },
 ];

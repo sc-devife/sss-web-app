@@ -111,3 +111,19 @@ export function getItemTotalPrice(item: ItineraryItem): number | null {
   }
   return null;
 }
+
+// A hotel item's "No. of Night" is capped by what's left of the escape's
+// total hotel-night budget — numberOfDays - 1 (Day 1 is the start date
+// itself, so an N-day trip has N-1 nights to fill — matches EscapeHelper's
+// endDate = startDate + (numberOfDays - 1)) — minus nights already used by
+// this itinerary's OTHER hotel items. excludeItemUid lets an in-progress
+// edit leave its own current nights out of the "already used" total, so
+// re-saving a hotel with an unchanged (or reduced) night count is never
+// blocked against its own prior value.
+export function availableHotelNights(items: ItineraryItem[], numberOfDays: number | null, excludeItemUid?: string): number {
+  const totalAvailable = Math.max((numberOfDays ?? 1) - 1, 0);
+  const usedNights = items
+    .filter((i) => i.itemType === "hotel" && i.uid !== excludeItemUid)
+    .reduce((sum, i) => sum + (i.hotelDetail?.nights ?? 0), 0);
+  return Math.max(totalAvailable - usedNights, 0);
+}

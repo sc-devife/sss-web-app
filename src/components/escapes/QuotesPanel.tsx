@@ -36,6 +36,7 @@ const emptyForm = { validUntil: "" };
 
 const emptyComputeForm = {
   taxProfileUid: "",
+  tcsRatePercent: "",
   discountType: "none",
   discountValue: "",
   displayCurrencyCode: "",
@@ -205,6 +206,7 @@ export function QuotesPanel({
           uid,
           itineraryUid,
           taxProfileUid: computeForm.taxProfileUid || null,
+          tcsRatePercent: computeForm.tcsRatePercent ? Number(computeForm.tcsRatePercent) : null,
           discountType: computeForm.discountType,
           discountValue: computeForm.discountValue ? Number(computeForm.discountValue) : null,
           displayCurrencyCode: computeForm.displayCurrencyCode || null,
@@ -338,6 +340,15 @@ export function QuotesPanel({
                       step="0.01"
                       value={computeForm.discountValue}
                       onChange={(e) => setComputeForm((f) => ({ ...f, discountValue: e.target.value }))}
+                    />
+                    <TextInput
+                      label="TCS rate (%)"
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={computeForm.tcsRatePercent}
+                      onChange={(e) => setComputeForm((f) => ({ ...f, tcsRatePercent: e.target.value }))}
+                      placeholder="No TCS"
                     />
                     <Select
                       label="Display currency"

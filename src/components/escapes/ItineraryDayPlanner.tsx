@@ -25,6 +25,7 @@ import {
   formatDayDateWithWeekday,
   formatStartTime,
   getItemTotalPrice,
+  availableHotelNights,
 } from "@/lib/itinerary-planning";
 import { transportModeIcon } from "@/lib/transport-modes";
 import { formatInr } from "@/lib/currency";
@@ -50,6 +51,7 @@ import {
   HotelDetailFields,
   fromHotelDetail,
   toHotelDetailPayload,
+  hotelNightsError,
   type HotelDetailFormState,
 } from "@/components/escapes/HotelDetailFields";
 import { RiEdit2Line } from "react-icons/ri";
@@ -64,6 +66,7 @@ interface ModalState {
   titleAutoFilled: boolean;
   startTime: string;
   notes: string;
+  longDescription: string;
   price: string;
   transportForm: TransportDetailFormState;
   hotelForm: HotelDetailFormState;
@@ -80,20 +83,26 @@ function editModalState(item: ItineraryItem): ModalState {
     titleAutoFilled: false,
     startTime: formatStartTime(item.startTime) ?? "",
     notes: item.notes ?? "",
+    longDescription: item.longDescription ?? "",
     price: item.price != null ? String(item.price) : "",
     transportForm: fromTransportDetail(item.transportDetail),
     hotelForm: fromHotelDetail(item.hotelDetail),
   };
 }
 
-type QuickAddType = "transport" | "hotel" | "activity";
+type QuickAddType = "transport" | "hotel" | "activity" | "other";
 
 // "Meal" was removed as its own quick-add — meals are now taken from the
 // selected hotel's own Meal Plan field instead of a separate itinerary item.
+// "Other" covers day-tagged extras with no library/pricing shape of their
+// own (e.g. "Visa", "complimentary welcome gift") — surfaced in quotation
+// PDFs as a standalone "Special Inclusions" section (see
+// QuotationDataService.specialInclusions).
 const QUICK_ADD_BUTTONS: { itemType: QuickAddType; label: string }[] = [
   { itemType: "transport", label: "Transport" },
   { itemType: "hotel", label: "Hotel" },
   { itemType: "activity", label: "Activity" },
+  { itemType: "other", label: "Other" },
 ];
 
 function TimelineRow({
@@ -289,6 +298,10 @@ export function ItineraryDayPlanner({
   const maxItemDay = items.length ? Math.max(...items.map((i) => i.dayNumber)) : 0;
   const dayCount = Math.max(numberOfDays ?? 1, maxItemDay, 1);
 
+  // Remaining hotel nights this escape has left to allocate — for a brand
+  // new hotel item (create flow) nothing of its own is excluded yet.
+  const maxHotelNightsForNewItem = availableHotelNights(items, numberOfDays);
+
   async function handleConfirmAddDay() {
     if (!escape?.lead) return;
     setAddingDay(true);
@@ -371,6 +384,11 @@ export function ItineraryDayPlanner({
     setModal((m) => (m ? { ...m, title, titleAutoFilled: false } : m));
   }
 
+  // Remaining hotel nights left for the item currently being edited — its
+  // own current nights are excluded from "used" so lowering/keeping the
+  // value it already has is never blocked against itself.
+  const maxHotelNightsForEdit = modal ? availableHotelNights(items, numberOfDays, modal.editingUid) : undefined;
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!modal) return;
@@ -382,6 +400,13 @@ export function ItineraryDayPlanner({
     if (!isActivity && !modal.title.trim() && !modal.referenceId) {
       setFormError("Enter a title or pick a library item");
       return;
+    }
+    if (modal.itemType === "hotel") {
+      const nightsError = hotelNightsError(modal.hotelForm, maxHotelNightsForEdit);
+      if (nightsError) {
+        setFormError(nightsError);
+        return;
+      }
     }
     setSaving(true);
     setFormError(undefined);
@@ -396,6 +421,7 @@ export function ItineraryDayPlanner({
           title: isActivity ? undefined : modal.title.trim() || undefined,
           startTime: modal.startTime || undefined,
           notes: modal.notes.trim() || undefined,
+          longDescription: modal.longDescription.trim() || undefined,
           price: isActivity && modal.price ? Number(modal.price) : undefined,
           transportDetail:
             modal.itemType === "transport" ? toTransportDetailPayload(modal.transportForm) : undefined,
@@ -465,6 +491,14 @@ export function ItineraryDayPlanner({
         activityPrefill: { price: a.basePrice },
       })),
     },
+    other: {
+      title: "Add Special Inclusion",
+      searchPlaceholder: "Search…",
+      libraryEmptyLabel: "No library items for this type — use Custom.",
+      nameFieldLabel: "Inclusion name",
+      namePlaceholder: "e.g. Visa, Complimentary welcome gift",
+      libraryOptions: [],
+    },
   };
 
   return (
@@ -486,7 +520,7 @@ export function ItineraryDayPlanner({
                   : "rounded-b-lg border-border/60 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
               )}
             >
-              Day {day}
+              <span>Day {day}</span>
               {date && <span className="text-[8px] font-normal text-muted-foreground">{formatDayDateWithWeekday(date)}</span>}
               {dayTotal > 0 && <span className="text-[8px] font-semibold text-primary">{formatInr(dayTotal)}</span>}
             </button>
@@ -579,6 +613,7 @@ export function ItineraryDayPlanner({
           onCreated={loadItems}
           defaultPax={defaultPax}
           onMealPlanCreated={handleMealPlanCreated}
+          maxHotelNights={addingType === "hotel" ? maxHotelNightsForNewItem : undefined}
           {...quickAddConfig[addingType]}
         />
       )}
@@ -630,6 +665,7 @@ export function ItineraryDayPlanner({
                 roomTypes={hotelsForEscape.find((h) => h.uid === modal.referenceId)?.roomTypes ?? []}
                 hotelName={hotelsForEscape.find((h) => h.uid === modal.referenceId)?.name ?? modal.title}
                 hotelUid={modal.referenceId || null}
+                maxNights={maxHotelNightsForEdit}
                 onMealPlanCreated={(mealPlan) => {
                   if (modal.referenceId) handleMealPlanCreated(modal.referenceId, mealPlan);
                 }}
@@ -651,6 +687,19 @@ export function ItineraryDayPlanner({
               onChange={(e) => setModal((m) => (m ? { ...m, notes: e.target.value } : m))}
               placeholder="e.g. Bengaluru → Netravati"
             />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-foreground" htmlFor="edit-planning-item-long-description">
+                Description (optional)
+              </label>
+              <textarea
+                id="edit-planning-item-long-description"
+                value={modal.longDescription}
+                onChange={(e) => setModal((m) => (m ? { ...m, longDescription: e.target.value } : m))}
+                rows={3}
+                placeholder="Longer descriptive copy shown as an expandable block in the quotation PDF"
+                className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+              />
+            </div>
             {formError && <p className="text-sm text-danger">{formError}</p>}
             <div className="flex justify-end gap-2 border-t border-border pt-3">
               <Button type="button" variant="ghost" disabled={saving} onClick={() => setModal(null)}>

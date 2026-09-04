@@ -5,16 +5,20 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { createQuotationTemplate } from "@/features/quotationTemplates/quotationTemplatesThunks";
+import { createQuotationTemplate, updateQuotationTemplate } from "@/features/quotationTemplates/quotationTemplatesThunks";
 import { selectQuotationTemplateSaveStatus } from "@/features/quotationTemplates/quotationTemplatesSelectors";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
+import type { QuotationTemplate } from "@/features/quotationTemplates/types";
 
-export function QuotationTemplateFormModal({ onClose }: { onClose: () => void }) {
+// Same form for both flows — creating requires the HTML file up front,
+// editing lets the file (and preview image) stay as-is if not replaced.
+export function QuotationTemplateFormModal({ onClose, template }: { onClose: () => void; template?: QuotationTemplate }) {
   const dispatch = useAppDispatch();
   const saveStatus = useAppSelector(selectQuotationTemplateSaveStatus);
+  const isEdit = template != null;
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [name, setName] = useState(template?.name ?? "");
+  const [description, setDescription] = useState(template?.description ?? "");
   const [file, setFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<File | null>(null);
   const [error, setError] = useState<string | undefined>();
@@ -25,23 +29,27 @@ export function QuotationTemplateFormModal({ onClose }: { onClose: () => void })
       setError("Name is required");
       return;
     }
-    if (!file) {
+    if (!isEdit && !file) {
       setError("Upload an HTML template file");
       return;
     }
     setError(undefined);
     try {
-      await dispatch(createQuotationTemplate({ name, description, file, previewImage })).unwrap();
+      if (isEdit) {
+        await dispatch(updateQuotationTemplate({ uid: template.uid, name, description, file, previewImage })).unwrap();
+      } else {
+        await dispatch(createQuotationTemplate({ name, description, file: file as File, previewImage })).unwrap();
+      }
       onClose();
     } catch (err) {
-      setError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to create template"));
+      setError(typeof err === "string" ? err : extractErrorMessage(err, `Failed to ${isEdit ? "update" : "create"} template`));
     }
   }
 
   const busy = saveStatus === "loading";
 
   return (
-    <Modal open onClose={onClose} title="Add quotation template" className="max-w-lg">
+    <Modal open onClose={onClose} title={isEdit ? "Edit quotation template" : "Add quotation template"} className="max-w-lg">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <TextInput label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
         <div className="flex flex-col gap-1.5">
@@ -58,7 +66,7 @@ export function QuotationTemplateFormModal({ onClose }: { onClose: () => void })
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-foreground" htmlFor="quotation-template-file">
-            Template HTML file <span className="text-danger">*</span>
+            Template HTML file {isEdit ? "(leave blank to keep the current file)" : <span className="text-danger">*</span>}
           </label>
           <input
             id="quotation-template-file"
@@ -70,7 +78,7 @@ export function QuotationTemplateFormModal({ onClose }: { onClose: () => void })
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-foreground" htmlFor="quotation-template-preview-image">
-            Preview image (optional)
+            Preview image {isEdit ? "(leave blank to keep the current image)" : "(optional)"}
           </label>
           <input
             id="quotation-template-preview-image"
@@ -84,7 +92,7 @@ export function QuotationTemplateFormModal({ onClose }: { onClose: () => void })
         {error && <p className="text-sm text-danger">{error}</p>}
 
         <div className="flex gap-2">
-          <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Add template"}</Button>
+          <Button type="submit" disabled={busy}>{busy ? "Saving…" : isEdit ? "Save changes" : "Add template"}</Button>
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
         </div>
       </form>

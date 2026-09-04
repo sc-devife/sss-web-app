@@ -24,6 +24,7 @@ import {
   HotelDetailFields,
   emptyHotelDetailForm,
   toHotelDetailPayload,
+  hotelNightsError,
   type HotelDetailFormState,
 } from "@/components/escapes/HotelDetailFields";
 
@@ -64,6 +65,7 @@ export function AddPlanningItemModal({
   onCreated,
   defaultPax,
   onMealPlanCreated,
+  maxHotelNights,
 }: {
   open: boolean;
   onClose: () => void;
@@ -84,6 +86,9 @@ export function AddPlanningItemModal({
   // the day planner, so the hotel's meal plan list stays current after this
   // modal closes (this modal's own selectedOption is updated locally too).
   onMealPlanCreated?: (hotelUid: string, mealPlan: { uid: string; code: string; name: string }) => void;
+  // Remaining hotel nights this escape has left (see availableHotelNights) —
+  // only meaningful when itemType is "hotel", ignored otherwise.
+  maxHotelNights?: number;
 }) {
   const dispatch = useAppDispatch();
   const [step, setStep] = useState<"select" | "details">("select");
@@ -93,6 +98,7 @@ export function AddPlanningItemModal({
   const [selectedOption, setSelectedOption] = useState<PlanningLibraryOption | null>(null);
   const [startTime, setStartTime] = useState("");
   const [notes, setNotes] = useState("");
+  const [longDescription, setLongDescription] = useState("");
   const [price, setPrice] = useState("");
   const [transportForm, setTransportForm] = useState<TransportDetailFormState>(emptyTransportDetailForm());
   const [hotelForm, setHotelForm] = useState<HotelDetailFormState>(emptyHotelDetailForm());
@@ -118,6 +124,7 @@ export function AddPlanningItemModal({
     setSelectedOption(null);
     setStartTime("");
     setNotes("");
+    setLongDescription("");
     setPrice("");
     setTransportForm(emptyTransportDetailForm());
     setHotelForm(emptyHotelDetailForm());
@@ -157,6 +164,13 @@ export function AddPlanningItemModal({
 
   async function handleSave() {
     if (!selected) return;
+    if (isHotel) {
+      const nightsError = hotelNightsError(hotelForm, maxHotelNights);
+      if (nightsError) {
+        setError(nightsError);
+        return;
+      }
+    }
     setSaving(true);
     setError(undefined);
     try {
@@ -169,6 +183,7 @@ export function AddPlanningItemModal({
           title: selected.referenceId ? undefined : selected.name,
           startTime: startTime || undefined,
           notes: notes.trim() || undefined,
+          longDescription: longDescription.trim() || undefined,
           price: isActivity && price ? Number(price) : undefined,
           transportDetail: isTransport ? toTransportDetailPayload(transportForm) : undefined,
           hotelDetail: isHotel ? toHotelDetailPayload(hotelForm) : undefined,
@@ -231,17 +246,17 @@ export function AddPlanningItemModal({
                   filteredOptions.map((option) => {
                     const OptionIcon = isTransport ? transportModeIcon(option.transportPrefill?.modeCode) : Icon;
                     return (
-                    <button
-                      key={option.uid}
-                      type="button"
-                      onClick={() => pickLibraryOption(option)}
-                      className="flex items-center gap-2.5 rounded-lg border border-border/60 bg-card px-3 py-2 text-left shadow-sm transition-all hover:-translate-y-px hover:border-primary/40 hover:shadow-md"
-                    >
-                      <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", badgeClass)}>
-                        <OptionIcon className="h-4 w-4" />
-                      </span>
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{option.label}</span>
-                    </button>
+                      <button
+                        key={option.uid}
+                        type="button"
+                        onClick={() => pickLibraryOption(option)}
+                        className="flex items-center gap-2.5 rounded-lg border border-border/60 bg-card px-3 py-2 text-left shadow-sm transition-all hover:-translate-y-px hover:border-primary/40 hover:shadow-md"
+                      >
+                        <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", badgeClass)}>
+                          <OptionIcon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{option.label}</span>
+                      </button>
                     );
                   })
                 )}
@@ -296,6 +311,7 @@ export function AddPlanningItemModal({
               roomTypes={selectedOption?.roomTypes ?? []}
               hotelName={selected?.name ?? ""}
               hotelUid={selected?.referenceId ?? null}
+              maxNights={maxHotelNights}
               onMealPlanCreated={(mealPlan) => {
                 setSelectedOption((opt) => (opt ? { ...opt, mealPlans: [...(opt.mealPlans ?? []), mealPlan] } : opt));
                 if (selected?.referenceId) onMealPlanCreated?.(selected.referenceId, mealPlan);
@@ -319,8 +335,21 @@ export function AddPlanningItemModal({
             label="Notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="e.g. Bengaluru → Netravati"
+            placeholder="Add any internal notes or additional information..."
           />
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-foreground" htmlFor="planning-item-long-description">
+              Description (optional)
+            </label>
+            <textarea
+              id="planning-item-long-description"
+              value={longDescription}
+              onChange={(e) => setLongDescription(e.target.value)}
+              rows={3}
+              placeholder="Add a detailed description, highlights, or important information..."
+              className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+            />
+          </div>
 
           {error && <p className="text-sm text-danger">{error}</p>}
 

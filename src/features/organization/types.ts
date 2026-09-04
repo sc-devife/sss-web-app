@@ -26,6 +26,8 @@ export interface UpdateOrganizationPayload {
   cin?: string;
   business_email?: string;
   website_url?: string;
+  instagram_url?: string;
+  linkedin_url?: string;
   whatsapp_number?: string;
   tagline?: string;
   about_text?: string;

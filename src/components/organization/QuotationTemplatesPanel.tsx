@@ -26,6 +26,7 @@ export function QuotationTemplatesPanel() {
   const [busy, setBusy] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | undefined>();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editUid, setEditUid] = useState<string | null>(null);
   const [previewUid, setPreviewUid] = useState<string | null>(null);
 
   useEffect(() => {
@@ -83,7 +84,10 @@ export function QuotationTemplatesPanel() {
                 {template.description && <Caption>{template.description}</Caption>}
               </div>
               <div className="flex items-center justify-between gap-2">
-                <Button size="sm" variant="secondary" onClick={() => setPreviewUid(template.uid)}>Preview</Button>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => setPreviewUid(template.uid)}>Preview</Button>
+                  <Button size="sm" variant="secondary" onClick={() => setEditUid(template.uid)}>Edit</Button>
+                </div>
                 {template.isDefault ? (
                   <Badge tone="success">Default</Badge>
                 ) : (
@@ -98,6 +102,13 @@ export function QuotationTemplatesPanel() {
       )}
 
       {showAddModal && <QuotationTemplateFormModal onClose={() => setShowAddModal(false)} />}
+
+      {editUid && (
+        <QuotationTemplateFormModal
+          onClose={() => setEditUid(null)}
+          template={templates.find((t) => t.uid === editUid)}
+        />
+      )}
 
       {previewUid && (
         <QuotationPreviewModal

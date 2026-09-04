@@ -38,7 +38,7 @@ export const createItineraryItem = createAsyncThunk<void, CreateItineraryItemPay
 export const updateItineraryItem = createAsyncThunk<void, UpdateItineraryItemPayload, { rejectValue: string }>(
   "itineraryItems/updateItineraryItem",
   async (payload, { rejectWithValue }) => {
-    const { uid, dayNumber, itemType, referenceId, title, startTime, notes, price, transportDetail, hotelDetail } = payload;
+    const { uid, dayNumber, itemType, referenceId, title, startTime, notes, longDescription, price, transportDetail, hotelDetail } = payload;
     try {
       await clientApi.put(`/itinerary-items/${uid}`, {
         dayNumber,
@@ -47,6 +47,7 @@ export const updateItineraryItem = createAsyncThunk<void, UpdateItineraryItemPay
         title,
         startTime,
         notes,
+        longDescription,
         price,
         transportDetail,
         hotelDetail,

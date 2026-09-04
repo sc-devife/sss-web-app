@@ -11,7 +11,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Caption } from "@/components/ui/Typography";
 import { resolveFileUrl } from "@/lib/files";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
-import { countryCodeField, mobileField, runValidators } from "@/lib/validators";
+import { countryCodeField, mobileField, runValidators, urlField } from "@/lib/validators";
 import { useAppDispatch } from "@/store/hooks";
 import { updateOrganization, uploadOrganizationLogo, fetchMyOrganization } from "@/features/organization/organizationThunks";
 import type { Organization, LogoShape } from "@/features/organization/types";
@@ -60,6 +60,8 @@ export function OrganizationForm({
   // Brand / presentation
   const [businessEmail, setBusinessEmail] = useState(organization.business_email ?? "");
   const [websiteUrl, setWebsiteUrl] = useState(organization.website_url ?? "");
+  const [instagramUrl, setInstagramUrl] = useState(organization.instagram_url ?? "");
+  const [linkedinUrl, setLinkedinUrl] = useState(organization.linkedin_url ?? "");
   const [whatsappNumber, setWhatsappNumber] = useState(organization.whatsapp_number ?? "");
   const [tagline, setTagline] = useState(organization.tagline ?? "");
   const [aboutText, setAboutText] = useState(organization.about_text ?? "");
@@ -75,6 +77,9 @@ export function OrganizationForm({
   const [error, setError] = useState<string>();
   const [phoneError, setPhoneError] = useState<string>();
   const [whatsappError, setWhatsappError] = useState<string>();
+  const [websiteError, setWebsiteError] = useState<string>();
+  const [instagramError, setInstagramError] = useState<string>();
+  const [linkedinError, setLinkedinError] = useState<string>();
   const [saved, setSaved] = useState(false);
 
   async function handleLogoUpload(file: File) {
@@ -115,13 +120,22 @@ export function OrganizationForm({
 
     const nextPhoneError = runValidators(supportPhone, [countryCodeField(), mobileField()]);
     const nextWhatsappError = runValidators(whatsappNumber, [countryCodeField(), mobileField()]);
-    if (nextPhoneError || nextWhatsappError) {
+    const nextWebsiteError = runValidators(websiteUrl, [urlField()]);
+    const nextInstagramError = runValidators(instagramUrl, [urlField()]);
+    const nextLinkedinError = runValidators(linkedinUrl, [urlField()]);
+    if (nextPhoneError || nextWhatsappError || nextWebsiteError || nextInstagramError || nextLinkedinError) {
       setPhoneError(nextPhoneError);
       setWhatsappError(nextWhatsappError);
+      setWebsiteError(nextWebsiteError);
+      setInstagramError(nextInstagramError);
+      setLinkedinError(nextLinkedinError);
       return;
     }
     setPhoneError(undefined);
     setWhatsappError(undefined);
+    setWebsiteError(undefined);
+    setInstagramError(undefined);
+    setLinkedinError(undefined);
     setSaving(true);
 
     try {
@@ -138,6 +152,8 @@ export function OrganizationForm({
         cin: cin || undefined,
         business_email: businessEmail || undefined,
         website_url: websiteUrl || undefined,
+        instagram_url: instagramUrl || undefined,
+        linkedin_url: linkedinUrl || undefined,
         whatsapp_number: whatsappNumber || undefined,
         tagline: tagline || undefined,
         about_text: aboutText || undefined,
@@ -293,7 +309,36 @@ export function OrganizationForm({
             <TextInput label="Industry Accreditation" value={industryAccreditation} onChange={(e) => setIndustryAccreditation(e.target.value)} placeholder="e.g. IATA, TAAI" />
 
             <TextInput label="Business Email" type="email" value={businessEmail} onChange={(e) => setBusinessEmail(e.target.value)} />
-            <TextInput label="Website" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://" />
+            <TextInput
+              label="Website"
+              value={websiteUrl}
+              onChange={(e) => {
+                setWebsiteUrl(e.target.value);
+                setWebsiteError(undefined);
+              }}
+              placeholder="https://"
+              error={websiteError}
+            />
+            <TextInput
+              label="Instagram"
+              value={instagramUrl}
+              onChange={(e) => {
+                setInstagramUrl(e.target.value);
+                setInstagramError(undefined);
+              }}
+              placeholder="https://instagram.com/yourhandle"
+              error={instagramError}
+            />
+            <TextInput
+              label="LinkedIn"
+              value={linkedinUrl}
+              onChange={(e) => {
+                setLinkedinUrl(e.target.value);
+                setLinkedinError(undefined);
+              }}
+              placeholder="https://linkedin.com/company/yourorg"
+              error={linkedinError}
+            />
             <PhoneInput
               label="WhatsApp Number"
               value={whatsappNumber}

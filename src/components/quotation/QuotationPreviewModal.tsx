@@ -7,6 +7,28 @@ import { LoadingState } from "@/components/ui/Spinner";
 
 type Status = "loading" | "success" | "error";
 
+// The backend names the file after the quote's own name (e.g. "Bali &
+// Lakshadweep Family Package.pdf") — it's the only place that knows which
+// quote was actually rendered (the accepted one, or the latest), so the
+// filename is read off the response rather than guessed here from props.
+// The RFC 5987 `filename*=UTF-8''...` directive (percent-encoded, exact
+// Unicode) is checked first — it's what carries names with characters like
+// "&" correctly; the plain `filename="..."` is only a same-line fallback
+// (an RFC 2047 encoded-word for older clients, not directly readable).
+function filenameFromContentDisposition(header: string | null): string | null {
+  if (!header) return null;
+  const extended = /filename\*=UTF-8''([^;]+)/i.exec(header);
+  if (extended) {
+    try {
+      return decodeURIComponent(extended[1].trim());
+    } catch {
+      // fall through to the plain filename below
+    }
+  }
+  const plain = /filename="?([^";]+)"?/i.exec(header);
+  return plain ? plain[1] : null;
+}
+
 // Displays raw rendered HTML the backend returns (Settings sample preview OR
 // a real Escape's quotation preview) — this frontend never fetches the
 // Cloudinary template or combines it with data itself, it only renders what
@@ -32,6 +54,7 @@ export function QuotationPreviewModal({
   const [html, setHtml] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | undefined>();
   const [downloadError, setDownloadError] = useState<string | undefined>();
+  const [downloading, setDownloading] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -65,15 +88,33 @@ export function QuotationPreviewModal({
     return () => controller.abort();
   }, [open, src, attempt]);
 
-  function handleDownload() {
+  // Downloads the server-generated, watermarked PDF — the SAME endpoint's
+  // "/pdf" sibling (e.g. ".../quotation-preview" -> ".../quotation-preview/pdf"),
+  // rather than relying on the browser's own print-to-PDF (which varies by
+  // browser and can't carry a watermark). Insert "/pdf" before any query
+  // string so an optional `?templateUid=` still works.
+  async function handleDownload() {
     setDownloadError(undefined);
-    const win = iframeRef.current?.contentWindow;
-    if (!win) {
-      setDownloadError("Quotation hasn't finished loading yet — try again in a moment.");
-      return;
+    setDownloading(true);
+    try {
+      const [path, query] = src.split("?");
+      const pdfUrl = `${path}/pdf${query ? `?${query}` : ""}`;
+      const res = await fetch(pdfUrl);
+      if (!res.ok) throw new Error(`Failed to generate PDF (${res.status})`);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = filenameFromContentDisposition(res.headers.get("content-disposition")) || "document.pdf";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err.message : "Failed to download the quotation PDF");
+    } finally {
+      setDownloading(false);
     }
-    win.focus();
-    win.print();
   }
 
   function handleRetry() {
@@ -81,7 +122,7 @@ export function QuotationPreviewModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={title} className="w-[85vw] max-w-4xl">
+    <Modal open={open} onClose={onClose} title={title} className="w-[80vw] !max-w-[1400px]">
       <div className="flex flex-col gap-3">
         <div className="h-[60vh] w-full overflow-hidden rounded border border-border bg-white">
           {status === "loading" && (
@@ -110,7 +151,13 @@ export function QuotationPreviewModal({
         {downloadError && <p className="text-sm text-danger">{downloadError}</p>}
         <div className="flex justify-end gap-2 border-t border-border pt-3">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button type="button" disabled={status !== "success"} onClick={handleDownload}>
+          <Button
+            type="button"
+            disabled={status !== "success" || downloading}
+            loading={downloading}
+            loadingText="Generating PDF…"
+            onClick={handleDownload}
+          >
             Download
           </Button>
         </div>

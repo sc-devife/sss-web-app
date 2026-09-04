@@ -10,7 +10,7 @@ export interface CreateLeadPayload {
   escapePointIds: string[];
   numberOfPeople: number | null;
   travelDate: string | null;
-  durationDays: number | null;
+  durationNights: number | null;
   budget: number | null;
   originCity: string | null;
   travelType: string | null;

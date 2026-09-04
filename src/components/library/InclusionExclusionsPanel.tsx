@@ -5,8 +5,8 @@ import dynamic from "next/dynamic";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
-import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
+import { EscapePointSelect } from "@/components/library/EscapePointSelect";
 import { Modal } from "@/components/ui/Modal";
 import { Alert } from "@/components/ui/Alert";
 import { Body } from "@/components/ui/Typography";
@@ -228,12 +228,11 @@ export function InclusionExclusionsPanel({
               error={errors.name}
               required
             />
-            <Select
+            <EscapePointSelect
               label="Escape Point"
-              options={escapePoints.map((d) => ({ value: d.uid, label: d.name }))}
+              escapePoints={escapePoints}
               value={form.escapePointId}
-              onChange={(e) => setForm((f) => ({ ...f, escapePointId: e.target.value }))}
-              placeholder="Org-wide (no escape point)"
+              onChange={(v) => setForm((f) => ({ ...f, escapePointId: v }))}
             />
             <RichTextEditor
               label="Content"

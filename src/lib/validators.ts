@@ -18,6 +18,9 @@ const SWIFT_RE = /^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/;
 // stricter country-specific numeric rule without rejecting valid non-Indian
 // account numbers.
 const ACCOUNT_NUMBER_RE = /^[A-Za-z0-9]{5,34}$/;
+// Must mirror OrganizationsDto's website/instagram/linkedin @Pattern exactly
+// (backend/.../dto/organizations) — requires an absolute http(s) URL.
+const URL_RE = /^https?:\/\/[^\s/$.?#].[^\s]*$/;
 
 export function isValidEmail(value: string): boolean {
   return EMAIL_RE.test(value);
@@ -101,6 +104,8 @@ export const swiftField = (msg = "Enter a valid SWIFT/BIC code (e.g. HDFCINBB or
   pattern(SWIFT_RE, msg);
 export const accountNumberField = (msg = "Enter a valid account number"): FieldValidator =>
   pattern(ACCOUNT_NUMBER_RE, msg);
+export const urlField = (msg = "Enter a valid URL starting with http:// or https://"): FieldValidator =>
+  pattern(URL_RE, msg);
 
 // Numeric validators operate on optional numeric-string fields (empty means
 // "not provided" and always passes — pair with `required()` if the field is

@@ -22,6 +22,8 @@ export interface HotelInclusionFormState {
 export interface HotelDetailFormState {
   mealPlanId: string;
   roomTypeId: string;
+  /** Consecutive nights this stay covers, starting from the day this item is on (its check-in day). */
+  nights: string;
   paxPerRoom: string;
   roomCount: string;
   adultsWithExtraBed: string;
@@ -41,6 +43,7 @@ export function emptyHotelDetailForm(): HotelDetailFormState {
   return {
     mealPlanId: "",
     roomTypeId: "",
+    nights: "1",
     paxPerRoom: "",
     roomCount: "",
     adultsWithExtraBed: "",
@@ -60,6 +63,7 @@ export function fromHotelDetail(detail: HotelDetail | null): HotelDetailFormStat
   return {
     mealPlanId: detail.mealPlanId ?? "",
     roomTypeId: detail.roomTypeId ?? "",
+    nights: detail.nights != null ? String(detail.nights) : "1",
     paxPerRoom: detail.paxPerRoom != null ? String(detail.paxPerRoom) : "",
     roomCount: detail.roomCount != null ? String(detail.roomCount) : "",
     adultsWithExtraBed: detail.adultsWithExtraBed != null ? String(detail.adultsWithExtraBed) : "",
@@ -84,6 +88,12 @@ export function toHotelDetailPayload(form: HotelDetailFormState): HotelDetail | 
   const hasAnyField =
     !!form.mealPlanId ||
     !!form.roomTypeId ||
+    // Nights is core to every hotel stay (defaults to "1", not optional
+    // like the fields below it), so a hotel item always carries a
+    // hotelDetail once its type is "hotel" — never omitted for "nothing
+    // filled in" the way a bare custom item with no detail form touched
+    // would be.
+    !!form.nights ||
     !!form.paxPerRoom ||
     !!form.roomCount ||
     !!form.adultsWithExtraBed ||
@@ -108,6 +118,7 @@ export function toHotelDetailPayload(form: HotelDetailFormState): HotelDetail | 
   return {
     mealPlanId: form.mealPlanId || null,
     roomTypeId: form.roomTypeId || null,
+    nights: form.nights ? Number(form.nights) : 1,
     paxPerRoom: form.paxPerRoom ? Number(form.paxPerRoom) : null,
     roomCount: form.roomCount ? Number(form.roomCount) : null,
     adultsWithExtraBed: form.adultsWithExtraBed ? Number(form.adultsWithExtraBed) : null,
@@ -118,6 +129,20 @@ export function toHotelDetailPayload(form: HotelDetailFormState): HotelDetail | 
     totalPrice: form.totalPrice ? Number(form.totalPrice) : null,
     inclusions,
   };
+}
+
+// Same "No. of Night" cap the field itself shows inline (see the component
+// below) — exported so callers can block Save without re-deriving the check.
+// maxNights undefined means the caller has no escape-duration context to
+// constrain against, so nothing is validated here.
+export function hotelNightsError(form: HotelDetailFormState, maxNights?: number): string | undefined {
+  if (maxNights == null) return undefined;
+  if (maxNights === 0) return "No nights remaining for additional hotels in this escape.";
+  const nights = form.nights ? Number(form.nights) : 1;
+  if (Number.isInteger(nights) && nights > maxNights) {
+    return `Only ${maxNights} night${maxNights === 1 ? "" : "s"} remaining for this escape's hotels.`;
+  }
+  return undefined;
 }
 
 // The structured hotel-stay field block: Meal Plan / Room Type are scoped to
@@ -132,6 +157,7 @@ export function HotelDetailFields({
   hotelName,
   hotelUid,
   onMealPlanCreated,
+  maxNights,
 }: {
   value: HotelDetailFormState;
   onChange: (next: HotelDetailFormState) => void;
@@ -143,6 +169,12 @@ export function HotelDetailFields({
   // (non-library) hotel items.
   hotelUid?: string | null;
   onMealPlanCreated?: (mealPlan: { uid: string; code: string; name: string }) => void;
+  // Remaining hotel nights this escape has left to allocate (see
+  // lib/itinerary-planning's availableHotelNights) — undefined when the
+  // caller has no escape-duration context to constrain against. Caps the
+  // "No. of Night" field so one hotel can't claim nights another stay, or
+  // the trip itself, doesn't have room for.
+  maxNights?: number;
 }) {
   const [addingMeal, setAddingMeal] = useState(false);
   const [newMeal, setNewMeal] = useState({ code: "", name: "" });
@@ -192,6 +224,16 @@ export function HotelDetailFields({
 
   const mealPlanOptions = mealPlans.map((m) => ({ value: m.uid, label: `${m.code} — ${m.name}` }));
   const roomTypeOptions = roomTypes.map((r) => ({ value: r.uid, label: r.name }));
+
+  // Day = No. of Night + 1 — surfaced live under the field so it's obvious
+  // what stay length a given night count implies, without doing the math.
+  const nightsNumber = Number(value.nights);
+  const dayNightMessage =
+    Number.isInteger(nightsNumber) && nightsNumber >= 1 ? `Day ${nightsNumber + 1} Night ${nightsNumber}` : "";
+
+  // maxNights caps this field to what's actually left of the escape's total
+  // hotel-night budget (see availableHotelNights).
+  const nightsError = hotelNightsError(value, maxNights);
 
   return (
     <div className="flex flex-col gap-3">
@@ -270,7 +312,22 @@ export function HotelDetailFields({
         )
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
+        <div className="flex flex-col gap-1">
+          <TextInput
+            label="No. of Night"
+            type="number"
+            min={1}
+            max={maxNights}
+            value={value.nights}
+            onChange={(e) => update("nights", e.target.value)}
+            error={nightsError}
+          />
+          {/* A hotel stay covers multiple consecutive nights starting from
+              whichever day this item is on — check-out is always this
+              day + nights, never entered separately, so it can't drift. */}
+          {!nightsError && dayNightMessage && <span className="text-xs text-muted-foreground">{dayNightMessage}</span>}
+        </div>
         <TextInput
           label="Pax/room (WoEB)"
           type="number"
@@ -279,7 +336,7 @@ export function HotelDetailFields({
           onChange={(e) => update("paxPerRoom", e.target.value)}
         />
         <TextInput
-          label="No. of rooms"
+          label="No. of Rooms"
           type="number"
           min={0}
           value={value.roomCount}

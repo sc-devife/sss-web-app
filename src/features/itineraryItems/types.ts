@@ -10,6 +10,7 @@ export interface CreateItineraryItemPayload {
   title?: string;
   startTime?: string;
   notes?: string;
+  longDescription?: string;
   price?: number;
   transportDetail?: TransportDetail;
   hotelDetail?: HotelDetail;
@@ -24,6 +25,7 @@ export interface UpdateItineraryItemPayload {
   title?: string;
   startTime?: string;
   notes?: string;
+  longDescription?: string;
   price?: number;
   transportDetail?: TransportDetail;
   hotelDetail?: HotelDetail;

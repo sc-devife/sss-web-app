@@ -25,7 +25,7 @@ export interface Lead {
   destination: string | null;
   numberOfPeople: number | null;
   travelDate: string | null;
-  durationDays: number | null;
+  durationNights: number | null;
   budget: number | null;
   status: string;
   // DIRECT | AGENCY — sourceChannel only applies when DIRECT, agencyDetails

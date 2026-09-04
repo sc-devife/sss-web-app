@@ -117,10 +117,11 @@ export const markQuoteRejected = createAsyncThunk<void, QuoteUidWithItinerary, {
 
 export const computeQuote = createAsyncThunk<ComputeQuoteResult, ComputeQuotePayload, { rejectValue: string }>(
   "quotes/computeQuote",
-  async ({ uid, taxProfileUid, discountType, discountValue, displayCurrencyCode, fxRateSnapshot }, { rejectWithValue }) => {
+  async ({ uid, taxProfileUid, tcsRatePercent, discountType, discountValue, displayCurrencyCode, fxRateSnapshot }, { rejectWithValue }) => {
     try {
       const res = await clientApi.post<ComputeQuoteResult>(`/quotes/${uid}/compute`, {
         taxProfileUid,
+        tcsRatePercent,
         discountType,
         discountValue,
         displayCurrencyCode,

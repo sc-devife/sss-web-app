@@ -3,6 +3,7 @@ import { backendJson } from "@/lib/backend";
 export interface Quote {
   uid: string;
   itineraryUid: string;
+  quoteCode: string | null;
   name: string | null;
   version: number;
   status: string;
@@ -11,6 +12,8 @@ export interface Quote {
   subtotalInr: number | null;
   taxProfileId: string | null;
   taxAmountInr: number | null;
+  tcsRatePercent: number | null;
+  tcsAmountInr: number | null;
   totalInr: number | null;
   discountType: string;
   discountValue: number | null;

@@ -615,6 +615,22 @@ export function EscapeWorkspaceTabs({
     dispatch(fetchItinerariesForEscape(escapeUid));
   }
 
+  // Decides which tab is active when the page first opens: Travellers stays
+  // active until every traveller the lead mentioned at intake has been
+  // added and has its required details filled in, then Planning takes over.
+  // "Required details" reuses the one field the traveller form itself
+  // treats as required (First name — see TravellerFormFields/add+edit
+  // handlers) rather than inventing a stricter completeness rule. Computed
+  // once from props already loaded before this component mounts (see
+  // EscapeDetailPanel, which blocks on the escape fetch), then handed to
+  // Tabs as defaultTab — Tabs only reads it on its own initial render, so
+  // manual tab clicks afterward are never overridden by this logic.
+  const hasRequiredTravellerCount =
+    travellers.length > 0 && (leadTravellerCount == null || travellers.length >= leadTravellerCount);
+  const travellersComplete =
+    hasRequiredTravellerCount && travellers.every((t) => Boolean(t.firstName?.trim()));
+  const initialTab = travellersComplete ? "planning" : "travellers";
+
   const sortedItineraries = itineraries.slice().sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0));
 
   const activeItinerary =
@@ -653,7 +669,7 @@ export function EscapeWorkspaceTabs({
 
   return (
     <div className="flex min-w-0 flex-col gap-2 lg:h-full lg:min-h-0">
-      <Tabs tabs={TABS} defaultTab="planning" aside={selectionAside}>
+      <Tabs tabs={TABS} defaultTab={initialTab} aside={selectionAside}>
         {(active) => {
           if (active === "planning") {
             if (itinerariesStatus === "loading" && itineraries.length === 0) {
