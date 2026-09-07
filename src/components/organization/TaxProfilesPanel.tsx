@@ -7,7 +7,7 @@ import { TextInput } from "@/components/ui/TextInput";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { notDuplicate, numberInRange, required, runValidators } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -100,8 +100,18 @@ export function TaxProfilesPanel() {
 
   return (
     <div className="flex flex-col gap-3">
-      {status === "loading" && profiles.length === 0 ? (
-        <LoadingState label="Loading tax profiles…" />
+      {(status === "idle" || status === "loading") && profiles.length === 0 ? (
+        <>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="flex items-center justify-between">
+              <div className="flex flex-col gap-1.5">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-56" />
+              </div>
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </Card>
+          ))}
+        </>
       ) : status === "failed" ? (
         <Body className="text-danger">{error}</Body>
       ) : (

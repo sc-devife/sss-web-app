@@ -7,7 +7,6 @@ import { ToolbarSelect } from "@/components/ui/ToolbarSelect";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { Body } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
 import { formatDisplayDate } from "@/lib/date";
 import type { Lead } from "@/lib/leads";
 import type { EscapePoint } from "@/lib/escape-points";
@@ -121,9 +120,7 @@ export function LeadsPanel({
         <Button className="self-start" onClick={openCreate}><FaPlus />Add lead</Button>
       </div>
 
-      {status === "loading" && leads.length === 0 ? (
-        <LoadingState label="Loading leads…" />
-      ) : status === "failed" ? (
+      {status === "failed" ? (
         <Body className="text-danger">{listError}</Body>
       ) : (
         <DataTable
@@ -134,6 +131,7 @@ export function LeadsPanel({
           emptyMessage="No leads yet."
           onRowClick={(l) => router.push(`/leads/${l.uid}`)}
           getRowLabel={(l) => l.name}
+          loading={status !== "succeeded" && leads.length === 0}
           rowMenuActions={(l) => [
             { key: "edit", label: "Edit", icon: PiPencilSimple, onSelect: () => openEdit(l) },
           ]}

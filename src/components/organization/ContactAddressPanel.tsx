@@ -11,7 +11,7 @@ import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Modal } from "@/components/ui/Modal";
 import { Body, Caption, Heading } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
 import { countryCodeField, emailField, mobileField, required, runValidators } from "@/lib/validators";
@@ -358,8 +358,27 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
         </Button>
       </div>
 
-      {status === "loading" && addresses.length === 0 ? (
-        <LoadingState label="Loading addresses…" />
+      {(status === "idle" || status === "loading") && addresses.length === 0 ? (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <Card key={i} variant="elevated">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-9 w-9 rounded-xl" />
+                  <div className="flex flex-col gap-1.5">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-24 rounded-full" />
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-col gap-2">
+                <Skeleton className="h-3 w-4/5" />
+                <Skeleton className="h-3 w-2/3" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            </Card>
+          ))}
+        </div>
       ) : status === "failed" && addresses.length === 0 ? (
         <Body className="text-danger">{error}</Body>
       ) : (

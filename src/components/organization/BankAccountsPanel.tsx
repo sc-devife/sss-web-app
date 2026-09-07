@@ -185,16 +185,16 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
         </Button>
       </header>
 
-      {status === "loading" && accounts.length === 0 ? (
+      {(status === "idle" || status === "loading") && accounts.length === 0 ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Loading bank accounts">
           {[1, 2, 3].map((item) => (
             <Card key={item} className="flex min-h-[280px] flex-col gap-5 border-border/70 p-5">
               <div className="flex items-center gap-3">
-                <div className="size-11 rounded-xl bg-muted" />
-                <div className="flex flex-1 flex-col gap-2"><div className="h-4 w-32 rounded bg-muted" /><div className="h-3 w-20 rounded bg-muted" /></div>
+                <div className="skeleton size-11 rounded-xl" />
+                <div className="flex flex-1 flex-col gap-2"><div className="skeleton h-4 w-32 rounded" /><div className="skeleton h-3 w-20 rounded" /></div>
               </div>
-              <div className="h-16 rounded-lg bg-muted/70" />
-              <div className="mt-auto h-10 rounded-lg bg-muted" />
+              <div className="skeleton h-16 rounded-lg" />
+              <div className="mt-auto skeleton h-10 rounded-lg" />
             </Card>
           ))}
         </div>

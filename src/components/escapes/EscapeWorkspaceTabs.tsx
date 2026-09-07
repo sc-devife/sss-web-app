@@ -16,7 +16,7 @@ import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Modal } from "@/components/ui/Modal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Body, Caption } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { ItineraryCard } from "@/components/escapes/ItineraryCard";
 import { DealPanel } from "@/components/escapes/DealPanel";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
@@ -672,8 +672,27 @@ export function EscapeWorkspaceTabs({
       <Tabs tabs={TABS} defaultTab={initialTab} aside={selectionAside}>
         {(active) => {
           if (active === "planning") {
-            if (itinerariesStatus === "loading" && itineraries.length === 0) {
-              return <LoadingState label="Loading itineraries…" />;
+            if ((itinerariesStatus === "idle" || itinerariesStatus === "loading") && itineraries.length === 0) {
+              return (
+                <div className="flex flex-col gap-3">
+                  <div className="flex gap-2">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <Skeleton key={i} className="h-8 w-16 shrink-0 rounded" />
+                    ))}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="flex items-center gap-3 rounded border border-border p-3">
+                        <Skeleton className="h-4 w-14 shrink-0" />
+                        <div className="flex flex-1 flex-col gap-1.5">
+                          <Skeleton className="h-4 w-48" />
+                          <Skeleton className="h-3 w-32" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
             }
             if (sortedItineraries.length === 0) {
               return (

@@ -8,7 +8,6 @@ import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
 import { Body } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
 import type { MealPlan } from "@/lib/meal-plans";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
@@ -135,9 +134,7 @@ export function MealPlansPanel() {
         <Button className="self-start" onClick={openCreate}><FaPlus />Add meal plan</Button>
       </div>
 
-      {status === "loading" && mealPlans.length === 0 ? (
-        <LoadingState label="Loading meal plans…" />
-      ) : status === "failed" ? (
+      {status === "failed" ? (
         <Body className="text-danger">{error}</Body>
       ) : (
         <DataTable
@@ -148,6 +145,7 @@ export function MealPlansPanel() {
           emptyMessage="No meal plans yet — add your first one."
           onRowClick={(m) => openEdit(m)}
           getRowLabel={(m) => m.name}
+          loading={status !== "succeeded" && mealPlans.length === 0}
           rowMenuActions={(m) => [
             { key: "edit", label: "Edit", onSelect: () => openEdit(m) },
             { key: "delete", label: "Delete", tone: "danger", disabled: deletingUid === m.uid, onSelect: () => handleDelete(m) },

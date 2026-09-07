@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/Badge";
 import { BulkImportModal } from "@/components/library/BulkImportModal";
 import { ActivityFormModal, CATEGORY_OPTIONS } from "@/components/library/ActivityFormModal";
 import { Body } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
 import type { Activity } from "@/lib/activities";
 import type { EscapePoint } from "@/lib/escape-points";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -158,9 +157,7 @@ export function ActivitiesPanel({
         />
       )}
 
-      {status === "loading" && activities.length === 0 ? (
-        <LoadingState label="Loading activities…" />
-      ) : status === "failed" ? (
+      {status === "failed" ? (
         <Body className="text-danger">{error}</Body>
       ) : (
         <DataTable
@@ -171,6 +168,7 @@ export function ActivitiesPanel({
           emptyMessage="No activities yet — add your first one."
           onRowClick={(a) => router.push(`/library/activities/${a.uid}`)}
           getRowLabel={(a) => a.name}
+          loading={status !== "succeeded" && activities.length === 0}
           rowMenuActions={(a) => [
             { key: "edit", label: "Edit", onSelect: () => openEdit(a) },
             { key: "archive", label: "Archive", tone: "danger", disabled: deletingUid === a.uid, onSelect: () => handleDelete(a) },

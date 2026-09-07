@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { PiUsersThree, PiClock } from "react-icons/pi";
 import { Card } from "@/components/ui/Card";
 import { Heading, Body } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { InviteUserForm } from "@/components/organization/InviteUserForm";
 import { UsersList } from "@/components/organization/UsersList";
 import { UnverifiedUsersList } from "@/components/organization/UnverifiedUsersList";
@@ -20,6 +20,29 @@ import {
 } from "@/features/users/usersSelectors";
 import { fetchTeams } from "@/features/teams/teamsThunks";
 import { selectTeams } from "@/features/teams/teamsSelectors";
+
+// Mirrors a member row (avatar + name/email + trailing controls) from
+// UsersList.tsx so the loading state doesn't jump when real rows arrive.
+function MemberRowSkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="rounded-xl border border-border bg-card p-3">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="flex flex-col gap-1.5">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-3 w-44" />
+              </div>
+            </div>
+            <Skeleton className="h-8 w-20 rounded" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // Owns the initial data fetch for the whole Users page — page.tsx is no
 // longer a Server Component fetching this data, so something client-side
@@ -65,8 +88,8 @@ export function UsersPageContent() {
           </div>
         </div>
         <div className="px-4 py-3">
-          {usersStatus === "loading" && users.length === 0 ? (
-            <LoadingState label="Loading members…" />
+          {(usersStatus === "idle" || usersStatus === "loading") && users.length === 0 ? (
+            <MemberRowSkeleton />
           ) : usersStatus === "failed" ? (
             <Body className="text-danger">{usersError}</Body>
           ) : (
@@ -92,8 +115,8 @@ export function UsersPageContent() {
           </div>
         </div>
         <div className="px-4 py-3">
-          {invitationsStatus === "loading" && invitations.length === 0 ? (
-            <LoadingState label="Loading invitations…" />
+          {(invitationsStatus === "idle" || invitationsStatus === "loading") && invitations.length === 0 ? (
+            <MemberRowSkeleton />
           ) : (
             <UnverifiedUsersList invitations={invitations} />
           )}

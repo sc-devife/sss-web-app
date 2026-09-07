@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Body, Caption, Heading } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import type { Team } from "@/lib/teams";
 import type { EscapePoint } from "@/lib/escape-points";
@@ -144,8 +144,27 @@ export function TeamsPanel({ escapePoints }: { escapePoints: EscapePoint[] }) {
     }
   }
 
-  if (status === "loading" && teams.length === 0) {
-    return <LoadingState label="Loading teams…" />;
+  if ((status === "idle" || status === "loading") && teams.length === 0) {
+    return (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Card key={i} className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-7 w-7 rounded-lg" />
+              <Skeleton className="h-4 w-28" />
+            </div>
+            <Skeleton className="h-3 w-full" />
+            <div className="flex flex-wrap gap-1">
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-5 w-20 rounded-full" />
+            </div>
+            <div className="flex justify-end gap-2 border-t border-border pt-3">
+              <Skeleton className="h-8 w-14 rounded" />
+            </div>
+          </Card>
+        ))}
+      </div>
+    );
   }
 
   if (status === "failed") {

@@ -9,7 +9,6 @@ import { BulkImportModal } from "@/components/library/BulkImportModal";
 import { EscapePointFormModal } from "@/components/library/EscapePointFormModal";
 import { EscapePointLocationsModal } from "@/components/library/EscapePointLocationsModal";
 import { Body } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
 import type { EscapePoint } from "@/lib/escape-points";
 import type { LibraryLocation } from "@/lib/locations";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -102,9 +101,7 @@ export function EscapePointsPanel({ locations }: { locations: LibraryLocation[] 
         />
       )}
 
-      {status === "loading" && escapePoints.length === 0 ? (
-        <LoadingState label="Loading escape points…" />
-      ) : status === "failed" ? (
+      {status === "failed" ? (
         <Body className="text-danger">{error}</Body>
       ) : (
         <DataTable
@@ -115,6 +112,7 @@ export function EscapePointsPanel({ locations }: { locations: LibraryLocation[] 
           emptyMessage="No escape points yet — add your first one."
           onRowClick={(d) => router.push(`/library/escape-points/${d.uid}`)}
           getRowLabel={(d) => d.name}
+          loading={status !== "succeeded" && escapePoints.length === 0}
           rowMenuActions={(d) => [
             { key: "edit", label: "Edit", onSelect: () => openEdit(d) },
             { key: "locations", label: "Locations", onSelect: () => setManagingLocations(d) },

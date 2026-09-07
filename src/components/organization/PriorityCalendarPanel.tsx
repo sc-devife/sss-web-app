@@ -7,7 +7,7 @@ import { TextInput } from "@/components/ui/TextInput";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { Alert } from "@/components/ui/Alert";
 import { Body, Caption } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { required, runValidators } from "@/lib/validators";
 import { formatDisplayDate } from "@/lib/date";
@@ -100,8 +100,18 @@ export function PriorityCalendarPanel() {
     <div className="flex flex-col gap-3">
       <Caption>Honeymoon and family leads traveling within one of these windows are auto-flagged as priority.</Caption>
 
-      {status === "loading" && entries.length === 0 ? (
-        <LoadingState label="Loading priority calendar…" />
+      {(status === "idle" || status === "loading") && entries.length === 0 ? (
+        <>
+          {Array.from({ length: 2 }).map((_, i) => (
+            <Card key={i} className="flex items-center justify-between">
+              <div className="flex flex-col gap-1.5">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-40" />
+              </div>
+              <Skeleton className="h-8 w-20 rounded" />
+            </Card>
+          ))}
+        </>
       ) : status === "failed" ? (
         <Body className="text-danger">{error}</Body>
       ) : (

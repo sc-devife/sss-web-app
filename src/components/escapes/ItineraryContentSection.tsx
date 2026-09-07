@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
 import { Body, Caption } from "@/components/ui/Typography";
-import { LoadingState, Spinner } from "@/components/ui/Spinner";
+import { Spinner } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 import type { ItineraryContentItem } from "@/lib/itinerary-content-items";
 import type { InclusionExclusionType } from "@/lib/inclusion-exclusions";
@@ -33,7 +34,7 @@ import {
 // doesn't pay for it unless a Terms/Inclusion/Exclusion form is actually opened.
 const RichTextEditor = dynamic(() => import("@/components/ui/RichTextEditor").then((m) => m.RichTextEditor), {
   ssr: false,
-  loading: () => <div className="h-40 animate-pulse rounded border border-border bg-muted" />,
+  loading: () => <div className="skeleton h-40 rounded border border-border" />,
 });
 
 const TYPES: { value: InclusionExclusionType; label: string }[] = [
@@ -240,8 +241,29 @@ export function ItineraryContentSection({
 
   const visibleTypes = TYPES.filter((t) => types.includes(t.value));
 
-  if (status === "loading" && items.length === 0) {
-    return <LoadingState />;
+  if ((status === "idle" || status === "loading") && items.length === 0) {
+    // Mirrors TypeBlock's own layout below (label + item cards + action
+    // buttons) so the loading state doesn't jump when the real blocks arrive.
+    return (
+      <div className={cn("grid grid-cols-1 gap-3", visibleTypes.length > 1 && "lg:grid-cols-2")}>
+        {visibleTypes.map((t) => (
+          <div key={t.value} className="flex flex-col gap-2 rounded border border-border p-3">
+            <Skeleton className="h-3 w-24" />
+            <div className="flex flex-col gap-2 rounded border border-border p-2">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-10" />
+              </div>
+              <Skeleton className="h-3 w-full" />
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-8 w-32 rounded" />
+              <Skeleton className="h-8 w-28 rounded" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   return (

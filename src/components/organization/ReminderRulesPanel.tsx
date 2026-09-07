@@ -8,7 +8,7 @@ import { Select } from "@/components/ui/Select";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { integerField, required, runValidators } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -93,8 +93,18 @@ export function ReminderRulesPanel() {
 
   return (
     <div className="flex flex-col gap-3">
-      {status === "loading" && rules.length === 0 ? (
-        <LoadingState label="Loading reminder rules…" />
+      {(status === "idle" || status === "loading") && rules.length === 0 ? (
+        <>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="flex items-center justify-between">
+              <div className="flex flex-col gap-1.5">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-48" />
+              </div>
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </Card>
+          ))}
+        </>
       ) : status === "failed" ? (
         <Body className="text-danger">{error}</Body>
       ) : (

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { Card } from "@/components/ui/Card";
+import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { DatePicker } from "@/components/ui/DatePicker";
@@ -9,7 +10,9 @@ import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { QuotationPreviewModal } from "@/components/quotation/QuotationPreviewModal";
 import { Body, Caption } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { PiWarningCircleFill } from "react-icons/pi";
+import { Spinner } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import type { Deal } from "@/lib/deals";
 import type { Quote } from "@/lib/quotes";
 import { clientApi } from "@/lib/axios/clientClient";
@@ -50,7 +53,17 @@ export function DealPanel({ deal }: { deal: Deal }) {
   const [payAmounts, setPayAmounts] = useState<Record<string, string>>({});
   const [payMethods, setPayMethods] = useState<Record<string, string>>({});
   const [payReferences, setPayReferences] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState(false);
+  // Tracked per-action (rather than one shared "busy" flag) so a spinner can
+  // show on the SPECIFIC button whose action is in flight — e.g. verifying
+  // one milestone no longer makes every other milestone's buttons look like
+  // they're loading too, just disabled.
+  const [verifyingUid, setVerifyingUid] = useState<string | null>(null);
+  const [deletingUid, setDeletingUid] = useState<string | null>(null);
+  const [recordingUid, setRecordingUid] = useState<string | null>(null);
+  const [savingMilestone, setSavingMilestone] = useState(false);
+  const [cancellingDeal, setCancellingDeal] = useState(false);
+  const anyBusy =
+    verifyingUid !== null || deletingUid !== null || recordingUid !== null || savingMilestone || cancellingDeal;
   const [formError, setFormError] = useState<string | undefined>();
 
   const [quoteTotal, setQuoteTotal] = useState<number | null>(null);
@@ -78,7 +91,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
 
   async function handleAdd(e: FormEvent) {
     e.preventDefault();
-    setBusy(true);
+    setSavingMilestone(true);
     setFormError(undefined);
     try {
       await dispatch(
@@ -95,7 +108,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
     } catch (err) {
       setFormError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to add milestone"));
     } finally {
-      setBusy(false);
+      setSavingMilestone(false);
     }
   }
 
@@ -109,7 +122,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
     const amount = Number(payAmounts[uid]);
     const paymentMethod = payMethods[uid];
     const paymentReference = payReferences[uid].trim();
-    setBusy(true);
+    setRecordingUid(uid);
     try {
       await dispatch(recordPayment({ uid, dealUid: deal.uid, amount, paymentMethod, paymentReference }));
       setPayAmounts((p) => ({ ...p, [uid]: "" }));
@@ -120,12 +133,12 @@ export function DealPanel({ deal }: { deal: Deal }) {
       // just captured — refresh History too, or it'd only show up on reload.
       dispatch(fetchEscapeAuditLog(deal.escapeUid));
     } finally {
-      setBusy(false);
+      setRecordingUid(null);
     }
   }
 
   async function handleVerify(uid: string) {
-    setBusy(true);
+    setVerifyingUid(uid);
     try {
       await dispatch(verifyPaymentMilestone(uid));
       refresh();
@@ -136,17 +149,17 @@ export function DealPanel({ deal }: { deal: Deal }) {
       dispatch(fetchEscapeById(deal.escapeUid));
       dispatch(fetchEscapeAuditLog(deal.escapeUid));
     } finally {
-      setBusy(false);
+      setVerifyingUid(null);
     }
   }
 
   async function handleDelete(uid: string) {
-    setBusy(true);
+    setDeletingUid(uid);
     try {
       await dispatch(deletePaymentMilestone({ uid, dealUid: deal.uid }));
       refresh();
     } finally {
-      setBusy(false);
+      setDeletingUid(null);
     }
   }
 
@@ -155,7 +168,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
       setCancelError("A cancellation reason is required");
       return;
     }
-    setBusy(true);
+    setCancellingDeal(true);
     setCancelError(undefined);
     try {
       await dispatch(cancelDeal({ uid: deal.uid, reason: cancelReason.trim() })).unwrap();
@@ -164,7 +177,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
     } catch (err) {
       setCancelError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to cancel deal"));
     } finally {
-      setBusy(false);
+      setCancellingDeal(false);
     }
   }
 
@@ -180,8 +193,8 @@ export function DealPanel({ deal }: { deal: Deal }) {
           <Button size="sm" variant="secondary" onClick={() => setShowInvoicePreview(true)}>
             Preview Invoice
           </Button>
-          {!isCancelled && !showCancelForm && (
-            <button type="button" onClick={() => setShowCancelForm(true)} disabled={busy} className="text-sm text-danger hover:underline">
+          {!isCancelled && (
+            <button type="button" onClick={() => setShowCancelForm(true)} disabled={anyBusy} className="text-sm text-danger hover:underline">
               Cancel deal
             </button>
           )}
@@ -189,29 +202,58 @@ export function DealPanel({ deal }: { deal: Deal }) {
         </div>
       </div>
 
-      {showCancelForm && (
-        <div className="flex flex-col gap-2 rounded border border-danger/40 bg-danger/5 p-3">
-          <label htmlFor="deal-cancel-reason" className="text-sm font-medium text-foreground">
-            Reason for cancelling this deal
-          </label>
-          <textarea
-            id="deal-cancel-reason"
-            value={cancelReason}
-            onChange={(e) => setCancelReason(e.target.value)}
-            rows={2}
-            className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
-          />
+      <Modal
+        open={showCancelForm}
+        onClose={() => {
+          if (cancellingDeal) return;
+          setShowCancelForm(false);
+          setCancelReason("");
+          setCancelError(undefined);
+        }}
+        title="Cancel this deal?"
+      >
+        <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-danger/10 text-danger">
+            <PiWarningCircleFill size={28} aria-hidden="true" />
+          </div>
+          <Body>
+            Are you sure you want to cancel this deal?
+          </Body>
+          <div className="w-full text-left">
+            <label htmlFor="deal-cancel-reason" className="text-sm font-medium text-foreground">
+              Reason for cancelling this deal
+            </label>
+            <textarea
+              id="deal-cancel-reason"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              rows={2}
+              disabled={cancellingDeal}
+              className="mt-1 w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+            />
+          </div>
           {cancelError && <p className="text-sm text-danger">{cancelError}</p>}
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="danger" disabled={busy} onClick={handleCancelDeal}>
-              Confirm cancellation
+          <div className="flex w-full justify-end gap-2">
+            <Button
+              type="button"
+              disabled={cancellingDeal}
+              onClick={() => { setShowCancelForm(false); setCancelReason(""); setCancelError(undefined); }}
+            >
+              Keep Deal
             </Button>
-            <Button size="sm" variant="ghost" disabled={busy} onClick={() => { setShowCancelForm(false); setCancelReason(""); setCancelError(undefined); }}>
-              Back
+            <Button
+              type="button"
+              variant="danger"
+              disabled={cancellingDeal}
+              loading={cancellingDeal}
+              loadingText="Cancelling…"
+              onClick={handleCancelDeal}
+            >
+              Cancel Deal
             </Button>
           </div>
         </div>
-      )}
+      </Modal>
 
       {milestonesMismatch && (
         <div className="rounded border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
@@ -219,8 +261,18 @@ export function DealPanel({ deal }: { deal: Deal }) {
         </div>
       )}
 
-      {status === "loading" && milestones.length === 0 ? (
-        <LoadingState />
+      {(status === "idle" || status === "loading") && milestones.length === 0 ? (
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="flex flex-col gap-2 rounded border border-border px-3 py-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <Skeleton className="h-3 w-52" />
+            </div>
+          ))}
+        </div>
       ) : status === "failed" ? (
         <Body className="text-danger">{error}</Body>
       ) : (
@@ -265,10 +317,22 @@ export function DealPanel({ deal }: { deal: Deal }) {
                     </span>
                     {m.status === "unverified" && (
                       <div className="flex items-center gap-2">
-                        <Button size="sm" disabled={busy || isCancelled} onClick={() => handleVerify(m.uid)}>
+                        <Button
+                          size="sm"
+                          disabled={anyBusy || isCancelled}
+                          loading={verifyingUid === m.uid}
+                          loadingText="Verifying…"
+                          onClick={() => handleVerify(m.uid)}
+                        >
                           Verify payment
                         </Button>
-                        <button type="button" onClick={() => handleDelete(m.uid)} disabled={busy} className="text-danger hover:underline">
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(m.uid)}
+                          disabled={anyBusy}
+                          className="inline-flex items-center gap-1.5 text-danger hover:underline disabled:no-underline"
+                        >
+                          {deletingUid === m.uid && <Spinner size="sm" tone="danger" />}
                           Delete
                         </button>
                       </div>
@@ -303,15 +367,27 @@ export function DealPanel({ deal }: { deal: Deal }) {
                         placeholder="e.g. UPI ref, bank UTR"
                         value={payReferences[m.uid] ?? ""}
                         onChange={(e) => setPayReferences((p) => ({ ...p, [m.uid]: e.target.value }))}
-                        className="min-w-[10rem] flex-1"
+                        className="w-48"
                         disabled={isCancelled}
                         required
                       />
                       <div className="flex items-center gap-2">
-                        <Button size="sm" disabled={busy || isCancelled || !canRecordPayment(m.uid)} onClick={() => handleRecordPayment(m.uid)}>
+                        <Button
+                          size="sm"
+                          disabled={anyBusy || isCancelled || !canRecordPayment(m.uid)}
+                          loading={recordingUid === m.uid}
+                          loadingText="Recording…"
+                          onClick={() => handleRecordPayment(m.uid)}
+                        >
                           Record payment
                         </Button>
-                        <button type="button" onClick={() => handleDelete(m.uid)} disabled={busy} className="text-danger hover:underline">
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(m.uid)}
+                          disabled={anyBusy}
+                          className="inline-flex items-center gap-1.5 text-danger hover:underline disabled:no-underline"
+                        >
+                          {deletingUid === m.uid && <Spinner size="sm" tone="danger" />}
                           Delete
                         </button>
                       </div>
@@ -346,8 +422,15 @@ export function DealPanel({ deal }: { deal: Deal }) {
             required
           />
           {formError && <p className="col-span-full text-sm text-danger">{formError}</p>}
-          <Button type="submit" size="sm" disabled={busy} className="col-span-full sm:col-span-1">
-            {busy ? "Saving…" : "Save milestone"}
+          <Button
+            type="submit"
+            size="sm"
+            disabled={anyBusy}
+            loading={savingMilestone}
+            loadingText="Saving…"
+            className="col-span-full sm:col-span-1"
+          >
+            Save milestone
           </Button>
         </form>
       )}

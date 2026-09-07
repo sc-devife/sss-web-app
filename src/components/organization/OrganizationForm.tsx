@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { toast } from "react-toastify";
 import { PiBuildings, PiInfoBold } from "react-icons/pi";
 
 import { TextInput } from "@/components/ui/TextInput";
@@ -80,7 +81,6 @@ export function OrganizationForm({
   const [websiteError, setWebsiteError] = useState<string>();
   const [instagramError, setInstagramError] = useState<string>();
   const [linkedinError, setLinkedinError] = useState<string>();
-  const [saved, setSaved] = useState(false);
 
   async function handleLogoUpload(file: File) {
     setError(undefined);
@@ -116,7 +116,6 @@ export function OrganizationForm({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(undefined);
-    setSaved(false);
 
     const nextPhoneError = runValidators(supportPhone, [countryCodeField(), mobileField()]);
     const nextWhatsappError = runValidators(whatsappNumber, [countryCodeField(), mobileField()]);
@@ -160,7 +159,7 @@ export function OrganizationForm({
         industry_accreditation: industryAccreditation || undefined,
       })).unwrap();
 
-      setSaved(true);
+      toast.success("Organization updated successfully.");
       dispatch(fetchMyOrganization());
     } catch (err) {
       setError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to save"));
@@ -175,21 +174,14 @@ export function OrganizationForm({
 
 
       <fieldset disabled={saving} className="contents">
-
         {/* Organization Profile */}
         <div className="rounded-2xl border bg-card p-6">
 
-          {/* Logo occupies one full grid cell — same width as every field
-              beside it — instead of a separately-sized sidebar, so the
-              section reads as one aligned grid. At the 3-col breakpoint it
-              spans both rows so Registered Name/Support Phone land directly
-              under Organization ID/Display Name, not under the logo. */}
+          {/* Unified Grid across 1 col (mobile), 2 cols (tablet), 3 cols (desktop) */}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Logo — a self-contained branding block: label+info, the
-                preview with an overlaid "change photo" camera badge (the
-                universal edit-avatar affordance), then the shape selector
-                grouped tightly beneath it. */}
-            <div className="flex flex-col items-center justify-center gap-2 lg:row-span-2">
+
+            {/* Organization Logo — Spans 2 rows on both tablet (sm) and desktop (lg) */}
+            <div className="flex flex-col items-center justify-center gap-2 sm:row-span-2">
               <div className="flex items-center gap-1.5">
                 <Caption className="font-medium">Organization Logo</Caption>
                 <button
@@ -229,7 +221,11 @@ export function OrganizationForm({
                   disabled={uploadingLogo}
                   className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground shadow-sm transition-transform hover:scale-105 disabled:opacity-60"
                 >
-                  {uploadingLogo ? <Spinner size="sm" tone="current" className="text-primary-foreground" /> : <TbCameraUp size={16} aria-hidden="true" />}
+                  {uploadingLogo ? (
+                    <Spinner size="sm" tone="current" className="text-primary-foreground" />
+                  ) : (
+                    <TbCameraUp size={16} aria-hidden="true" />
+                  )}
                 </button>
               </div>
 
@@ -284,10 +280,7 @@ export function OrganizationForm({
               }}
               error={phoneError}
             />
-          </div>
 
-          {/* Remaining fields — 3 per row */}
-          <div className="grid grid-cols-1 gap-5 border-border pt-6 sm:grid-cols-2 lg:grid-cols-3">
             <Select
               label="Country"
               options={countries.map((c) => ({ value: c.code, label: c.label }))}
@@ -360,9 +353,9 @@ export function OrganizationForm({
                 className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
               />
             </div>
+
           </div>
         </div>
-
       </fieldset>
 
       {error && (
@@ -370,8 +363,6 @@ export function OrganizationForm({
           {error}
         </Alert>
       )}
-
-      {saved && <Alert tone="success">Organization updated successfully.</Alert>}
 
       <div className="flex justify-end border-t pt-4">
 

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
 import { Body } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { required, runValidators } from "@/lib/validators";
@@ -73,8 +73,15 @@ export function FieldMappingEditor({ channelCode, onClose }: { channelCode: stri
 
   return (
     <Modal open onClose={onClose} title="Field Mapping" className="max-w-2xl">
-      {status === "loading" && mappings.length === 0 ? (
-        <LoadingState />
+      {(status === "idle" || status === "loading") && mappings.length === 0 ? (
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-3 w-full" />
+          <div className="flex flex-col gap-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-9 w-full rounded border border-border" />
+            ))}
+          </div>
+        </div>
       ) : status === "failed" ? (
         <Body className="text-danger">{error}</Body>
       ) : (

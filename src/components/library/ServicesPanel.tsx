@@ -8,7 +8,6 @@ import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
 import { Body } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
 import type { Service } from "@/lib/services";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
@@ -131,9 +130,7 @@ export function ServicesPanel() {
         <Button className="self-start" onClick={openCreate}><FaPlus />Add service</Button>
       </div>
 
-      {status === "loading" && services.length === 0 ? (
-        <LoadingState label="Loading services…" />
-      ) : status === "failed" ? (
+      {status === "failed" ? (
         <Body className="text-danger">{error}</Body>
       ) : (
         <DataTable
@@ -144,6 +141,7 @@ export function ServicesPanel() {
           emptyMessage="No services yet — add your first one."
           onRowClick={(s) => openEdit(s)}
           getRowLabel={(s) => s.name}
+          loading={status !== "succeeded" && services.length === 0}
           rowMenuActions={(s) => [
             { key: "edit", label: "Edit", onSelect: () => openEdit(s) },
             { key: "delete", label: "Delete", tone: "danger", disabled: deletingUid === s.uid, onSelect: () => handleDelete(s) },

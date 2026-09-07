@@ -8,7 +8,6 @@ import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
 import { Body } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
 import type { RoomType } from "@/lib/room-types";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
@@ -131,9 +130,7 @@ export function RoomTypesPanel() {
         <Button className="self-start" onClick={openCreate}><FaPlus />Add room type</Button>
       </div>
 
-      {status === "loading" && roomTypes.length === 0 ? (
-        <LoadingState label="Loading room types…" />
-      ) : status === "failed" ? (
+      {status === "failed" ? (
         <Body className="text-danger">{error}</Body>
       ) : (
         <DataTable
@@ -144,6 +141,7 @@ export function RoomTypesPanel() {
           emptyMessage="No room types yet — add your first one."
           onRowClick={(r) => openEdit(r)}
           getRowLabel={(r) => r.name}
+          loading={status !== "succeeded" && roomTypes.length === 0}
           rowMenuActions={(r) => [
             { key: "edit", label: "Edit", onSelect: () => openEdit(r) },
             { key: "delete", label: "Delete", tone: "danger", disabled: deletingUid === r.uid, onSelect: () => handleDelete(r) },

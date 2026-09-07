@@ -10,7 +10,7 @@ import { EscapePointSelect } from "@/components/library/EscapePointSelect";
 import { Modal } from "@/components/ui/Modal";
 import { Alert } from "@/components/ui/Alert";
 import { Body } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import type { InclusionExclusionItem, InclusionExclusionType } from "@/lib/inclusion-exclusions";
 import type { EscapePoint } from "@/lib/escape-points";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
@@ -34,8 +34,30 @@ import { FaPlus } from "react-icons/fa";
 // open the create/edit form don't pay for it on first load.
 const RichTextEditor = dynamic(() => import("@/components/ui/RichTextEditor").then((m) => m.RichTextEditor), {
   ssr: false,
-  loading: () => <div className="h-40 animate-pulse rounded border border-border bg-muted" />,
+  loading: () => <div className="skeleton h-40 rounded border border-border" />,
 });
+
+// Mirrors the real Card layout below (name + badge row, two content lines)
+// so the loading state doesn't jump when the real items arrive.
+function InclusionExclusionsSkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <Card key={i} className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-5 w-20 rounded-full" />
+            </div>
+            <Skeleton className="h-4 w-10" />
+          </div>
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-2/3" />
+        </Card>
+      ))}
+    </div>
+  );
+}
 
 const TABS: { value: InclusionExclusionType; label: string }[] = [
   { value: "TERMS", label: "Terms & Conditions" },
@@ -175,8 +197,8 @@ export function InclusionExclusionsPanel({
         <Button onClick={openCreate}> <FaPlus />Add {TABS.find((t) => t.value === activeTab)?.label.replace(/s$/, "")}</Button>
       </div>
 
-      {status === "loading" && items.length === 0 ? (
-        <LoadingState />
+      {(status === "idle" || status === "loading") && items.length === 0 ? (
+        <InclusionExclusionsSkeleton />
       ) : status === "failed" ? (
         <Body className="text-danger">{error}</Body>
       ) : (

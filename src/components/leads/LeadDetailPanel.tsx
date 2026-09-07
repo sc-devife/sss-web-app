@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { formatDisplayDate } from "@/lib/date";
 import { formatAuditActor, formatAuditChange } from "@/lib/audit";
 import type { Lead } from "@/lib/leads";
@@ -273,7 +273,17 @@ export function LeadDetailPanel({
 
       <div className="rounded-xl border border-border bg-muted/20 p-4">
         <Caption>History</Caption>
-        {loadingAudit && <LoadingState />}
+        {loadingAudit && (
+          <div className="mt-2 flex flex-col gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex gap-3">
+                <Skeleton className="h-8 w-16 shrink-0" />
+                <Skeleton className="h-5 w-5 shrink-0 rounded-full" />
+                <Skeleton className="h-4 flex-1" />
+              </div>
+            ))}
+          </div>
+        )}
         {!loadingAudit && auditLog && auditLog.length === 0 && <Body muted className="mt-2">No history yet.</Body>}
         {!loadingAudit && auditLog && auditLog.length > 0 && (
           <div className="mt-2 flex flex-col">

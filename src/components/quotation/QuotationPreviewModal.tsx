@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 type Status = "loading" | "success" | "error";
 
@@ -171,8 +171,43 @@ export function QuotationPreviewModal({
       <div className="flex flex-col gap-3">
         <div className="h-[60vh] w-full overflow-hidden rounded border border-border bg-white">
           {status === "loading" && (
-            <div className="flex h-full items-center justify-center">
-              <LoadingState label={`Preparing your ${documentLabel} preview…`} />
+            // Mirrors the shape of the rendered document underneath
+            // (letterhead, bill-to block, line-item table, totals) rather
+            // than a bare spinner, so the preview doesn't jump from an
+            // unrelated loading indicator straight to a full page of content.
+            <div className="flex h-full flex-col gap-6 overflow-hidden p-10">
+              <div className="flex items-start justify-between">
+                <Skeleton className="h-12 w-40" />
+                <div className="flex flex-col items-end gap-1.5">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+              </div>
+              <div className="flex gap-8">
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-3 w-40" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-3 w-40" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-8 w-full" />
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-6 w-full" />
+                ))}
+              </div>
+              <div className="flex justify-end">
+                <div className="flex w-56 flex-col gap-1.5">
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              </div>
             </div>
           )}
           {status === "error" && (

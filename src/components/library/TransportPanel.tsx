@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/Badge";
 import { BulkImportModal } from "@/components/library/BulkImportModal";
 import { Alert } from "@/components/ui/Alert";
 import { Body } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
 import type { Transport } from "@/lib/transports";
 import type { ServiceProvider } from "@/lib/service-providers";
 import type { EscapePoint } from "@/lib/escape-points";
@@ -246,9 +245,7 @@ export function TransportPanel({
         />
       )}
 
-      {status === "loading" && transports.length === 0 ? (
-        <LoadingState label="Loading transport…" />
-      ) : status === "failed" ? (
+      {status === "failed" ? (
         <Body className="text-danger">{error}</Body>
       ) : (
         <DataTable
@@ -259,6 +256,7 @@ export function TransportPanel({
           emptyMessage="No transport options yet — add your first one."
           onRowClick={(t) => openEdit(t)}
           getRowLabel={(t) => MODE_OPTIONS.find((m) => m.value === t.modeCode)?.label ?? t.modeCode}
+          loading={status !== "succeeded" && transports.length === 0}
           rowMenuActions={(t) => [
             { key: "edit", label: "Edit", onSelect: () => openEdit(t) },
             { key: "archive", label: "Archive", tone: "danger", disabled: deletingUid === t.uid, onSelect: () => handleDelete(t) },

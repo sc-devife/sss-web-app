@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/Badge";
 import { BulkImportModal } from "@/components/library/BulkImportModal";
 import { Alert } from "@/components/ui/Alert";
 import { Body } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
 import type { ServiceProvider } from "@/lib/service-providers";
 import type { EscapePoint } from "@/lib/escape-points";
 import type { ReferenceOption } from "@/lib/reference-data";
@@ -227,9 +226,7 @@ export function ServiceProvidersPanel({
         />
       )}
 
-      {status === "loading" && providers.length === 0 ? (
-        <LoadingState label="Loading service providers…" />
-      ) : status === "failed" ? (
+      {status === "failed" ? (
         <Body className="text-danger">{error}</Body>
       ) : (
         <DataTable
@@ -240,6 +237,7 @@ export function ServiceProvidersPanel({
           emptyMessage="No service providers yet — add your first one."
           onRowClick={(p) => openEdit(p)}
           getRowLabel={(p) => p.name}
+          loading={status !== "succeeded" && providers.length === 0}
           rowMenuActions={(p) => [
             { key: "edit", label: "Edit", onSelect: () => openEdit(p) },
             { key: "archive", label: "Archive", tone: "danger", disabled: deletingUid === p.uid, onSelect: () => handleDelete(p) },

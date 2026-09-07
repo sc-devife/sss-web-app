@@ -15,7 +15,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Tabs } from "@/components/ui/Tabs";
 import { Alert } from "@/components/ui/Alert";
 import { Caption } from "@/components/ui/Typography";
-import { LoadingState, Spinner } from "@/components/ui/Spinner";
+import { Spinner } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { HotelFormModal, AMENITY_OPTIONS } from "@/components/library/HotelFormModal";
 import { resolveFileUrl } from "@/lib/files";
 import { formatDisplayDate, formatDisplayTime } from "@/lib/date";
@@ -414,7 +415,19 @@ export function HotelDetailPanel({
 
               {activeTab === "bookings" &&
                 (bookingsLoading ? (
-                  <LoadingState label="Loading bookings…" />
+                  <div className="flex flex-col gap-2">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="rounded-xl border border-border bg-background p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex flex-col gap-1.5">
+                            <Skeleton className="h-4 w-40" />
+                            <Skeleton className="h-3 w-56" />
+                          </div>
+                          <Skeleton className="h-5 w-16 rounded-full" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 ) : bookings && bookings.length > 0 ? (
                   <div className="flex flex-col gap-2">
                     {bookings.map((b) => (

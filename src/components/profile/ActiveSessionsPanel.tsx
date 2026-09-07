@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption, Heading } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { formatDisplayDateTime, formatRelativeTime } from "@/lib/date";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -133,8 +133,20 @@ export function ActiveSessionsPanel() {
       </div>
 
       <div className="flex flex-col gap-2 px-4 py-3">
-        {status === "loading" && sessions.length === 0 ? (
-          <LoadingState label="Loading sessions…" />
+        {(status === "idle" || status === "loading") && sessions.length === 0 ? (
+          <>
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Skeleton className="h-9 w-9 rounded-lg" />
+                  <div className="flex flex-col gap-1.5">
+                    <Skeleton className="h-4 w-36" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </>
         ) : status === "failed" ? (
           <Body className="text-danger">{error}</Body>
         ) : (

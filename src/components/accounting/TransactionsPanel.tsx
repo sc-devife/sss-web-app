@@ -6,7 +6,6 @@ import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { ComingSoon } from "@/components/ui/ComingSoon";
 import { Body } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
 import { formatDisplayDateTime } from "@/lib/date";
 import { formatAuditActor } from "@/lib/audit";
 import type { IncomingTransaction } from "@/lib/transactions";
@@ -106,10 +105,6 @@ function IncomingTransactionsTable() {
     },
   ];
 
-  if (status === "loading" && transactions.length === 0) {
-    return <LoadingState label="Loading incoming transactions…" />;
-  }
-
   if (status === "failed") {
     return <Body className="text-danger">{error}</Body>;
   }
@@ -122,6 +117,7 @@ function IncomingTransactionsTable() {
       searchPlaceholder="Search by customer, amount, reference…"
       emptyMessage="No incoming payments recorded yet."
       onRowClick={(t) => router.push(`/escapes/${t.escapeUid}`)}
+      loading={status !== "succeeded" && transactions.length === 0}
     />
   );
 }

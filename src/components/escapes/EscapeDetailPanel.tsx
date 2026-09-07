@@ -6,7 +6,7 @@ import { FaChevronLeft } from "react-icons/fa";
 import { cn } from "@/lib/cn";
 import { Card } from "@/components/ui/Card";
 import { Body } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { EscapeSummaryCard } from "@/components/escapes/EscapeSummaryCard";
 import { ItineraryManagementCard } from "@/components/escapes/ItineraryManagementCard";
 import { DocumentsCard } from "@/components/escapes/DocumentsCard";
@@ -86,11 +86,36 @@ export function EscapeDetailPanel({
     dispatch(fetchEscapeAuditLog(escapeUid));
   }
 
-  if (escapeStatus === "loading" && !escape) {
+  if ((escapeStatus === "idle" || escapeStatus === "loading") && !escape) {
+    // "idle" (the pre-fetch initial render) needs the skeleton too, or
+    // !escape briefly falls through to the failed-state return below before
+    // the mount effect's dispatch even starts. Also mirrors the two-column
+    // layout below (sticky summary card + tabbed workspace) so the loading
+    // state doesn't jump when the real escape arrives.
     return (
       <Card variant="page" className="flex min-h-full flex-col gap-2">
         <BackToEscapes />
-        <LoadingState label="Loading escape…" />
+        <div className="border-t border-border" />
+        <div className="grid grid-cols-1 gap-2 lg:grid-cols-[1.2fr_3.4fr]">
+          <div className="flex flex-col gap-3 rounded-xl border border-border p-4">
+            <Skeleton className="h-40 w-full rounded-lg" />
+            <Skeleton className="h-5 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+            <div className="flex flex-col gap-2 pt-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-4 w-full" />
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-8 w-24 rounded" />
+              ))}
+            </div>
+            <Skeleton className="h-64 w-full rounded-xl" />
+          </div>
+        </div>
       </Card>
     );
   }

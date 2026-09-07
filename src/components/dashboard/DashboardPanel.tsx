@@ -56,13 +56,13 @@ function DashboardSkeleton() {
     <div className="flex flex-col gap-2">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i} variant="elevated" className="h-24 animate-pulse bg-muted/40">{null}</Card>
+          <Card key={i} variant="elevated" className="h-24 skeleton">{null}</Card>
         ))}
       </div>
       {Array.from({ length: 2 }).map((_, row) => (
         <div key={row} className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-          <Card variant="elevated" className="h-72 animate-pulse bg-muted/40">{null}</Card>
-          <Card variant="elevated" className="h-72 animate-pulse bg-muted/40">{null}</Card>
+          <Card variant="elevated" className="h-72 skeleton">{null}</Card>
+          <Card variant="elevated" className="h-72 skeleton">{null}</Card>
         </div>
       ))}
     </div>
@@ -152,7 +152,12 @@ export function DashboardPanel() {
     dispatch(fetchLeadsTrend(period));
   }
 
-  if (status === "loading" && !dashboard) {
+  if ((status === "idle" || status === "loading") && !dashboard) {
+    // "idle" (the pre-fetch initial render, before the mount effect below
+    // has dispatched anything) must show the skeleton too — treating only
+    // "loading" as the skeleton state left a one-frame gap where status was
+    // still "idle" and !dashboard fell through to the failed-state return
+    // below, flashing "Failed to load dashboard" before the fetch even started.
     return <DashboardSkeleton />;
   }
 

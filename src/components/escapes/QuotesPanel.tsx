@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { QuotationPreviewModal } from "@/components/quotation/QuotationPreviewModal";
 import { Body, Caption } from "@/components/ui/Typography";
-import { LoadingState, Spinner } from "@/components/ui/Spinner";
+import { Spinner } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { formatDisplayDate, formatDisplayDateTime } from "@/lib/date";
 import { formatAuditActor } from "@/lib/audit";
@@ -234,8 +235,20 @@ export function QuotesPanel({
         </div>
       </div>
 
-      {quotesStatus === "loading" && quotes.length === 0 && <LoadingState />}
-      {quotesStatus !== "loading" && quotes.length === 0 && !showForm && <Body muted>No quotes yet.</Body>}
+      {(quotesStatus === "idle" || quotesStatus === "loading") && quotes.length === 0 && (
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="flex flex-col gap-2 rounded border border-border px-3 py-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-5 w-24 rounded-full" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+              <Skeleton className="h-3 w-40" />
+            </div>
+          ))}
+        </div>
+      )}
+      {quotesStatus !== "idle" && quotesStatus !== "loading" && quotes.length === 0 && !showForm && <Body muted>No quotes yet.</Body>}
 
       {quotes.length > 0 && (
         <div className="flex flex-col gap-2">

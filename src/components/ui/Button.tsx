@@ -13,6 +13,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
   /** Text shown in place of children while `loading` is true. */
   loadingText?: string;
+  /** Spinner color while loading. Defaults to "current" (inherits the
+   * button's own text color) since a literal border-primary/border-danger
+   * would blend into a same-toned solid-fill button — pass an explicit tone
+   * when the spinner needs to read as a specific color regardless of the
+   * button's own variant (e.g. a fixed "primary" tone across a row of
+   * differently-styled buttons). */
+  spinnerTone?: "primary" | "current" | "danger";
 }
 
 const variantClasses: Record<Variant, string> = {
@@ -32,6 +39,7 @@ export function Button({
   size = "md",
   loading = false,
   loadingText,
+  spinnerTone = "current",
   disabled,
   className,
   children,
@@ -51,7 +59,7 @@ export function Button({
       )}
       {...props}
     >
-      {loading && <Spinner size="sm" tone="current" />}
+      {loading && <Spinner size="sm" tone={spinnerTone} />}
       {loading && loadingText ? loadingText : children}
     </button>
   );

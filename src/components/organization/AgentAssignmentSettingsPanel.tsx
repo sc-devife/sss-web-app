@@ -7,7 +7,7 @@ import { TextInput } from "@/components/ui/TextInput";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import type { AppUser } from "@/lib/users";
 import type { EscapePoint } from "@/lib/escape-points";
 import { Alert } from "@/components/ui/Alert";
@@ -138,8 +138,27 @@ export function AgentAssignmentSettingsPanel({ escapePoints }: { escapePoints: E
     }
   }
 
-  if (status === "loading" && users.length === 0) {
-    return <LoadingState label="Loading agents…" />;
+  if ((status === "idle" || status === "loading") && users.length === 0) {
+    return (
+      <div className="flex flex-col gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i} className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1.5">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-44" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {Array.from({ length: 4 }).map((_, j) => (
+                <Skeleton key={j} className="h-4 w-40" />
+              ))}
+            </div>
+            <Skeleton className="h-8 w-16 rounded" />
+          </Card>
+        ))}
+      </div>
+    );
   }
 
   if (status === "failed") {

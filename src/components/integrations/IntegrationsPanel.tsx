@@ -17,7 +17,7 @@ import { TextInput } from "@/components/ui/TextInput";
 import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
 import { Body, Caption } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { formatDisplayDateTime } from "@/lib/date";
 import { required, runValidators } from "@/lib/validators";
@@ -151,8 +151,24 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
     }
   }
 
-  if (status === "loading" && integrations.length === 0) {
-    return <LoadingState label="Loading integrations…" />;
+  if ((status === "idle" || status === "loading") && integrations.length === 0) {
+    return (
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Card key={i} variant="elevated" className="flex flex-col gap-4 border-border/70 p-4">
+            <div className="flex items-start gap-3">
+              <Skeleton className="size-10 shrink-0 rounded-xl" />
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            </div>
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-2/3" />
+          </Card>
+        ))}
+      </div>
+    );
   }
 
   if (status === "failed") {

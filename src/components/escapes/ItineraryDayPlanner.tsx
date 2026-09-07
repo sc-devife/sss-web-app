@@ -9,7 +9,8 @@ import { TimePicker } from "@/components/ui/TimePicker";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
 import { Body, Caption } from "@/components/ui/Typography";
-import { LoadingState, Spinner } from "@/components/ui/Spinner";
+import { Spinner } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import type { Hotel } from "@/lib/hotels";
 import type { Activity } from "@/lib/activities";
@@ -437,8 +438,27 @@ export function ItineraryDayPlanner({
     }
   }
 
-  if (itemsStatus === "loading" && items.length === 0) {
-    return <LoadingState label="Loading day plan…" />;
+  if ((itemsStatus === "idle" || itemsStatus === "loading") && items.length === 0) {
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="flex gap-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-16 shrink-0 rounded" />
+          ))}
+        </div>
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 rounded border border-border p-3">
+              <Skeleton className="h-4 w-14 shrink-0" />
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   const activeDayItems = (itemsByDay[openDay] ?? []).slice().sort((a, b) => a.sortOrder - b.sortOrder);

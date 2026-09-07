@@ -6,7 +6,6 @@ import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ToolbarSelect } from "@/components/ui/ToolbarSelect";
 import { Badge } from "@/components/ui/Badge";
 import { Body } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
 import { formatDisplayDate } from "@/lib/date";
 import type { Escape } from "@/lib/escapes";
 import { ESCAPE_STATUS_ORDER, ESCAPE_STATUS_CANCELLED } from "@/lib/escape-status";
@@ -89,10 +88,6 @@ export function EscapesPanel() {
     },
   ];
 
-  if (status === "loading" && escapes.length === 0) {
-    return <LoadingState label="Loading escapes…" />;
-  }
-
   if (status === "failed") {
     return <Body className="text-danger">{error}</Body>;
   }
@@ -105,6 +100,7 @@ export function EscapesPanel() {
       searchPlaceholder="Search escapes…"
       emptyMessage="No escapes yet — convert a qualified lead to get started."
       onRowClick={(t) => router.push(`/escapes/${t.uid}`)}
+      loading={status !== "succeeded" && escapes.length === 0}
       toolbarExtra={
         <div className="flex items-center gap-2">
           <ToolbarSelect label="Sort" options={SORT_OPTIONS} value={sortOrder} onChange={(v) => setSortOrder(v as "latest" | "oldest")} />

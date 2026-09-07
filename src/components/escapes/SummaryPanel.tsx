@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
 import { Body, Caption } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchQuotesForItinerary, computeQuote } from "@/features/quotes/quotesThunks";
 import { selectQuotesForItinerary, selectQuotesStatus } from "@/features/quotes/quotesSelectors";
@@ -115,8 +115,30 @@ export function SummaryPanel({ itineraryUid }: { itineraryUid: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetQuote?.uid]);
 
-  if (quotesStatus === "loading" && quotes.length === 0) {
-    return <LoadingState label="Loading summary…" />;
+  if ((quotesStatus === "idle" || quotesStatus === "loading") && quotes.length === 0) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-3 w-40" />
+          <Skeleton className="h-8 w-28 rounded" />
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="rounded border border-border p-3">
+              <Skeleton className="mb-2 h-3 w-20" />
+              <div className="flex flex-col gap-2">
+                {Array.from({ length: 4 }).map((_, j) => (
+                  <div key={j} className="flex justify-between">
+                    <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-3 w-12" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (!targetQuote) {

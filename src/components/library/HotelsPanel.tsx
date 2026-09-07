@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/Badge";
 import { BulkImportModal } from "@/components/library/BulkImportModal";
 import { HotelFormModal } from "@/components/library/HotelFormModal";
 import { Body } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
 import type { Hotel } from "@/lib/hotels";
 import type { LibraryLocation } from "@/lib/locations";
 import type { EscapePoint } from "@/lib/escape-points";
@@ -152,9 +151,7 @@ export function HotelsPanel({
         />
       )}
 
-      {status === "loading" && hotels.length === 0 ? (
-        <LoadingState label="Loading hotels…" />
-      ) : status === "failed" ? (
+      {status === "failed" ? (
         <Body className="text-danger">{error}</Body>
       ) : (
         <DataTable
@@ -165,6 +162,7 @@ export function HotelsPanel({
           emptyMessage="No hotels yet — add your first one."
           onRowClick={(h) => router.push(`/library/hotels/${h.uid}`)}
           getRowLabel={(h) => h.name}
+          loading={status !== "succeeded" && hotels.length === 0}
           rowMenuActions={(h) => [
             { key: "edit", label: "Edit", onSelect: () => openEdit(h) },
             { key: "archive", label: "Archive", tone: "danger", disabled: deletingUid === h.uid, onSelect: () => handleDelete(h) },

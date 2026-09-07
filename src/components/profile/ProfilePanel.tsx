@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { toast } from "react-toastify";
 import type { IconType } from "react-icons";
 import {
   PiBuildings,
@@ -18,7 +19,8 @@ import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Heading, Body, Caption } from "@/components/ui/Typography";
-import { LoadingState, Spinner } from "@/components/ui/Spinner";
+import { Spinner } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 import { resolveFileUrl } from "@/lib/files";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
@@ -78,7 +80,6 @@ export function ProfilePanel() {
   const [original, setOriginal] = useState<ProfileFormState | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | undefined>();
-  const [saved, setSaved] = useState(false);
 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -112,7 +113,6 @@ export function ProfilePanel() {
     setOriginal(snapshot);
     setErrors({});
     setFormError(undefined);
-    setSaved(false);
     setEditing(true);
   }
 
@@ -188,7 +188,7 @@ export function ProfilePanel() {
         }),
       ).unwrap();
       setEditing(false);
-      setSaved(true);
+      toast.success("Profile updated successfully.");
     } catch (err) {
       setFormError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to update profile"));
     } finally {
@@ -196,8 +196,32 @@ export function ProfilePanel() {
     }
   }
 
-  if (status === "loading" && !profile) {
-    return <LoadingState label="Loading profile…" />;
+  if ((status === "idle" || status === "loading") && !profile) {
+    // "idle" (the pre-fetch initial render) needs the skeleton too — see
+    // DashboardPanel's identical fix for why "loading" alone left a gap.
+    return (
+      <div className="w-full">
+        <Card variant="elevated" className="overflow-hidden p-0">
+          <div className="flex flex-col items-center gap-4 border-b border-border bg-muted/30 p-6 sm:flex-row">
+            <Skeleton className="h-20 w-20 shrink-0 rounded-full" />
+            <Skeleton className="h-20 w-20 shrink-0 rounded-full" />
+            <div className="flex w-full flex-col items-center gap-2 sm:items-start">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-3 w-32" />
+              <Skeleton className="h-5 w-24 rounded-full" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-5 p-6 sm:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex flex-col gap-1.5">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-10 w-full rounded" />
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   if (status === "failed" || !profile) {
@@ -369,8 +393,6 @@ export function ProfilePanel() {
               {formError}
             </Alert>
           )}
-          {saved && !editing && <Alert tone="success">Profile updated successfully.</Alert>}
-
           <div className="flex justify-end gap-3 border-t border-border pt-5">
             {editing ? (
               <>

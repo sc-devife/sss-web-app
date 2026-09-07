@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState, type MouseEvent, type ReactNode } from "react";
-import { IoChevronUp, IoChevronDown, IoSearchOutline } from "react-icons/io5";
+import { IoChevronUp, IoChevronDown, IoSearchOutline, IoChevronBack, IoChevronForward } from "react-icons/io5";
 import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui/Button";
 import { RowContextMenu, type RowMenuAction } from "@/components/ui/RowContextMenu";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export interface DataTableColumn<T> {
   key: string;
@@ -33,7 +34,19 @@ interface DataTableProps<T> {
   getRowLabel?: (row: T) => string;
   /** Extra controls (e.g. sort/status filters) rendered alongside the search box. */
   toolbarExtra?: ReactNode;
+  /** True while `rows` is still loading — renders a shimmering skeleton with
+   * this table's own columns/toolbar instead of the (currently empty) rows,
+   * so the loading state matches the real layout instead of a generic spinner. */
+  loading?: boolean;
+  /** Number of skeleton rows to show while `loading`. Defaults to a small
+   * fixed count rather than `pageSize` so a page-size-10 table doesn't render
+   * an oversized skeleton before it knows how many rows it'll actually have. */
+  skeletonRows?: number;
 }
+
+// Cycled per cell so skeleton bars read as varied text lengths rather than a
+// uniform grid of identical rectangles.
+const SKELETON_WIDTHS = ["w-4/5", "w-1/2", "w-2/3", "w-1/3", "w-3/5"];
 
 const INTERACTIVE_SELECTOR = 'button, a, input, select, textarea, [role="button"], [data-no-row-click]';
 
@@ -42,6 +55,24 @@ function isFromInteractiveElement(e: MouseEvent) {
 }
 
 type SortDir = "asc" | "desc";
+
+// Always shows page 1, the last page, and a window of one neighbor on each
+// side of the current page — collapsing any gap larger than one page into a
+// single "…". e.g. current=5, total=10 -> [1, "…", 4, 5, 6, "…", 10].
+function buildPageList(current: number, total: number): (number | "ellipsis")[] {
+  const pages = new Set<number>([1, total]);
+  for (let p = current - 1; p <= current + 1; p++) {
+    if (p >= 1 && p <= total) pages.add(p);
+  }
+  const sorted = Array.from(pages).sort((a, b) => a - b);
+
+  const result: (number | "ellipsis")[] = [];
+  sorted.forEach((p, i) => {
+    if (i > 0 && p - sorted[i - 1] > 1) result.push("ellipsis");
+    result.push(p);
+  });
+  return result;
+}
 
 // One shared table: sortable (click a header), filterable (single search box
 // matching any column with filterValue), paginated. Falls back to stacked
@@ -59,6 +90,8 @@ export function DataTable<T>({
   rowMenuActions,
   getRowLabel,
   toolbarExtra,
+  loading = false,
+  skeletonRows = 6,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -115,8 +148,85 @@ export function DataTable<T>({
     setContextMenu({ x: e.clientX, y: e.clientY, row });
   }
 
+  if (loading) {
+    return (
+      // Distinct `key` from the loaded-state root below — without it React
+      // reconciles this subtree against the real one on the loading->loaded
+      // transition (same element types/positions), which briefly turns the
+      // search input's `value` prop from a plain string into `undefined`
+      // one commit before its post-loading value lands, tripping React's
+      // controlled-input warning. A different key forces a clean
+      // unmount/mount instead of a partial update.
+      <div key="skeleton" className="flex flex-col gap-3">
+        {(columns.some((c) => c.filterValue) || toolbarExtra) && (
+          <div className="flex flex-wrap items-center gap-2">
+            {columns.some((c) => c.filterValue) && (
+              <div className="relative max-w-[240px] flex-1">
+                <IoSearchOutline className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
+                <input
+                  value=""
+                  readOnly
+                  disabled
+                  placeholder={searchPlaceholder}
+                  className="h-7 w-full rounded-full border border-transparent bg-[#f8f8fa] pl-7 pr-3 text-sm text-foreground placeholder:text-[#9da3af]"
+                />
+              </div>
+            )}
+            {toolbarExtra}
+          </div>
+        )}
+
+        {/* Table: sm and up */}
+        <div className="hidden overflow-x-auto rounded border border-[#e1e1e6] sm:block">
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="border-b border-[#e1e1e6] bg-[#f2f2f5]">
+                {columns.map((col) => (
+                  <th key={col.key} className="px-3 py-2 text-left font-medium text-black">
+                    {col.header}
+                  </th>
+                ))}
+                {actions && <th className="px-3 py-2 text-right font-medium text-black">Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: skeletonRows }).map((_, r) => (
+                <tr key={r} className="border-b border-[#f2f2f2] last:border-0">
+                  {columns.map((col, ci) => (
+                    <td key={col.key} className="px-3 py-2">
+                      <Skeleton className={cn("h-4", SKELETON_WIDTHS[(r + ci) % SKELETON_WIDTHS.length])} />
+                    </td>
+                  ))}
+                  {actions && (
+                    <td className="px-3 py-2 text-right">
+                      <Skeleton className="ml-auto h-4 w-14" />
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Stacked cards: below sm */}
+        <div className="flex flex-col gap-2 sm:hidden">
+          {Array.from({ length: skeletonRows }).map((_, r) => (
+            <div key={r} className="flex flex-col gap-2 rounded border border-border bg-card p-3">
+              {columns.map((col, ci) => (
+                <div key={col.key} className="flex items-center justify-between gap-3 py-0.5">
+                  <span className="text-sm text-muted-foreground">{col.header}</span>
+                  <Skeleton className={cn("h-4", SKELETON_WIDTHS[(r + ci) % SKELETON_WIDTHS.length])} />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-3">
+    <div key="data" className="flex flex-col gap-3">
       {(columns.some((c) => c.filterValue) || toolbarExtra) && (
         <div className="flex flex-wrap items-center gap-2">
           {columns.some((c) => c.filterValue) && (
@@ -224,14 +334,45 @@ export function DataTable<T>({
           {totalPages > 1 && (
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>Page {clampedPage} of {totalPages}</span>
-              <div className="flex gap-2">
-                <Button variant="secondary" size="sm" disabled={clampedPage <= 1} onClick={() => { setContextMenu(null); setPage((p) => p - 1); }}>
-                  Previous
+              <nav className="flex items-center gap-1" aria-label="Pagination">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={clampedPage <= 1}
+                  onClick={() => { setContextMenu(null); setPage((p) => p - 1); }}
+                  aria-label="Previous page"
+                >
+                  <IoChevronBack size={14} />
                 </Button>
-                <Button variant="secondary" size="sm" disabled={clampedPage >= totalPages} onClick={() => { setContextMenu(null); setPage((p) => p + 1); }}>
-                  Next
+                {buildPageList(clampedPage, totalPages).map((item, i) =>
+                  item === "ellipsis" ? (
+                    <span key={`ellipsis-${i}`} className="px-1.5 text-muted-foreground">
+                      …
+                    </span>
+                  ) : (
+                    <Button
+                      key={item}
+                      variant={item === clampedPage ? "primary" : "secondary"}
+                      size="sm"
+                      disabled={item === clampedPage}
+                      onClick={() => { setContextMenu(null); setPage(item); }}
+                      className="min-w-[2rem]"
+                      aria-current={item === clampedPage ? "page" : undefined}
+                    >
+                      {item}
+                    </Button>
+                  ),
+                )}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={clampedPage >= totalPages}
+                  onClick={() => { setContextMenu(null); setPage((p) => p + 1); }}
+                  aria-label="Next page"
+                >
+                  <IoChevronForward size={14} />
                 </Button>
-              </div>
+              </nav>
             </div>
           )}
         </>

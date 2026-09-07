@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { formatDisplayDateTime } from "@/lib/date";
 import { SyncHistoryModal } from "@/components/leadSources/SyncHistoryModal";
 import { WebhookLogModal } from "@/components/leadSources/WebhookLogModal";
@@ -29,8 +29,27 @@ export function LeadSourcesPanel() {
     dispatch(fetchLeadSources());
   }, [dispatch]);
 
-  if (status === "loading" && sources.length === 0) {
-    return <LoadingState label="Loading lead sources…" />;
+  if ((status === "idle" || status === "loading") && sources.length === 0) {
+    return (
+      <div className="flex flex-col gap-3">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <Card key={i} className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1.5">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+              <Skeleton className="h-5 w-20 rounded-full" />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Skeleton className="h-8 w-32 rounded" />
+              <Skeleton className="h-8 w-32 rounded" />
+              <Skeleton className="h-8 w-28 rounded" />
+            </div>
+          </Card>
+        ))}
+      </div>
+    );
   }
 
   if (status === "failed") {

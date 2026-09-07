@@ -6,7 +6,7 @@ import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Body } from "@/components/ui/Typography";
 import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
@@ -74,8 +74,24 @@ export function OrganizationSettingsPanel() {
     }
   }
 
-  if (status === "loading" && !organization) {
-    return <LoadingState label="Loading organization…" />;
+  if ((status === "idle" || status === "loading") && !organization) {
+    // "idle" (the pre-fetch initial render) needs the skeleton too — see
+    // DashboardPanel's identical fix for why "loading" alone left a gap.
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex flex-col gap-1.5">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-10 w-full rounded" />
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end border-t border-border pt-4">
+          <Skeleton className="h-10 w-[170px] rounded" />
+        </div>
+      </div>
+    );
   }
 
   if (status === "failed" || !organization) {

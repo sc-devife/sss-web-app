@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import type { Organization } from "@/lib/organization";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -40,8 +40,23 @@ export function InvoiceTemplatesPanel({ organization }: { organization: Organiza
     }
   }
 
-  if (status === "loading" && templates.length === 0) {
-    return <LoadingState label="Loading templates…" />;
+  if ((status === "idle" || status === "loading") && templates.length === 0) {
+    return (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Card key={i} className="flex flex-col gap-3">
+            <Skeleton className="h-24 rounded" />
+            <div className="flex flex-col gap-1.5">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-3 w-44" />
+            </div>
+            <div className="flex items-center justify-end">
+              <Skeleton className="h-8 w-28 rounded" />
+            </div>
+          </Card>
+        ))}
+      </div>
+    );
   }
 
   if (status === "failed") {

@@ -5,7 +5,6 @@ import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Body } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
 import type { WebhookEvent } from "@/lib/leadSources";
 import { formatDisplayDateTime } from "@/lib/date";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -42,12 +41,16 @@ export function WebhookLogModal({ channelCode, onClose }: { channelCode: string;
 
   return (
     <Modal open onClose={onClose} title="Webhook Delivery Log" className="max-w-3xl">
-      {status === "loading" && !page ? (
-        <LoadingState />
-      ) : status === "failed" ? (
+      {status === "failed" ? (
         <Body className="text-danger">{error}</Body>
       ) : (
-        <DataTable columns={columns} rows={events} rowKey={(e) => String(e.seqp)} emptyMessage="No webhook deliveries yet." />
+        <DataTable
+          columns={columns}
+          rows={events}
+          rowKey={(e) => String(e.seqp)}
+          emptyMessage="No webhook deliveries yet."
+          loading={status !== "succeeded" && !page}
+        />
       )}
     </Modal>
   );
