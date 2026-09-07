@@ -7,6 +7,7 @@ import { TextInput } from "@/components/ui/TextInput";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
+import { QuotationPreviewModal } from "@/components/quotation/QuotationPreviewModal";
 import { Body, Caption } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import type { Deal } from "@/lib/deals";
@@ -56,6 +57,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
   const [showCancelForm, setShowCancelForm] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelError, setCancelError] = useState<string | undefined>();
+  const [showInvoicePreview, setShowInvoicePreview] = useState(false);
 
   const isCancelled = deal.status === "cancelled";
 
@@ -175,9 +177,9 @@ export function DealPanel({ deal }: { deal: Deal }) {
       <div className="flex items-center justify-between">
         <Caption>Deal &amp; payment milestones</Caption>
         <div className="flex items-center gap-3">
-          <a href={`/deals/${deal.uid}/invoice-preview`} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline">
-            Invoice preview
-          </a>
+          <Button size="sm" variant="secondary" onClick={() => setShowInvoicePreview(true)}>
+            Preview Invoice
+          </Button>
           {!isCancelled && !showCancelForm && (
             <button type="button" onClick={() => setShowCancelForm(true)} disabled={busy} className="text-sm text-danger hover:underline">
               Cancel deal
@@ -348,6 +350,17 @@ export function DealPanel({ deal }: { deal: Deal }) {
             {busy ? "Saving…" : "Save milestone"}
           </Button>
         </form>
+      )}
+
+      {showInvoicePreview && (
+        <QuotationPreviewModal
+          open
+          onClose={() => setShowInvoicePreview(false)}
+          title="Invoice Preview"
+          src={`/api/escapes/${deal.escapeUid}/invoice-preview`}
+          documentLabel="invoice"
+          canSendEmail
+        />
       )}
     </Card>
   );

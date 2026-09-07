@@ -7,6 +7,7 @@ export interface ServiceProviderPayload {
   typeCode: string;
   contactInfo: string;
   countryCode: string;
+  escapePointId: string | null;
   status: string;
 }
 

@@ -27,3 +27,8 @@ export interface UpdateHotelPayload {
   uid: string;
   payload: Partial<HotelPayload>;
 }
+
+export interface SetHotelPriorityImagePayload {
+  uid: string;
+  imageUrl: string;
+}

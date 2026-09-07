@@ -21,6 +21,10 @@ export interface CreateLeadPayload {
   agencyDetails?: LeadAgencyDetails | null;
 }
 
+export interface UpdateLeadPayload extends CreateLeadPayload {
+  leadUid: string;
+}
+
 export type LeadReasonAction = "disqualify" | "mark-lost" | "mark-duplicate";
 
 export interface LeadReasonActionPayload {

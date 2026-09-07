@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { toast } from "react-toastify";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { LoadingState } from "@/components/ui/Spinner";
@@ -43,11 +44,24 @@ export function QuotationPreviewModal({
   onClose,
   title,
   src,
+  documentLabel = "quotation",
+  canSendEmail = false,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   src: string;
+  // Drives the loading/error copy below ("Preparing your {documentLabel}
+  // preview…", etc.) — defaults to "quotation" so the two existing call
+  // sites (QuotesPanel, QuotationTemplatesPanel) are unaffected; the Invoice
+  // call site passes "invoice" for its own correct wording.
+  documentLabel?: string;
+  // Shows the "Send Email" button — only meaningful for a real Escape's
+  // quotation/invoice (which has a lead + travellers to send to), not the
+  // Settings "preview with sample data" call site (QuotationTemplatesPanel),
+  // which has no escape and therefore no recipients. Defaults to off so that
+  // call site is unaffected.
+  canSendEmail?: boolean;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [status, setStatus] = useState<Status>("loading");
@@ -55,6 +69,7 @@ export function QuotationPreviewModal({
   const [fetchError, setFetchError] = useState<string | undefined>();
   const [downloadError, setDownloadError] = useState<string | undefined>();
   const [downloading, setDownloading] = useState(false);
+  const [sending, setSending] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -68,7 +83,7 @@ export function QuotationPreviewModal({
     (async () => {
       try {
         const res = await fetch(src, { signal: controller.signal });
-        if (!res.ok) throw new Error(`Failed to load quotation (${res.status})`);
+        if (!res.ok) throw new Error(`Failed to load ${documentLabel} (${res.status})`);
         const text = await res.text();
         setHtml(text);
         setStatus("success");
@@ -77,7 +92,7 @@ export function QuotationPreviewModal({
         // request — not a real failure, and the component may already be
         // unmounted, so don't touch state.
         if (controller.signal.aborted) return;
-        setFetchError(err instanceof Error ? err.message : "Failed to load the quotation preview");
+        setFetchError(err instanceof Error ? err.message : `Failed to load the ${documentLabel} preview`);
         setStatus("error");
       }
     })();
@@ -111,7 +126,7 @@ export function QuotationPreviewModal({
       link.remove();
       URL.revokeObjectURL(objectUrl);
     } catch (err) {
-      setDownloadError(err instanceof Error ? err.message : "Failed to download the quotation PDF");
+      setDownloadError(err instanceof Error ? err.message : `Failed to download the ${documentLabel} PDF`);
     } finally {
       setDownloading(false);
     }
@@ -121,13 +136,43 @@ export function QuotationPreviewModal({
     setAttempt((a) => a + 1);
   }
 
+  // Emails the SAME watermarked PDF handleDownload above would download —
+  // the backend re-renders from the same escape data rather than reusing
+  // whatever's already in the iframe, so the attachment always matches
+  // exactly what's on screen. Same "/send-email" sibling-endpoint pattern as
+  // "/pdf": inserted before any query string so an optional `?templateUid=`
+  // still applies.
+  async function handleSendEmail() {
+    setSending(true);
+    try {
+      const [path, query] = src.split("?");
+      const sendEmailUrl = `${path}/send-email${query ? `?${query}` : ""}`;
+      const res = await fetch(sendEmailUrl, { method: "POST" });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(body?.message ?? `Failed to send the ${documentLabel} email (${res.status})`);
+      }
+      const recipients: string[] = Array.isArray(body?.recipients) ? body.recipients : [];
+      const label = documentLabel.charAt(0).toUpperCase() + documentLabel.slice(1);
+      toast.success(
+        recipients.length > 0
+          ? `${label} emailed to ${recipients.length} recipient${recipients.length === 1 ? "" : "s"}.`
+          : `${label} emailed successfully.`,
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : `Failed to send the ${documentLabel} email`);
+    } finally {
+      setSending(false);
+    }
+  }
+
   return (
-    <Modal open={open} onClose={onClose} title={title} className="w-[80vw] !max-w-[1400px]">
+    <Modal open={open} onClose={onClose} title={title} className="w-[900px] max-w-[calc(100vw-2rem)]">
       <div className="flex flex-col gap-3">
         <div className="h-[60vh] w-full overflow-hidden rounded border border-border bg-white">
           {status === "loading" && (
             <div className="flex h-full items-center justify-center">
-              <LoadingState label="Preparing your quotation preview…" />
+              <LoadingState label={`Preparing your ${documentLabel} preview…`} />
             </div>
           )}
           {status === "error" && (
@@ -151,9 +196,21 @@ export function QuotationPreviewModal({
         {downloadError && <p className="text-sm text-danger">{downloadError}</p>}
         <div className="flex justify-end gap-2 border-t border-border pt-3">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          {canSendEmail && (
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={status !== "success" || sending || downloading}
+              loading={sending}
+              loadingText="Sending…"
+              onClick={handleSendEmail}
+            >
+              Send Email
+            </Button>
+          )}
           <Button
             type="button"
-            disabled={status !== "success" || downloading}
+            disabled={status !== "success" || downloading || sending}
             loading={downloading}
             loadingText="Generating PDF…"
             onClick={handleDownload}

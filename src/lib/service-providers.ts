@@ -7,6 +7,7 @@ export interface ServiceProvider {
   typeCode: string;
   contactInfo: string | null;
   countryCode: string | null;
+  escapePoint: { uid: string; name: string } | null;
   status: string | null;
   countryLabel: string;
 }

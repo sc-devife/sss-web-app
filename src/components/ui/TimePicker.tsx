@@ -17,7 +17,10 @@ interface Pending {
   period: Period | null;
 }
 
-const EMPTY_PENDING: Pending = { hour: null, minute: null, period: null };
+// Minute defaults to 00 (not null) — Hour and Period are the only two
+// columns the user must actively pick; leaving Minute untouched commits as
+// :00 once both of those are set, rather than blocking the auto-commit.
+const EMPTY_PENDING: Pending = { hour: null, minute: 0, period: null };
 
 // Reads the "HH:mm" (24-hour) value shape a native `<input type="time">`
 // already used across these forms into 12-hour column state.
@@ -96,6 +99,9 @@ export function TimePicker({
   function pick(patch: Partial<Pending>) {
     const next = { ...pending, ...patch };
     setPending(next);
+    // Minute is pre-filled with 00 (see EMPTY_PENDING) so it's never the
+    // blocker here — Hour + Period alone are enough to auto-commit, letting
+    // an untouched Minute column default to :00 per the required behavior.
     if (next.hour != null && next.minute != null && next.period != null) {
       onChange(toValue(next));
       setOpen(false);

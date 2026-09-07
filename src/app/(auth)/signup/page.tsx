@@ -89,7 +89,7 @@ function SignupForm() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <div className="w-full">
-        <label className="mb-1.5 block text-[14px] text-[#171717]">Email</label>
+        <label className="mb-1 block text-[14px] text-[#171717]">Email</label>
         <div className="relative">
           <IoMailOutline
             aria-hidden="true"
@@ -101,36 +101,36 @@ function SignupForm() {
 
       <div className="grid grid-cols-2 gap-3">
         <div className="w-full">
-          <label htmlFor="firstName" className="mb-1.5 block text-[14px] text-[#171717]">First name</label>
+          <label htmlFor="firstName" className="mb-1 block text-[14px] text-[#171717]">First name</label>
           <div className={fieldClass(!!errors.firstName)}>
             <IoPersonOutline aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[20px] text-[#c8c8c8]" />
             <input id="firstName" name="firstName" value={firstName}
               onChange={(e) => { setFirstName(e.target.value); setErrors((p) => ({ ...p, firstName: "" })); }}
               disabled={loading} placeholder="First name" className={inputClass} />
           </div>
-          {errors.firstName && <Body className="mt-1 text-sm text-red-500">{errors.firstName}</Body>}
+          {errors.firstName && <Body className="text-sm text-red-500">{errors.firstName}</Body>}
         </div>
         <div className="w-full">
-          <label htmlFor="lastName" className="mb-1.5 block text-[14px] text-[#171717]">Last name</label>
+          <label htmlFor="lastName" className="mb-1 block text-[14px] text-[#171717]">Last name</label>
           <div className={fieldClass(!!errors.lastName)}>
             <IoPersonOutline aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[20px] text-[#c8c8c8]" />
             <input id="lastName" name="lastName" value={lastName}
               onChange={(e) => { setLastName(e.target.value); setErrors((p) => ({ ...p, lastName: "" })); }}
               disabled={loading} placeholder="Last name" className={inputClass} />
           </div>
-          {errors.lastName && <Body className="mt-1 text-sm text-red-500">{errors.lastName}</Body>}
+          {errors.lastName && <Body className="text-sm text-red-500">{errors.lastName}</Body>}
         </div>
       </div>
 
       <div className="w-full">
-        <label htmlFor="userId" className="mb-1.5 block text-[14px] text-[#171717]">User ID</label>
+        <label htmlFor="userId" className="mb-1 block text-[14px] text-[#171717]">User ID</label>
         <div className={fieldClass(!!errors.userId)}>
           <IoPersonOutline aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[20px] text-[#c8c8c8]" />
           <input id="userId" name="userId" value={userId}
             onChange={(e) => { setUserId(e.target.value); setErrors((p) => ({ ...p, userId: "" })); }}
             disabled={loading} placeholder="Choose a user ID" className={inputClass} />
         </div>
-        {errors.userId && <Body className="mt-1 text-sm text-red-500">{errors.userId}</Body>}
+        {errors.userId && <Body className="text-sm text-red-500">{errors.userId}</Body>}
       </div>
 
       <div className="w-full">
@@ -141,13 +141,17 @@ function SignupForm() {
           disabled={loading}
           defaultCountry="IN"
           inputClassName="signup-phone-input"
-          labelClassName="mb-1.5 block text-[14px] text-[#171717]"
+          // No mb-1.5 here (unlike every other field's label on this page) —
+          // PhoneInput's own wrapper already applies gap-1.5 between the
+          // label and the field, so adding mb-1.5 too doubled the gap to
+          // 12px instead of the 6px every other field on this page uses.
+          labelClassName="block text-[14px] text-[#171717]"
         />
-        {errors.mobileNumber && <Body className="mt-1 text-sm text-red-500">{errors.mobileNumber}</Body>}
+        {errors.mobileNumber && <Body className="mt text-sm text-red-500">{errors.mobileNumber}</Body>}
       </div>
 
       <div className="w-full">
-        <label htmlFor="password" className="mb-1.5 block text-[14px] text-[#171717]">Password</label>
+        <label htmlFor="password" className="mb-1 block text-[14px] text-[#171717]">Password</label>
         <div className={fieldClass(!!errors.password)}>
           <IoLockClosedOutline aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[20px] text-[#c8c8c8]" />
           <input id="password" name="password" type={showPassword ? "text" : "password"} value={password}
@@ -161,14 +165,14 @@ function SignupForm() {
           </button>
         </div>
         {errors.password ? (
-          <Body className="mt-1 text-sm text-red-500">{errors.password}</Body>
+          <Body className=" text-sm text-red-500">{errors.password}</Body>
         ) : (
           <Body className="mt-1 text-xs text-[#6f6f6f]">At least 8 characters, with upper, lower, a number, and one of . @ $ ! % * # ? &amp;</Body>
         )}
       </div>
 
       <div className="w-full">
-        <label htmlFor="confirmPassword" className="mb-1.5 block text-[14px] text-[#171717]">Confirm password</label>
+        <label htmlFor="confirmPassword" className="mb-1 block text-[14px] text-[#171717]">Confirm password</label>
         <div className={fieldClass(!!errors.confirmPassword)}>
           <IoLockClosedOutline aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[20px] text-[#c8c8c8]" />
           <input id="confirmPassword" name="confirmPassword" type={showConfirmPassword ? "text" : "password"} value={confirmPassword}
@@ -181,13 +185,13 @@ function SignupForm() {
             {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
           </button>
         </div>
-        {errors.confirmPassword && <Body className="mt-1 text-sm text-red-500">{errors.confirmPassword}</Body>}
+        {errors.confirmPassword && <Body className="text-sm text-red-500">{errors.confirmPassword}</Body>}
       </div>
 
       {formError && <Body className="text-sm text-red-500 text-center">{formError}</Body>}
 
       <Button type="submit" disabled={loading}
-        className="mt-1 h-11 rounded-[8px] bg-[#c8ff32] text-[16px] font-bold text-black transition hover:bg-[#bafa20]">
+        className="mt-3 h-11 rounded-[8px] bg-[#c8ff32] text-[16px] font-bold text-black transition hover:bg-[#bafa20]">
         {loading ? "Creating account…" : "Create account"}
       </Button>
     </form>
@@ -208,7 +212,7 @@ export default function SignupPage() {
           <Suspense>
             <SignupForm />
           </Suspense>
-          <div className="mt-5 text-center">
+          <div className="mt-2 text-center">
             <Link href="/login" className="text-[16px] text-[#6f6f6f] transition hover:text-black hover:underline">
               Already have an account? Sign in
             </Link>

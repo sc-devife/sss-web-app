@@ -16,6 +16,10 @@ export interface EscapePoint {
   name: string;
   description: string | null;
   images: string[] | null;
+  // The manually-chosen main image — used wherever a single representative
+  // image is needed instead of assuming images[0]. Null only when there are
+  // no images at all.
+  priorityImage: string | null;
   status: string | null;
   currency: string | null;
   time_zone: string | null;
@@ -32,4 +36,8 @@ export interface EscapePoint {
 
 export async function getEscapePoints(): Promise<EscapePoint[]> {
   return backendJson<EscapePoint[]>("/library/escapepoints/all");
+}
+
+export async function getEscapePointByUid(uid: string): Promise<EscapePoint> {
+  return backendJson<EscapePoint>(`/library/escapepoints/${uid}`);
 }

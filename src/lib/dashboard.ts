@@ -1,5 +1,4 @@
 import { backendJson } from "@/lib/backend";
-import type { Escape } from "@/lib/escapes";
 import type { PaymentMilestone } from "@/lib/payment-milestones";
 
 export interface StatusCount {
@@ -52,11 +51,24 @@ export interface DashboardOrgMetrics {
   quoteAnalytics: QuoteAnalytics;
 }
 
+// Deliberately not the full Escape type — the backend sends a lightweight
+// card shape (a single resolved cover image, not every image on every
+// linked escape point) since this is a small dashboard summary, not the
+// full escape detail. See DashboardEscapeSummaryDTO.
+export interface DashboardEscapeSummary {
+  uid: string;
+  leadName: string | null;
+  escapePointNames: string[];
+  status: string;
+  imageUrl: string | null;
+}
+
 // Leads have no per-user assignee (assignment happens once, on the Escape,
 // at conversion time), so there is no "myOpenLeads" here.
 export interface Dashboard {
   orgMetrics: DashboardOrgMetrics | null;
-  myOpenEscapes: Escape[];
+  // The 3 most recently created, newest first — see DashboardServiceImpl.
+  myOpenEscapes: DashboardEscapeSummary[];
   myUpcomingPaymentMilestones: PaymentMilestone[];
 }
 

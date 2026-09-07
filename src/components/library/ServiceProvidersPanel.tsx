@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
+import { ToolbarSelect } from "@/components/ui/ToolbarSelect";
 import { Modal } from "@/components/ui/Modal";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
@@ -12,6 +13,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Body } from "@/components/ui/Typography";
 import { LoadingState } from "@/components/ui/Spinner";
 import type { ServiceProvider } from "@/lib/service-providers";
+import type { EscapePoint } from "@/lib/escape-points";
 import type { ReferenceOption } from "@/lib/reference-data";
 import { fetchCountryOptions } from "@/lib/reference-data-client";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
@@ -39,11 +41,14 @@ const TYPE_OPTIONS = [
   { value: "other", label: "Other" },
 ];
 
+const TYPE_FILTER_OPTIONS = [{ value: "", label: "Default" }, ...TYPE_OPTIONS];
+
 const emptyForm = {
   name: "",
   typeCode: "transport",
   contactInfo: "",
   countryCode: "",
+  escapePointId: "",
   status: "active",
 };
 
@@ -56,7 +61,11 @@ function validate(v: FormState): Record<string, string> {
   return errors;
 }
 
-export function ServiceProvidersPanel() {
+export function ServiceProvidersPanel({
+  escapePoints,
+}: {
+  escapePoints: EscapePoint[];
+}) {
   const dispatch = useAppDispatch();
   const providers = useAppSelector(selectServiceProviders);
   const status = useAppSelector(selectServiceProvidersStatus);
@@ -72,6 +81,8 @@ export function ServiceProvidersPanel() {
   const [formError, setFormError] = useState<string | undefined>();
   const [deletingUid, setDeletingUid] = useState<string | null>(null);
   const [countryOptions, setCountryOptions] = useState<ReferenceOption[]>([]);
+  const [escapePointFilter, setEscapePointFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
 
   useEffect(() => {
     dispatch(fetchServiceProviders());
@@ -80,6 +91,21 @@ export function ServiceProvidersPanel() {
   useEffect(() => {
     fetchCountryOptions().then(setCountryOptions);
   }, []);
+
+  const escapePointOptions = useMemo(
+    () => [{ value: "", label: "Default" }, ...escapePoints.map((ep) => ({ value: ep.uid, label: ep.name }))],
+    [escapePoints],
+  );
+
+  // Stays client-side, same as DataTable's own search/pagination — the full
+  // list is already fetched up front, no backend change needed.
+  const visibleProviders = useMemo(() => {
+    return providers.filter((p) => {
+      if (escapePointFilter && p.escapePoint?.uid !== escapePointFilter) return false;
+      if (typeFilter && p.typeCode !== typeFilter) return false;
+      return true;
+    });
+  }, [providers, escapePointFilter, typeFilter]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -100,6 +126,7 @@ export function ServiceProvidersPanel() {
       typeCode: provider.typeCode,
       contactInfo: provider.contactInfo ?? "",
       countryCode: provider.countryCode ?? "",
+      escapePointId: provider.escapePoint?.uid ?? "",
       status: provider.status ?? "active",
     };
     setEditing(provider);
@@ -125,10 +152,11 @@ export function ServiceProvidersPanel() {
     setErrors({});
     setSaving(true);
     try {
+      const payload = { ...form, escapePointId: form.escapePointId || null };
       if (editing) {
-        await dispatch(updateServiceProvider({ uid: editing.uid, payload: form })).unwrap();
+        await dispatch(updateServiceProvider({ uid: editing.uid, payload })).unwrap();
       } else {
-        await dispatch(createServiceProvider(form)).unwrap();
+        await dispatch(createServiceProvider(payload)).unwrap();
       }
       dispatch(fetchServiceProviders());
       setModalOpen(false);
@@ -150,6 +178,12 @@ export function ServiceProvidersPanel() {
   }
 
   const columns: DataTableColumn<ServiceProvider>[] = [
+    {
+      key: "escapePoint",
+      header: "Escape Point",
+      render: (p) => p.escapePoint?.name ?? "—",
+      filterValue: (p) => p.escapePoint?.name ?? "",
+    },
     {
       key: "name",
       header: "Name",
@@ -200,7 +234,7 @@ export function ServiceProvidersPanel() {
       ) : (
         <DataTable
           columns={columns}
-          rows={providers}
+          rows={visibleProviders}
           rowKey={(p) => p.uid}
           searchPlaceholder="Search service providers…"
           emptyMessage="No service providers yet — add your first one."
@@ -210,6 +244,20 @@ export function ServiceProvidersPanel() {
             { key: "edit", label: "Edit", onSelect: () => openEdit(p) },
             { key: "archive", label: "Archive", tone: "danger", disabled: deletingUid === p.uid, onSelect: () => handleDelete(p) },
           ]}
+          toolbarExtra={
+            <div className="flex items-center gap-2">
+              <ToolbarSelect
+                label="Escape Point"
+                options={escapePointOptions}
+                value={escapePointFilter}
+                onChange={setEscapePointFilter}
+                placeholder="Default"
+                searchable
+                searchPlaceholder="Search Escape Point…"
+              />
+              <ToolbarSelect label="Type" options={TYPE_FILTER_OPTIONS} value={typeFilter} onChange={setTypeFilter} placeholder="Default" />
+            </div>
+          }
         />
       )}
 
@@ -234,7 +282,16 @@ export function ServiceProvidersPanel() {
               required
             />
 
-            <Select label="Type" options={TYPE_OPTIONS} value={form.typeCode} onChange={(e) => update("typeCode", e.target.value)} />
+            <Select label="Type" options={TYPE_OPTIONS} value={form.typeCode} onChange={(e) => update("typeCode", e.target.value)} searchable />
+
+            <Select
+              label="Escape Point"
+              options={escapePoints.map((ep) => ({ value: ep.uid, label: ep.name }))}
+              value={form.escapePointId}
+              onChange={(e) => update("escapePointId", e.target.value)}
+              placeholder={escapePoints.length ? "Select an escape point" : "No escape points added yet"}
+              searchable
+            />
 
             <TextInput label="Contact info" value={form.contactInfo} onChange={(e) => update("contactInfo", e.target.value)} />
 

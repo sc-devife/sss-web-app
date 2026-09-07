@@ -110,7 +110,7 @@ export function EscapeSummaryCard({
   const escapePoint = escape.escapePoints[0];
   const lead = escape.lead;
 
-  const cover = escapePoint?.images?.[0];
+  const cover = escapePoint?.priorityImage ?? escapePoint?.images?.[0];
   const [imageFailed, setImageFailed] = useState(false);
   useEffect(() => {
     setImageFailed(false);

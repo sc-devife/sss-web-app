@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FaChevronLeft, FaLocationDot } from "react-icons/fa6";
 import { CiImageOff } from "react-icons/ci";
-import { PiClockCountdownFill, PiStarFill } from "react-icons/pi";
+import { PiClockCountdownFill, PiStar, PiStarFill } from "react-icons/pi";
 import { TbCalendarX, TbEditFilled } from "react-icons/tb";
 import { BsFillBookmarkXFill, BsBookmarkCheckFill } from "react-icons/bs";
 import type { IconType } from "react-icons";
@@ -13,12 +13,14 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Tabs } from "@/components/ui/Tabs";
+import { Alert } from "@/components/ui/Alert";
 import { Caption } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { LoadingState, Spinner } from "@/components/ui/Spinner";
 import { HotelFormModal, AMENITY_OPTIONS } from "@/components/library/HotelFormModal";
 import { resolveFileUrl } from "@/lib/files";
 import { formatDisplayDate, formatDisplayTime } from "@/lib/date";
 import { clientApi } from "@/lib/axios/clientClient";
+import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import type { Hotel, HotelBooking } from "@/lib/hotels";
 import type { LibraryLocation } from "@/lib/locations";
 import type { EscapePoint } from "@/lib/escape-points";
@@ -26,7 +28,7 @@ import type { MealPlan } from "@/lib/meal-plans";
 import type { RoomType } from "@/lib/room-types";
 import type { Service } from "@/lib/services";
 import { useAppDispatch } from "@/store/hooks";
-import { updateHotel } from "@/features/hotels/hotelsThunks";
+import { updateHotel, setHotelPriorityImage } from "@/features/hotels/hotelsThunks";
 
 function BackToHotels() {
   return (
@@ -144,6 +146,17 @@ export function HotelDetailPanel({
   const [bookings, setBookings] = useState<HotelBooking[] | null>(null);
   const [bookingsLoading, setBookingsLoading] = useState(true);
 
+  // Server-fetched prop is the source of truth after any router.refresh()
+  // (e.g. post-edit); local state additionally lets "Make Priority" update
+  // the page instantly without a refetch.
+  const [current, setCurrent] = useState(hotel);
+  useEffect(() => {
+    setCurrent(hotel);
+  }, [hotel]);
+
+  const [settingPriorityFor, setSettingPriorityFor] = useState<string | null>(null);
+  const [priorityError, setPriorityError] = useState<string | undefined>();
+
   useEffect(() => {
     setNotesDraft(hotel.notes ?? "");
   }, [hotel.notes]);
@@ -167,7 +180,21 @@ export function HotelDetailPanel({
     }
   }
 
-  const images = hotel.images ?? [];
+  const images = current.images ?? [];
+  const cover = current.priorityImage ?? images[0] ?? null;
+
+  async function handleMakePriority(url: string) {
+    setSettingPriorityFor(url);
+    setPriorityError(undefined);
+    try {
+      const updated = await dispatch(setHotelPriorityImage({ uid: current.uid, imageUrl: url })).unwrap();
+      setCurrent(updated);
+    } catch (err) {
+      setPriorityError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to set priority image"));
+    } finally {
+      setSettingPriorityFor(null);
+    }
+  }
 
   return (
     <Card variant="page" className="flex min-h-full flex-col gap-4">
@@ -181,9 +208,9 @@ export function HotelDetailPanel({
 
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl border border-border">
-        {images.length > 0 ? (
+        {cover ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={resolveFileUrl(images[0])} alt={hotel.name} className="h-64 w-full object-cover md:h-80" />
+          <img src={resolveFileUrl(cover)} alt={hotel.name} className="h-64 w-full object-cover md:h-80" />
         ) : (
           <div className="flex h-64 flex-col items-center justify-center gap-3 bg-muted/30 md:h-80">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
@@ -216,7 +243,7 @@ export function HotelDetailPanel({
 
       {images.length > 1 && (
         <div className="flex gap-2 overflow-x-auto">
-          {images.slice(1).map((url) => (
+          {images.filter((url) => url !== cover).map((url) => (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               key={url}
@@ -300,17 +327,54 @@ export function HotelDetailPanel({
 
       {images.length > 1 && (
         <div>
-          <Caption>Gallery</Caption>
+          <div className="flex items-center justify-between">
+            <Caption>Gallery</Caption>
+            <span className="text-xs text-muted-foreground">Hover an image to set it as the priority image</span>
+          </div>
+
+          {priorityError && (
+            <Alert tone="danger" autoClose={false} className="mt-2">
+              {priorityError}
+            </Alert>
+          )}
+
           <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-6">
-            {images.map((url) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={url}
-                src={resolveFileUrl(url)}
-                alt={hotel.name}
-                className="aspect-square w-full rounded-lg border border-border object-cover transition-transform hover:scale-[1.02]"
-              />
-            ))}
+            {images.map((url) => {
+              const isPriority = url === current.priorityImage;
+              const isSettingThis = settingPriorityFor === url;
+              return (
+                <div key={url} className="group relative aspect-square overflow-hidden rounded-lg border border-border">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={resolveFileUrl(url)}
+                    alt={hotel.name}
+                    className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
+                  />
+                  {isPriority ? (
+                    <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground shadow">
+                      <PiStarFill size={11} />
+                      Priority Image
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleMakePriority(url)}
+                      disabled={settingPriorityFor !== null}
+                      className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-black/60 py-1.5 text-[11px] font-medium text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 disabled:cursor-not-allowed"
+                    >
+                      {isSettingThis ? (
+                        <Spinner size="sm" tone="current" />
+                      ) : (
+                        <>
+                          <PiStar size={12} />
+                          Make Priority
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

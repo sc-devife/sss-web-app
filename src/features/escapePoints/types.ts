@@ -23,3 +23,8 @@ export interface UpdateEscapePointLocationsPayload {
   locationUids: string[];
   primaryLocationUid: string | null;
 }
+
+export interface SetEscapePointPriorityImagePayload {
+  uid: string;
+  imageUrl: string;
+}

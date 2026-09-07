@@ -56,7 +56,7 @@ export function MultiSelect({ label, options, value, onChange, error, className 
         role="group"
         aria-labelledby={groupId}
         className={cn(
-          "flex flex-wrap gap-2 rounded border border-border bg-background p-2",
+          "flex max-h-60 flex-wrap content-start gap-2 overflow-y-auto rounded border border-border bg-background p-2",
           error && "border-danger",
         )}
       >

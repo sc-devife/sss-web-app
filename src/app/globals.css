@@ -234,6 +234,7 @@ body {
   font-size: 15px;
   color: #000;
   height: 100%;
+  padding-left: 0.75rem;
 }
 
 .signup-phone-input .PhoneInputInput::placeholder {

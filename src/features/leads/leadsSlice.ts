@@ -3,6 +3,7 @@ import type { Lead, AuditLogEntry } from "@/features/leads/types";
 import {
   fetchLeads,
   createLead,
+  updateLead,
   contactLead,
   qualifyLead,
   toggleLeadPriority,
@@ -95,6 +96,20 @@ const leadsSlice = createSlice({
       .addCase(createLead.rejected, (state, action) => {
         state.createStatus = "failed";
         state.createError = action.payload ?? "Failed to create lead";
+      })
+
+      // Shares createStatus/createError with createLead — the Add/Edit lead
+      // modal is one shared form, never both in flight at once.
+      .addCase(updateLead.pending, (state) => {
+        state.createStatus = "loading";
+        state.createError = null;
+      })
+      .addCase(updateLead.fulfilled, (state) => {
+        state.createStatus = "succeeded";
+      })
+      .addCase(updateLead.rejected, (state, action) => {
+        state.createStatus = "failed";
+        state.createError = action.payload ?? "Failed to update lead";
       })
 
       .addCase(convertLeadToEscape.pending, (state) => {

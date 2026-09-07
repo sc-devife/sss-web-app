@@ -18,6 +18,9 @@ export interface Hotel {
   address: string | null;
   contactInfo: string | null;
   images: string[] | null;
+  // The manually-chosen main image — used wherever a single representative
+  // image is needed instead of assuming images[0].
+  priorityImage: string | null;
   amenities: string[] | null;
   status: string | null;
   notes: string | null;

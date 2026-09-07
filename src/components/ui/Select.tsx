@@ -17,6 +17,10 @@ interface SelectProps
   options: SelectOption[];
   error?: string;
   placeholder?: string;
+  /** Always show the search box, regardless of option count (default:
+   * only above SEARCH_THRESHOLD). Use for fields where every option
+   * matters even in a short list (e.g. escape points, locations). */
+  searchable?: boolean;
 }
 
 // Long lists (country pickers, etc.) get a search box at the top of the
@@ -41,6 +45,7 @@ export function Select({
   id,
   name,
   className,
+  searchable,
 }: SelectProps) {
   const generatedId = useId();
   const selectId = id ?? name ?? generatedId;
@@ -56,7 +61,7 @@ export function Select({
 
   const currentValue = value != null ? String(value) : "";
   const selectedOption = options.find((o) => o.value === currentValue);
-  const showSearch = options.length > SEARCH_THRESHOLD;
+  const showSearch = searchable || options.length > SEARCH_THRESHOLD;
   const filteredOptions = showSearch && search.trim()
     ? options.filter((o) => o.label.toLowerCase().includes(search.trim().toLowerCase()))
     : options;

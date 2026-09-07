@@ -5,6 +5,7 @@ import type {
   Lead,
   AuditLogEntry,
   CreateLeadPayload,
+  UpdateLeadPayload,
   LeadReasonActionPayload,
   SetLeadFollowUpDueDatePayload,
   ConvertLeadToEscapePayload,
@@ -42,6 +43,17 @@ export const createLead = createAsyncThunk<void, CreateLeadPayload, { rejectValu
       await clientApi.post("/leads", payload);
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to create lead"));
+    }
+  },
+);
+
+export const updateLead = createAsyncThunk<void, UpdateLeadPayload, { rejectValue: string }>(
+  "leads/updateLead",
+  async ({ leadUid, ...payload }, { rejectWithValue }) => {
+    try {
+      await clientApi.put(`/leads/${leadUid}`, payload);
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to update lead"));
     }
   },
 );

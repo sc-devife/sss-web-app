@@ -18,7 +18,8 @@ import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Heading, Body, Caption } from "@/components/ui/Typography";
-import { LoadingState } from "@/components/ui/Spinner";
+import { LoadingState, Spinner } from "@/components/ui/Spinner";
+import { cn } from "@/lib/cn";
 import { resolveFileUrl } from "@/lib/files";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
@@ -243,11 +244,14 @@ export function ProfilePanel() {
                 type="button"
                 onClick={() => photoInputRef.current?.click()}
                 disabled={uploadingPhoto}
-                aria-label="Change profile photo"
-                title="Change profile photo"
-                className="absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+                aria-label={uploadingPhoto ? "Uploading profile photo…" : "Change profile photo"}
+                title={uploadingPhoto ? "Uploading…" : "Change profile photo"}
+                className={cn(
+                  "absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors",
+                  uploadingPhoto ? "cursor-not-allowed" : "hover:bg-muted hover:text-foreground",
+                )}
               >
-                <PiCameraFill className="h-3.5 w-3.5" />
+                {uploadingPhoto ? <Spinner size="sm" tone="primary" /> : <PiCameraFill className="h-3.5 w-3.5" />}
               </button>
             </div>
           </div>

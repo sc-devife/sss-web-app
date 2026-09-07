@@ -7,6 +7,7 @@ import { DatePicker } from "@/components/ui/DatePicker";
 import { TimePicker } from "@/components/ui/TimePicker";
 import { Select } from "@/components/ui/Select";
 import { MultiSelect } from "@/components/ui/MultiSelect";
+import { MultiSelectSearch } from "@/components/ui/MultiSelectSearch";
 import { Modal } from "@/components/ui/Modal";
 import { FileUpload } from "@/components/ui/FileUpload";
 import { Alert } from "@/components/ui/Alert";
@@ -332,6 +333,7 @@ export function HotelFormModal({
             value={form.escapePointId}
             onChange={(e) => update("escapePointId", e.target.value)}
             placeholder="Select an escape point"
+            searchable
           />
 
           {!addingLocation ? (
@@ -346,6 +348,7 @@ export function HotelFormModal({
                 }}
                 error={errors.locationId}
                 placeholder="Select a location"
+                searchable
               />
               <button
                 type="button"
@@ -408,22 +411,25 @@ export function HotelFormModal({
             </div>
           )}
 
-          <MultiSelect
+          <MultiSelectSearch
             label="Meal plans"
+            placeholder="Search meal plans…"
             options={mealPlans.map((m) => ({ value: m.uid, label: `${m.code} — ${m.name}` }))}
             value={form.mealPlanIds}
             onChange={(v) => update("mealPlanIds", v)}
           />
 
-          <MultiSelect
+          <MultiSelectSearch
             label="Room types"
+            placeholder="Search room types…"
             options={roomTypes.map((r) => ({ value: r.uid, label: r.name }))}
             value={form.roomTypeIds}
             onChange={(v) => update("roomTypeIds", v)}
           />
 
-          <MultiSelect
+          <MultiSelectSearch
             label="Services"
+            placeholder="Search services…"
             options={serviceOptions.map((s) => ({ value: s.uid, label: s.name }))}
             value={form.serviceIds}
             onChange={(v) => update("serviceIds", v)}

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FaChevronLeft } from "react-icons/fa6";
+import { TbEditFilled } from "react-icons/tb";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { DatePicker } from "@/components/ui/DatePicker";
@@ -15,6 +16,7 @@ import { formatAuditActor, formatAuditChange } from "@/lib/audit";
 import type { Lead } from "@/lib/leads";
 import type { EscapePoint } from "@/lib/escape-points";
 import { ConvertToEscapeModal } from "@/components/leads/ConvertToEscapeModal";
+import { LeadFormModal } from "@/components/leads/LeadFormModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchLeads, contactLead, qualifyLead, toggleLeadPriority, applyLeadReasonAction, setLeadFollowUpDueDate, fetchLeadAuditLog } from "@/features/leads/leadsThunks";
 import { clearAuditLog } from "@/features/leads/leadsSlice";
@@ -65,6 +67,7 @@ export function LeadDetailPanel({
   const [reasonPrompt, setReasonPrompt] = useState<LeadReasonAction | null>(null);
   const [reason, setReason] = useState("");
   const [convertOpen, setConvertOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [followUpDate, setFollowUpDate] = useState(lead.followUpDueDate ?? "");
 
   useEffect(() => {
@@ -131,7 +134,13 @@ export function LeadDetailPanel({
 
   return (
     <Card variant="page" className="flex min-h-full flex-col gap-4">
-      <BackToLeads />
+      <div className="flex items-center justify-between gap-3">
+        <BackToLeads />
+        <Button size="sm" onClick={() => setEditOpen(true)}>
+          <TbEditFilled size={16} />
+          Edit lead
+        </Button>
+      </div>
 
       {/* Header */}
       <div className="rounded-2xl border border-border bg-muted/20 p-5">
@@ -241,7 +250,18 @@ export function LeadDetailPanel({
             <Caption>Follow-up due</Caption>
             <div className="flex gap-2">
               <DatePicker
-                className="max-w-xs"
+                // max-w-xs was a no-op here (the button already shrinks to
+                // its content width below that cap, since this field sits in
+                // a plain flex row, not a grid cell that would stretch it) —
+                // w-60 instead matches the ~231px width the same DatePicker
+                // renders at elsewhere (e.g. "Travel date" in the Add Lead
+                // modal), for consistent sizing across the app's date fields.
+                // !h-8 matches the adjacent Save button's height (size="sm" =
+                // h-8) — DatePicker's own h-10 must be beaten with !important
+                // since `cn` here is plain clsx with no tailwind-merge, so a
+                // later plain h-8 class wouldn't reliably win the cascade
+                // (same reason QuotationPreviewModal uses !max-w-[1400px]).
+                className="w-60 !h-8"
                 value={followUpDate}
                 onChange={setFollowUpDate}
               />
@@ -290,6 +310,18 @@ export function LeadDetailPanel({
       {convertOpen && (
         <ConvertToEscapeModal lead={lead} escapePoints={escapePoints} onClose={() => setConvertOpen(false)} />
       )}
+
+      <LeadFormModal
+        open={editOpen}
+        lead={lead}
+        escapePoints={escapePoints}
+        onClose={() => setEditOpen(false)}
+        onSaved={async () => {
+          setEditOpen(false);
+          await dispatch(fetchLeads());
+          router.refresh();
+        }}
+      />
     </Card>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
+import { ToolbarSelect } from "@/components/ui/ToolbarSelect";
 import { Modal } from "@/components/ui/Modal";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
@@ -24,6 +25,11 @@ import { FaPlus } from "react-icons/fa";
 import { LuImport } from "react-icons/lu";
 import { MODE_OPTIONS, VEHICLE_TYPE_OPTIONS } from "@/lib/transport-modes";
 
+// Every mode the system supports (mirrors ESCAPE_STATUS_ORDER's precedent on
+// the Escapes toolbar) — not just whichever modes happen to appear in
+// today's data, so the filter doesn't silently miss one once a transport
+// using it is added.
+const MODE_FILTER_OPTIONS = [{ value: "", label: "Default" }, ...MODE_OPTIONS];
 
 const emptyForm = {
   modeCode: "",
@@ -71,10 +77,27 @@ export function TransportPanel({
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
   const [deletingUid, setDeletingUid] = useState<string | null>(null);
+  const [escapePointFilter, setEscapePointFilter] = useState("");
+  const [modeFilter, setModeFilter] = useState("");
 
   useEffect(() => {
     dispatch(fetchTransports());
   }, [dispatch]);
+
+  const escapePointOptions = useMemo(
+    () => [{ value: "", label: "Default" }, ...escapePoints.map((ep) => ({ value: ep.uid, label: ep.name }))],
+    [escapePoints],
+  );
+
+  // Stays client-side, same as DataTable's own search/pagination — the full
+  // list is already fetched up front, no backend change needed.
+  const visibleTransports = useMemo(() => {
+    return transports.filter((t) => {
+      if (escapePointFilter && t.escapePoint?.uid !== escapePointFilter) return false;
+      if (modeFilter && t.modeCode !== modeFilter) return false;
+      return true;
+    });
+  }, [transports, escapePointFilter, modeFilter]);
 
   const vehicleTypeOptions = VEHICLE_TYPE_OPTIONS[form.modeCode] ?? [];
 
@@ -165,6 +188,12 @@ export function TransportPanel({
 
   const columns: DataTableColumn<Transport>[] = [
     {
+      key: "escapePoint",
+      header: "Escape Point",
+      render: (t) => t.escapePoint?.name ?? "—",
+      filterValue: (t) => t.escapePoint?.name ?? "",
+    },
+    {
       key: "mode",
       header: "Mode",
       render: (t) => MODE_OPTIONS.find((m) => m.value === t.modeCode)?.label ?? t.modeCode,
@@ -224,7 +253,7 @@ export function TransportPanel({
       ) : (
         <DataTable
           columns={columns}
-          rows={transports}
+          rows={visibleTransports}
           rowKey={(t) => t.uid}
           searchPlaceholder="Search transport…"
           emptyMessage="No transport options yet — add your first one."
@@ -234,6 +263,20 @@ export function TransportPanel({
             { key: "edit", label: "Edit", onSelect: () => openEdit(t) },
             { key: "archive", label: "Archive", tone: "danger", disabled: deletingUid === t.uid, onSelect: () => handleDelete(t) },
           ]}
+          toolbarExtra={
+            <div className="flex items-center gap-2">
+              <ToolbarSelect
+                label="Escape Point"
+                options={escapePointOptions}
+                value={escapePointFilter}
+                onChange={setEscapePointFilter}
+                placeholder="Default"
+                searchable
+                searchPlaceholder="Search Escape Point…"
+              />
+              <ToolbarSelect label="Mode" options={MODE_FILTER_OPTIONS} value={modeFilter} onChange={setModeFilter} placeholder="Default" />
+            </div>
+          }
         />
       )}
 
@@ -257,6 +300,7 @@ export function TransportPanel({
               value={form.escapePointId}
               onChange={(e) => update("escapePointId", e.target.value)}
               placeholder={escapePoints.length ? "Select an escape point" : "No escape points added yet"}
+              searchable
             />
 
             <Select
@@ -301,6 +345,7 @@ export function TransportPanel({
               value={form.providerId}
               onChange={(e) => update("providerId", e.target.value)}
               placeholder={transportProviders.length ? "Select a provider" : "No transport providers yet"}
+              searchable
             />
 
             <TextInput

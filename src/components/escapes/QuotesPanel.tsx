@@ -400,6 +400,7 @@ export function QuotesPanel({
           onClose={() => setShowQuotationPreview(false)}
           title="Quotation preview"
           src={`/api/escapes/${escapeUid}/quotation-preview`}
+          canSendEmail
         />
       )}
     </div>

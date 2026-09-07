@@ -163,6 +163,7 @@ export function ActivityFormModal({
             value={form.escapePointId}
             onChange={(e) => update("escapePointId", e.target.value)}
             placeholder="Select an escape point"
+            searchable
           />
 
           <Select

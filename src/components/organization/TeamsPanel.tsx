@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
-import { MultiSelect } from "@/components/ui/MultiSelect";
+import { MultiSelectSearch } from "@/components/ui/MultiSelectSearch";
 import { Modal } from "@/components/ui/Modal";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -263,8 +263,10 @@ export function TeamsPanel({ escapePoints }: { escapePoints: EscapePoint[] }) {
 
             <TextInput label="Description" value={form.description} onChange={(e) => update("description", e.target.value)} />
 
-            <MultiSelect
+            <MultiSelectSearch
               label="Specializes in (escape points)"
+              helperText="Optional, select one or more"
+              placeholder="Search Escape Point…"
               options={escapePoints.map((ep) => ({ value: String(ep.seqp), label: ep.name }))}
               value={form.specializedEscapePoints}
               onChange={(next) => update("specializedEscapePoints", next)}
@@ -276,6 +278,7 @@ export function TeamsPanel({ escapePoints }: { escapePoints: EscapePoint[] }) {
               value={form.teamLeadUserId}
               onChange={(e) => update("teamLeadUserId", e.target.value)}
               placeholder="No team lead"
+              searchable
             />
 
             <TextInput

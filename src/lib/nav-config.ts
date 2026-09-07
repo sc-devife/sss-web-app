@@ -7,7 +7,6 @@ import {
   PiAirplaneTiltFill,
   PiMapPinFill,
   PiStorefrontFill,
-  PiBedFill,
   PiBooksFill,
   PiBuildingOfficeFill,
   PiUsersThreeFill,
@@ -27,6 +26,7 @@ import {
 } from "react-icons/pi";
 import { TbKayak, TbBusFilled, TbRoute, TbPlug } from "react-icons/tb";
 import { FaBuildingUser } from "react-icons/fa6";
+import { MdHotel } from "react-icons/md";
 
 // Nav is a plain data structure — the sidebar renders from it, and each
 // `path` maps 1:1 onto an `app/(protected)/<path>/page.tsx` route. Adding a
@@ -69,7 +69,7 @@ export const routeGroups: RouteGroup[] = [
     title: "Library",
     icon: PiBooksFill,
     routes: [
-      { path: "/library/hotels", title: "Hotels", icon: PiBedFill },
+      { path: "/library/hotels", title: "Hotels", icon: MdHotel },
       { path: "/library/escape-points", title: "Escape Points", icon: PiMapPinFill },
       { path: "/library/activities", title: "Activities", icon: TbKayak },
       { path: "/library/transport", title: "Transport", icon: TbBusFilled },

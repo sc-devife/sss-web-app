@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 
@@ -10,6 +10,8 @@ export interface RowMenuAction {
   onSelect: () => void;
   tone?: "default" | "danger";
   disabled?: boolean;
+  /** Optional leading icon, e.g. from react-icons — purely decorative (aria-hidden). */
+  icon?: ComponentType<{ className?: string }>;
 }
 
 // Custom right-click menu for DataTable rows — positioned at the cursor,
@@ -116,28 +118,32 @@ export function RowContextMenu({
           {label}
         </div>
       )}
-      {actions.map((action, i) => (
-        <button
-          key={action.key}
-          type="button"
-          role="menuitem"
-          data-index={i}
-          disabled={action.disabled}
-          onClick={() => {
-            action.onSelect();
-            onClose();
-          }}
-          onMouseEnter={() => setActiveIndex(i)}
-          className={cn(
-            "flex w-full items-center px-3 py-2 text-left text-sm outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-            action.tone === "danger"
-              ? "text-danger hover:bg-danger/10 focus:bg-danger/10"
-              : "text-foreground hover:bg-muted focus:bg-muted",
-          )}
-        >
-          {action.label}
-        </button>
-      ))}
+      {actions.map((action, i) => {
+        const Icon = action.icon;
+        return (
+          <button
+            key={action.key}
+            type="button"
+            role="menuitem"
+            data-index={i}
+            disabled={action.disabled}
+            onClick={() => {
+              action.onSelect();
+              onClose();
+            }}
+            onMouseEnter={() => setActiveIndex(i)}
+            className={cn(
+              "flex w-full items-center gap-2 px-3 py-2 text-left text-sm outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+              action.tone === "danger"
+                ? "text-danger hover:bg-danger/10 focus:bg-danger/10"
+                : "text-foreground hover:bg-muted focus:bg-muted",
+            )}
+          >
+            {Icon && <Icon className="h-4 w-4 shrink-0" />}
+            {action.label}
+          </button>
+        );
+      })}
     </div>,
     document.body,
   );

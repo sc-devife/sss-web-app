@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { ToolbarSelect } from "@/components/ui/ToolbarSelect";
 import { Badge } from "@/components/ui/Badge";
 import { BulkImportModal } from "@/components/library/BulkImportModal";
 import { HotelFormModal } from "@/components/library/HotelFormModal";
@@ -45,10 +46,23 @@ export function HotelsPanel({
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [editing, setEditing] = useState<Hotel | null>(null);
   const [deletingUid, setDeletingUid] = useState<string | null>(null);
+  const [escapePointFilter, setEscapePointFilter] = useState("");
 
   useEffect(() => {
     dispatch(fetchHotels());
   }, [dispatch]);
+
+  const escapePointOptions = useMemo(
+    () => [{ value: "", label: "Default" }, ...escapePoints.map((ep) => ({ value: ep.uid, label: ep.name }))],
+    [escapePoints],
+  );
+
+  // Stays client-side, same as DataTable's own search/pagination — the full
+  // list is already fetched up front, no backend change needed.
+  const visibleHotels = useMemo(() => {
+    if (!escapePointFilter) return hotels;
+    return hotels.filter((h) => h.escapePoint?.uid === escapePointFilter);
+  }, [hotels, escapePointFilter]);
 
   function openCreate() {
     setEditing(null);
@@ -145,7 +159,7 @@ export function HotelsPanel({
       ) : (
         <DataTable
           columns={columns}
-          rows={hotels}
+          rows={visibleHotels}
           rowKey={(h) => h.uid}
           searchPlaceholder="Search hotels…"
           emptyMessage="No hotels yet — add your first one."
@@ -155,6 +169,18 @@ export function HotelsPanel({
             { key: "edit", label: "Edit", onSelect: () => openEdit(h) },
             { key: "archive", label: "Archive", tone: "danger", disabled: deletingUid === h.uid, onSelect: () => handleDelete(h) },
           ]}
+          toolbarExtra={
+            <ToolbarSelect
+              label="Escape Point"
+              options={escapePointOptions}
+              value={escapePointFilter}
+              onChange={setEscapePointFilter}
+              placeholder="Default"
+              searchable
+              searchPlaceholder="Search Escape Point…"
+              initialLimit={5}
+            />
+          }
         />
       )}
 

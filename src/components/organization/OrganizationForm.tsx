@@ -229,7 +229,7 @@ export function OrganizationForm({
                   disabled={uploadingLogo}
                   className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground shadow-sm transition-transform hover:scale-105 disabled:opacity-60"
                 >
-                  {uploadingLogo ? <Spinner size="sm" className="text-primary-foreground" /> : <TbCameraUp size={16} aria-hidden="true" />}
+                  {uploadingLogo ? <Spinner size="sm" tone="current" className="text-primary-foreground" /> : <TbCameraUp size={16} aria-hidden="true" />}
                 </button>
               </div>
 

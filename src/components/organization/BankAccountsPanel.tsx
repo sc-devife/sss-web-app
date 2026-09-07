@@ -15,7 +15,7 @@ import type { ReferenceOption } from "@/lib/reference-data-client";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchBankAccounts, createBankAccount, setBankAccountStatus } from "@/features/bankAccounts/bankAccountsThunks";
 import { selectBankAccounts, selectBankAccountsStatus, selectBankAccountsError } from "@/features/bankAccounts/bankAccountsSelectors";
-import { FaMapMarkerAlt, FaPlus, FaUniversity } from "react-icons/fa";
+import { FaEye, FaEyeSlash, FaMapMarkerAlt, FaPlus, FaUniversity } from "react-icons/fa";
 
 const emptyForm = {
   accountName: "",
@@ -85,6 +85,19 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  // Masked by default per account, revealed individually — a set of uids
+  // rather than one shared boolean so revealing one card's number doesn't
+  // reveal every other card too.
+  const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
+
+  function toggleRevealed(uid: string) {
+    setRevealedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(uid)) next.delete(uid);
+      else next.add(uid);
+      return next;
+    });
+  }
 
   const [countryOptions, setCountryOptions] = useState<ReferenceOption[]>([]);
   useEffect(() => {
@@ -213,7 +226,22 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
                   <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground"><span className={isActive ? "size-2 rounded-full bg-success" : "size-2 rounded-full bg-muted-foreground/50"} />{isActive ? "Active" : "Inactive"}</span>
                 </div>
 
-                <div className="rounded-xl border border-border/70 bg-muted/30 p-4"><Caption className="uppercase tracking-wider text-muted-foreground">Account number</Caption><Body className="mt-1 font-mono text-lg font-semibold tracking-widest">{maskAccountNumber(account.accountNumber)}</Body></div>
+                <div className="rounded-xl border border-border/70 bg-muted/30 p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <Caption className="uppercase tracking-wider text-muted-foreground">Account number</Caption>
+                    <button
+                      type="button"
+                      onClick={() => toggleRevealed(account.uid)}
+                      aria-label={revealedIds.has(account.uid) ? "Hide account number" : "Show account number"}
+                      className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {revealedIds.has(account.uid) ? <FaEyeSlash className="size-4" /> : <FaEye className="size-4" />}
+                    </button>
+                  </div>
+                  <Body className="mt-1 font-mono text-lg font-semibold tracking-widest">
+                    {revealedIds.has(account.uid) ? account.accountNumber : maskAccountNumber(account.accountNumber)}
+                  </Body>
+                </div>
                 <div className="grid grid-cols-2 gap-4"><OptionalDetail label="Account holder" value={account.accountName} /><OptionalDetail label="IFSC" value={account.ifsc} /><OptionalDetail label="SWIFT" value={account.swiftCode} /><OptionalDetail label="MICR" value={account.micrCode} /></div>
                 <div className="mt-auto flex items-end justify-between gap-4 border-t border-border/70 pt-4">
                   <div className="flex min-w-0 items-center gap-2 text-muted-foreground"><FaMapMarkerAlt className="size-3.5 shrink-0" /><Caption className="truncate">{account.branchCity}, {account.country} · {account.currency}</Caption></div>

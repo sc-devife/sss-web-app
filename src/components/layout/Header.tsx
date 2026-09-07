@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { findRouteByPath, profileRoute } from "@/lib/nav-config";
 import Link from "next/link";
-import { PiHouseFill, PiBuildingsFill, PiCaretDownFill } from "react-icons/pi";
+import { PiHouseFill, PiBuildingsFill } from "react-icons/pi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { toggleMobile } from "@/features/ui/uiSlice";
 import { selectLoggedInUser } from "@/features/auth/authSelectors";
@@ -20,6 +20,15 @@ function userInitials(user: { firstName?: string; lastName?: string; name: strin
   if (first && last) return `${first[0]}${last[0]}`.toUpperCase();
   if (first) return first[0].toUpperCase();
   return user.name.trim().charAt(0).toUpperCase() || "?";
+}
+
+// "First Last", falling back to the plain `name` field when firstName/
+// lastName haven't hydrated yet (see LoggedInUser's own comment on why).
+function userFullName(user: { firstName?: string; lastName?: string; name: string } | null): string {
+  if (!user) return "";
+  const first = user.firstName?.trim();
+  const last = user.lastName?.trim();
+  return first || last ? [first, last].filter(Boolean).join(" ") : user.name;
 }
 
 // 24px tall regardless of shape, so it sits flush with the org-name text.
@@ -81,24 +90,29 @@ export function Header() {
             <span className="hidden max-w-[8rem] truncate text-sm font-medium text-foreground sm:inline">
               {user.organizationName}
             </span>
-            <PiCaretDownFill className="hidden h-2.5 w-2.5 sm:block" aria-hidden="true" />
           </div>
         )}
         <Link
           href={profileRoute.path}
-          className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-[11px] font-semibold text-primary transition-opacity hover:opacity-80"
+          className="flex items-center gap-2 rounded-lg p-1 transition-opacity hover:opacity-80"
           title="View Profile"
         >
-          {user?.profilePicture ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={resolveFileUrl(user.profilePicture)}
-              alt="Profile"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            userInitials(user)
-          )}
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary/15 text-[11px] font-semibold text-primary">
+            {user?.profilePicture ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={resolveFileUrl(user.profilePicture)}
+                alt="Profile"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              userInitials(user)
+            )}
+          </span>
+          <span className="hidden flex-col leading-tight sm:flex">
+            <span className="max-w-[9rem] truncate text-sm font-medium text-foreground">{userFullName(user)}</span>
+            <span className="max-w-[9rem] truncate text-xs text-muted-foreground">{user?.role}</span>
+          </span>
         </Link>
       </div>
     </header>

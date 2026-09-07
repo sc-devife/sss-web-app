@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { PiUsersThree, PiBriefcase, PiWallet, PiCurrencyCircleDollar, PiClockCountdown, PiAirplaneTiltFill } from "react-icons/pi";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Heading, Body, Caption } from "@/components/ui/Typography";
@@ -25,8 +26,9 @@ import { HorizontalBarChart } from "@/components/dashboard/charts/HorizontalBarC
 import { TrendLineChart } from "@/components/dashboard/charts/TrendLineChart";
 import { PeriodSelector } from "@/components/dashboard/charts/PeriodSelector";
 import { colorForIndex, colorForStatus, humanizeStatus } from "@/components/dashboard/charts/chartColors";
-import type { Escape } from "@/lib/escapes";
+import type { DashboardEscapeSummary } from "@/lib/dashboard";
 import type { PaymentMilestone } from "@/lib/payment-milestones";
+import { HiOutlineTrendingUp } from "react-icons/hi";
 
 // Only a genuine previous-period baseline produces a trend arrow — a zero
 // baseline would force either a hidden division or a fabricated "100%",
@@ -74,21 +76,31 @@ function DashboardSkeleton() {
 function MyEscapes({
   escapes,
 }: {
-  escapes: Escape[];
+  escapes: DashboardEscapeSummary[];
 }) {
   return (
     <div className="flex flex-col gap-2">
       <Card variant="elevated" className="flex flex-col gap-2">
-        <Heading as="h4">My escapes</Heading>
+        <Heading as="h4">Recent Escapes</Heading>
         {escapes.length === 0 && <Body muted>No open escapes assigned to you.</Body>}
         {escapes.map((escape) => (
           <Link key={escape.uid} href={`/escapes/${escape.uid}`}>
-            <Card className="flex items-center justify-between hover:border-primary">
-              <div>
-                <Body className="font-medium">{escape.lead?.name ?? `Escape #${escape.uid}`}</Body>
-                <Caption>{escape.escapePoints.map((d) => d.name).join(", ") || "No escape points set"}</Caption>
+            <Card className="flex items-center gap-3 py-3 hover:border-primary">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary/10 text-primary">
+                {escape.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={escape.imageUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <PiAirplaneTiltFill className="h-5 w-5" />
+                )}
               </div>
-              <Badge tone="neutral">{escape.status}</Badge>
+              <div className="flex flex-1 items-center justify-between gap-2">
+                <div>
+                  <Body className="font-medium">{escape.leadName ?? `Escape #${escape.uid}`}</Body>
+                  <Caption>{escape.escapePointNames.join(", ") || "No escape points set"}</Caption>
+                </div>
+                <Badge tone="neutral">{escape.status}</Badge>
+              </div>
             </Card>
           </Link>
         ))}
@@ -161,19 +173,22 @@ export function DashboardPanel() {
               label="New Leads (30d)"
               value={metrics.leadsInLast30Days}
               trend={trendFor(metrics.leadsInLast30Days, metrics.previousPeriodLeadsCount)}
+              categoryIcon={PiUsersThree}
             />
-            <KpiCard label="Conversion Rate" value={`${metrics.conversionRatePercent.toFixed(1)}%`} />
-            <KpiCard label="Active Escapes" value={metrics.escapesInProgress} />
-            <KpiCard label="Revenue Pipeline" value={formatInrCompact(metrics.revenuePipelineInr)} />
+            <KpiCard label="Conversion Rate" value={`${metrics.conversionRatePercent.toFixed(1)}%`} categoryIcon={HiOutlineTrendingUp} />
+            <KpiCard label="Active Escapes" value={metrics.escapesInProgress} categoryIcon={PiBriefcase} />
+            <KpiCard label="Revenue Pipeline" value={formatInrCompact(metrics.revenuePipelineInr)} categoryIcon={PiWallet} />
             <KpiCard
               label="Revenue Collected"
               value={formatInrCompact(metrics.revenueCollectedInr)}
               trend={trendFor(metrics.revenueCollectedInr, metrics.previousPeriodRevenueCollectedInr)}
+              categoryIcon={PiCurrencyCircleDollar}
             />
             <KpiCard
               label="Overdue Payments"
               value={metrics.overduePaymentsCount}
               icon={metrics.overduePaymentsCount > 0 ? <Badge tone="danger">{formatInrCompact(metrics.overduePaymentsAmountInr)}</Badge> : undefined}
+              categoryIcon={PiClockCountdown}
             />
           </div>
 
@@ -210,11 +225,7 @@ export function DashboardPanel() {
               </div>
             </ChartCard>
 
-            <ChartCard title="Lead Funnel" isEmpty={metrics.leadFunnel.every((s) => s.count === 0)} emptyMessage="No leads yet.">
-              <HorizontalBarChart
-                data={metrics.leadFunnel.map((s, i) => ({ label: s.status, value: s.count, color: colorForStatus(s.status, i) }))}
-              />
-            </ChartCard>
+            <MyEscapes escapes={dashboard.myOpenEscapes} />
           </div>
 
           {/* Row 3: Leads Trend | Lead Source */}
@@ -293,7 +304,11 @@ export function DashboardPanel() {
               </div>
             </ChartCard>
 
-            <MyEscapes escapes={dashboard.myOpenEscapes} />
+            <ChartCard title="Lead Funnel" isEmpty={metrics.leadFunnel.every((s) => s.count === 0)} emptyMessage="No leads yet.">
+              <HorizontalBarChart
+                data={metrics.leadFunnel.map((s, i) => ({ label: s.status, value: s.count, color: colorForStatus(s.status, i) }))}
+              />
+            </ChartCard>
           </div>
 
           <div className="flex flex-col gap-3">

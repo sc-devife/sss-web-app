@@ -31,6 +31,8 @@ interface DataTableProps<T> {
   rowMenuActions?: (row: T) => RowMenuAction[];
   /** Small header line in the context menu identifying which row it applies to. */
   getRowLabel?: (row: T) => string;
+  /** Extra controls (e.g. sort/status filters) rendered alongside the search box. */
+  toolbarExtra?: ReactNode;
 }
 
 const INTERACTIVE_SELECTOR = 'button, a, input, select, textarea, [role="button"], [data-no-row-click]';
@@ -56,6 +58,7 @@ export function DataTable<T>({
   onRowClick,
   rowMenuActions,
   getRowLabel,
+  toolbarExtra,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -114,15 +117,20 @@ export function DataTable<T>({
 
   return (
     <div className="flex flex-col gap-3">
-      {columns.some((c) => c.filterValue) && (
-        <div className="relative max-w-[240px]">
-          <IoSearchOutline className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
-          <input
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder={searchPlaceholder}
-            className="h-7 w-full rounded-full border border-transparent bg-[#f8f8fa] pl-7 pr-3 text-sm text-foreground placeholder:text-[#9da3af] transition-colors focus-visible:border-primary/40 focus-visible:bg-background focus-visible:outline-none"
-          />
+      {(columns.some((c) => c.filterValue) || toolbarExtra) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {columns.some((c) => c.filterValue) && (
+            <div className="relative max-w-[240px] flex-1">
+              <IoSearchOutline className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
+              <input
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                placeholder={searchPlaceholder}
+                className="h-7 w-full rounded-full border border-transparent bg-[#f8f8fa] pl-7 pr-3 text-sm text-foreground placeholder:text-[#9da3af] transition-colors focus-visible:border-primary/40 focus-visible:bg-background focus-visible:outline-none"
+              />
+            </div>
+          )}
+          {toolbarExtra}
         </div>
       )}
 
