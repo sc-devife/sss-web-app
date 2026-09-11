@@ -61,7 +61,7 @@ export function QuotationTemplateFormModal({ onClose, template }: { onClose: () 
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+            className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
           />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -91,9 +91,9 @@ export function QuotationTemplateFormModal({ onClose, template }: { onClose: () 
 
         {error && <p className="text-sm text-danger">{error}</p>}
 
-        <div className="flex gap-2">
-          <Button type="submit" disabled={busy}>{busy ? "Saving…" : isEdit ? "Save changes" : "Add template"}</Button>
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+        <div className="flex gap-3 w-full border-t pt-5">
+          <Button type="button" variant="ghost" onClick={onClose} className="w-full">Cancel</Button>
+          <Button type="submit" disabled={busy} className="w-full">{busy ? "Saving…" : isEdit ? "Save changes" : "Add template"}</Button>
         </div>
       </form>
     </Modal>

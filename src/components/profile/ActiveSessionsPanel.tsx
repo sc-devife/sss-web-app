@@ -13,7 +13,6 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchMySessions, revokeSession, revokeOtherSessions } from "@/features/sessions/sessionsThunks";
 import { selectMySessions, selectMySessionsStatus, selectMySessionsError } from "@/features/sessions/sessionsSelectors";
 import type { UserSessionInfo } from "@/lib/sessions";
-import { LuLogOut } from "react-icons/lu";
 
 // Good-enough device labeling from the raw User-Agent string — no parsing
 // library, just enough to tell "Chrome on Windows" apart from "Safari on
@@ -40,7 +39,7 @@ function SessionRow({ session, onRevoke, revoking }: { session: UserSessionInfo;
   const Icon = isMobile ? PiDeviceMobileFill : PiDesktopFill;
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3">
+    <div className="flex items-center justify-between gap-3 rounded-xl hover:bg-muted/50 border border-border bg-card p-3">
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
           <Icon className="h-4 w-4" />
@@ -64,10 +63,9 @@ function SessionRow({ session, onRevoke, revoking }: { session: UserSessionInfo;
           loading={revoking}
           loadingText="Logging out…"
           onClick={onRevoke}
-          className="shrink-0 text-danger hover:bg-danger/10"
+          className="shrink-0 font-medium text-danger hover:bg-danger/10"
         >
-          <LuLogOut className="h-4 w-4" />
-          Log out
+          Log Out
         </Button>
       )}
     </div>
@@ -117,7 +115,7 @@ export function ActiveSessionsPanel() {
   const otherSessionsCount = sessions.filter((s) => !s.isCurrent).length;
 
   return (
-    <Card variant="elevated" className="mt-6">
+    <Card variant="elevated" className="mt-3">
       <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
         <div>
           <Heading as="h3" className="text-base font-semibold">

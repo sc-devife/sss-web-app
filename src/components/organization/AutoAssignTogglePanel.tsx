@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card } from "@/components/ui/Card";
 import { Body, Caption } from "@/components/ui/Typography";
 import type { Organization } from "@/lib/organization";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
@@ -31,7 +30,7 @@ export function AutoAssignTogglePanel({ organization }: { organization: Organiza
   }
 
   return (
-    <Card className="flex items-center justify-between gap-4">
+    <div className="flex items-center justify-between gap-4 rounded-lg bg-muted/40 p-4">
       <div>
         <Body className="font-medium">Auto-assign new escapes</Body>
         <Caption>
@@ -41,7 +40,7 @@ export function AutoAssignTogglePanel({ organization }: { organization: Organiza
         </Caption>
         {error && <p className="text-sm text-danger">{error}</p>}
       </div>
-      <label className="relative inline-flex cursor-pointer items-center">
+      <label className="relative inline-flex shrink-0 cursor-pointer items-center">
         <input
           type="checkbox"
           className="peer sr-only"
@@ -52,6 +51,6 @@ export function AutoAssignTogglePanel({ organization }: { organization: Organiza
         <div className="h-6 w-11 rounded-full bg-muted peer-checked:bg-primary peer-disabled:opacity-50" />
         <div className="absolute left-1 h-4 w-4 rounded-full bg-background transition-transform peer-checked:translate-x-5" />
       </label>
-    </Card>
+    </div>
   );
 }

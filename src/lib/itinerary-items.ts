@@ -60,6 +60,10 @@ export interface HotelDetail {
   price: number | null;
   totalPrice: number | null;
   inclusions: HotelInclusion[];
+  /** Initialize / Booked / Drop — see lib/hotel-booking-status. */
+  status: string;
+  droppingReason: string | null;
+  cancellationCharge: number | null;
 }
 
 export interface ItineraryItem {
@@ -78,6 +82,10 @@ export interface ItineraryItem {
   sortOrder: number;
   transportDetail: TransportDetail | null;
   hotelDetail: HotelDetail | null;
+  /** Item-level Initialize/Booked/Drop status — currently meaningful for Activity only (Hotel has its own separate status on hotelDetail). */
+  status: string;
+  droppingReason: string | null;
+  cancellationCharge: number | null;
 }
 
 export async function getItemsForItinerary(itineraryUid: string): Promise<ItineraryItem[]> {

@@ -229,15 +229,16 @@ export function DealPanel({ deal }: { deal: Deal }) {
               onChange={(e) => setCancelReason(e.target.value)}
               rows={2}
               disabled={cancellingDeal}
-              className="mt-1 w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+              className="mt-1 w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
             />
           </div>
           {cancelError && <p className="text-sm text-danger">{cancelError}</p>}
-          <div className="flex w-full justify-end gap-2">
+          <div className="flex w-full gap-3 border-t pt-5">
             <Button
               type="button"
               disabled={cancellingDeal}
               onClick={() => { setShowCancelForm(false); setCancelReason(""); setCancelError(undefined); }}
+              className="w-full"
             >
               Keep Deal
             </Button>
@@ -248,6 +249,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
               loading={cancellingDeal}
               loadingText="Cancelling…"
               onClick={handleCancelDeal}
+              className="w-full"
             >
               Cancel Deal
             </Button>

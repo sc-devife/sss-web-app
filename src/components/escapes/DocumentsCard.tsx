@@ -201,7 +201,7 @@ export function DocumentsCard({
                           onClick={() => startEditing(quote.uid, quote.name ?? `Quote ${quote.version}`)}
                           aria-label="Rename quote"
                           title="Rename"
-                          className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                          className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
                         >
                           <PiPencilSimpleFill className="h-3.5 w-3.5" />
                         </button>
@@ -218,7 +218,7 @@ export function DocumentsCard({
                         onClick={() => handleDelete(quote.uid)}
                         aria-label="Delete quote"
                         title="Delete"
-                        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-50"
                       >
                         <PiTrashFill className="h-3.5 w-3.5" />
                       </button>
@@ -255,7 +255,7 @@ export function DocumentsCard({
                   disabled={saving}
                   aria-label="Add quote"
                   title="Add quote"
-                  className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
                 >
                   <PiPlusFill className="h-3.5 w-3.5" />
                 </button>

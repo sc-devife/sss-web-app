@@ -1,12 +1,20 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { toast } from "react-toastify";
 import { findRouteByPath, profileRoute } from "@/lib/nav-config";
 import Link from "next/link";
 import { PiHouseFill, PiBuildingsFill } from "react-icons/pi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { toggleMobile } from "@/features/ui/uiSlice";
 import { selectLoggedInUser } from "@/features/auth/authSelectors";
+import { NotificationBell } from "@/components/layout/NotificationBell";
+import { fetchUnreadCount } from "@/features/notifications/notificationsThunks";
+import { selectJustIncreased, selectSoundEnabled } from "@/features/notifications/notificationsSelectors";
+import { clearJustIncreased } from "@/features/notifications/notificationsSlice";
+import { armAudioUnlock, playNotificationChime } from "@/lib/notificationSound";
+import { useNotificationStream } from "@/lib/notificationStream";
 import { resolveFileUrl } from "@/lib/files";
 import { cn } from "@/lib/cn";
 import { RiMenuUnfoldLine } from "react-icons/ri";
@@ -45,6 +53,40 @@ export function Header() {
   const user = useAppSelector(selectLoggedInUser);
   const shapeClass = LOGO_SHAPE_CLASS[user?.organizationLogoShape ?? "round"] ?? LOGO_SHAPE_CLASS.round;
 
+  const justIncreased = useAppSelector(selectJustIncreased);
+  const soundEnabled = useAppSelector(selectSoundEnabled);
+
+  // One-time baseline load — fetch the current unread count once on mount
+  // (initial page load / refresh) so the badge is correct immediately.
+  // Delivery of *new* notifications after this point is SSE's job
+  // (useNotificationStream below), not a repeated poll: notificationReceived
+  // (notificationsSlice) increments unreadCount itself as each push arrives,
+  // so there's nothing left here to re-fetch on an interval.
+  useEffect(() => {
+    armAudioUnlock();
+    dispatch(fetchUnreadCount());
+  }, [dispatch]);
+
+  // Opens the one live SSE connection for the whole app — mounted here for
+  // the same reason the old poll interval lived here: Header renders once
+  // (unlike Sidebar's SidebarFooter, which mounts twice), so a single
+  // connection per session is guaranteed without extra guarding.
+  useNotificationStream();
+
+  // Fires only when notificationReceived (notificationsSlice) sets
+  // justIncreased — i.e. exactly once per genuinely new SSE-pushed
+  // notification. Never on mount's own baseline fetch, mark-read,
+  // mark-all-read, opening the panel, or a heartbeat, all of which either
+  // don't touch this flag or only ever decrease/seed the count.
+  useEffect(() => {
+    if (!justIncreased) return;
+    toast("You have a new notification.");
+    if (soundEnabled) {
+      playNotificationChime();
+    }
+    dispatch(clearJustIncreased());
+  }, [justIncreased, soundEnabled, dispatch]);
+
   return (
     <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-card px-4 md:px-5">
       <div className="flex items-center gap-3">
@@ -52,7 +94,7 @@ export function Header() {
           type="button"
           onClick={() => dispatch(toggleMobile())}
           aria-label="Open navigation menu"
-          className="flex items-center rounded-lg p-1.5 text-black transition-colors hover:bg-muted md:hidden"
+          className="flex items-center rounded-xl p-1.5 text-black transition-colors hover:bg-muted md:hidden"
           title="Open navigation menu"
         >
           <RiMenuUnfoldLine className="h-5 w-5" />
@@ -60,16 +102,17 @@ export function Header() {
         <Link
           href="/dashboard"
           aria-label="Dashboard"
-          className="-ml-1 flex items-center rounded-lg p-1.5 text-black transition-colors hover:bg-muted"
+          className="-ml-1 flex items-center rounded-xl p-1.5 text-black transition-colors hover:bg-muted"
           title="Dashboard"
         >
-          <PiHouseFill className="h-4 w-4" />
+          <PiHouseFill size={20} />
         </Link>
         <span className="h-3 w-px bg-border/50" aria-hidden="true" />
-        {route?.icon && <route.icon className="h-4 w-4 text-black" />}
-        <h1 className="text-base font-semibold text-foreground">{route?.title ?? "Dashboard"}</h1>
+        {route?.icon && <route.icon size={20} />}
+        <h1 className="text-lg font-semibold text-foreground">{route?.title ?? "Dashboard"}</h1>
       </div>
       <div className="flex items-center gap-2">
+        <NotificationBell variant="header" />
         {user?.organizationName && (
           <div
             className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -94,7 +137,7 @@ export function Header() {
         )}
         <Link
           href={profileRoute.path}
-          className="flex items-center gap-2 rounded-lg p-1 transition-opacity hover:opacity-80"
+          className="flex items-center gap-2 rounded-xl p-1 transition-opacity hover:opacity-80"
           title="View Profile"
         >
           <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary/15 text-[11px] font-semibold text-primary">

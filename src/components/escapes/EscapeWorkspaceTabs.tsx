@@ -19,6 +19,7 @@ import { Body, Caption } from "@/components/ui/Typography";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ItineraryCard } from "@/components/escapes/ItineraryCard";
 import { DealPanel } from "@/components/escapes/DealPanel";
+import { TasksCommentsPanel } from "@/components/followups/TasksCommentsPanel";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { formatDisplayDateTime } from "@/lib/date";
 import { formatAuditActor, formatAuditChange } from "@/lib/audit";
@@ -43,6 +44,7 @@ const TABS = [
   { id: "travellers", label: "Travellers" },
   { id: "planning", label: "Planning" },
   { id: "payments", label: "Payments" },
+  { id: "tasks", label: "Tasks" },
   { id: "history", label: "History" },
 ];
 
@@ -368,12 +370,12 @@ function TravellerCard({
         onClose={() => !deleting && setConfirmingDelete(false)}
         title="Remove traveller"
       >
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col items-center gap-3 text-center">
           <Body>
             Remove <span className="font-medium text-foreground">{name}</span> from this escape? This can&apos;t be undone.
           </Body>
           {deleteError && <p className="text-sm text-danger">{deleteError}</p>}
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-center gap-2">
             <Button type="button" variant="ghost" disabled={deleting} onClick={() => setConfirmingDelete(false)}>
               Cancel
             </Button>
@@ -777,6 +779,10 @@ export function EscapeWorkspaceTabs({
               );
             }
             return <DealPanel deal={deal} />;
+          }
+
+          if (active === "tasks") {
+            return <TasksCommentsPanel escapeUid={escapeUid} />;
           }
 
           // history

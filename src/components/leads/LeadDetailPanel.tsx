@@ -17,6 +17,7 @@ import type { Lead } from "@/lib/leads";
 import type { EscapePoint } from "@/lib/escape-points";
 import { ConvertToEscapeModal } from "@/components/leads/ConvertToEscapeModal";
 import { LeadFormModal } from "@/components/leads/LeadFormModal";
+import { TasksCommentsPanel } from "@/components/followups/TasksCommentsPanel";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchLeads, contactLead, qualifyLead, toggleLeadPriority, applyLeadReasonAction, setLeadFollowUpDueDate, fetchLeadAuditLog } from "@/features/leads/leadsThunks";
 import { clearAuditLog } from "@/features/leads/leadsSlice";
@@ -170,7 +171,15 @@ export function LeadDetailPanel({
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="Email" value={lead.email || "—"} />
         <StatCard label="Phone" value={lead.phone || "—"} />
-        <StatCard label="Escape Point" value={lead.destination || "—"} />
+        <StatCard
+          label="Escape Point"
+          value={
+            lead.escapePointIds
+              .map((id) => escapePoints.find((d) => d.uid === id)?.name)
+              .filter((name): name is string => !!name)
+              .join(", ") || "—"
+          }
+        />
         <StatCard label="Travellers" value={lead.numberOfPeople != null ? String(lead.numberOfPeople) : "—"} />
         <StatCard label="Travel Date" value={formatDisplayDate(lead.travelDate) ?? "—"} />
         <StatCard label="Duration" value={lead.durationNights ? `${lead.durationNights} night${lead.durationNights === 1 ? "" : "s"}` : "—"} />
@@ -230,7 +239,7 @@ export function LeadDetailPanel({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={2}
-                className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
               />
               <div className="flex gap-2">
                 <Button
@@ -316,6 +325,8 @@ export function LeadDetailPanel({
           </div>
         )}
       </div>
+
+      <TasksCommentsPanel leadUid={lead.uid} />
 
       {convertOpen && (
         <ConvertToEscapeModal lead={lead} escapePoints={escapePoints} onClose={() => setConvertOpen(false)} />

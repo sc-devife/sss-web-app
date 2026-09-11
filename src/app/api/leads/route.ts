@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { backendFetch } from "@/lib/backend";
 
-export async function GET() {
-  const res = await backendFetch("/leads");
+// Passes every query param straight through (search/status/from/to/page/
+// size — see LeadController.getAllLeads) rather than picking each one out by
+// name, so the backend stays the single source of truth for which filters
+// exist.
+export async function GET(request: Request) {
+  const qs = new URL(request.url).search;
+  const res = await backendFetch(`/leads${qs}`);
   const body = await res.json().catch(() => null);
   return NextResponse.json(body, { status: res.status });
 }

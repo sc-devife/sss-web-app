@@ -180,9 +180,9 @@ export function ConvertToEscapeModal({
 
         {displayError && <p className="text-sm text-danger">{displayError}</p>}
 
-        <div className="flex gap-2">
-          <Button type="submit" disabled={busy}>{convertStatus === "loading" ? "Converting…" : "Convert to escape"}</Button>
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+        <div className="flex gap-3 w-full border-t pt-5">
+          <Button type="button" variant="ghost" onClick={onClose} className="w-full">Cancel</Button>
+          <Button type="submit" disabled={busy} className="w-full">{convertStatus === "loading" ? "Converting…" : "Convert to escape"}</Button>
         </div>
       </form>
     </Modal>

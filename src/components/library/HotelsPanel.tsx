@@ -94,7 +94,12 @@ export function HotelsPanel({
     {
       key: "stars",
       header: "Stars",
-      render: (h) => (h.stars ? "★".repeat(h.stars) : "—"),
+      // Guards String.repeat's "non-negative integer" requirement, and caps
+      // the count at 5 — bulk import writes `stars` straight through with no
+      // range validation (HotelImportSchema/HotelCreateRequestDTO both accept
+      // any Integer), so a bad value like -2 or 999 has to render as "—" or
+      // a normal 5-star row instead of throwing or blowing out the row.
+      render: (h) => (h.stars && h.stars > 0 ? "★".repeat(Math.min(Math.trunc(h.stars), 5)) : "—"),
       sortValue: (h) => h.stars ?? 0,
     },
     {
@@ -163,6 +168,9 @@ export function HotelsPanel({
           onRowClick={(h) => router.push(`/library/hotels/${h.uid}`)}
           getRowLabel={(h) => h.name}
           loading={status !== "succeeded" && hotels.length === 0}
+          // Sorting a column only reorders the hotels already on the current
+          // page — it never pulls a hotel in from another page.
+          sortWithinPage
           rowMenuActions={(h) => [
             { key: "edit", label: "Edit", onSelect: () => openEdit(h) },
             { key: "archive", label: "Archive", tone: "danger", disabled: deletingUid === h.uid, onSelect: () => handleDelete(h) },
@@ -176,7 +184,6 @@ export function HotelsPanel({
               placeholder="Default"
               searchable
               searchPlaceholder="Search Escape Point…"
-              initialLimit={5}
             />
           }
         />

@@ -6,27 +6,48 @@ import { AgentAssignmentSettingsPanel } from "@/components/organization/AgentAss
 import { getMyOrganization } from "@/lib/organization";
 import { getEscapePoints } from "@/lib/escape-points";
 
+// Three configuration areas, each its own Card so an Admin can scan the page
+// and immediately see "on/off switch", "seasonal calendar", "per-agent
+// settings" as distinct things to manage — rather than one long scroll of
+// border-t-divided sections. Card variant="default" (a plain bordered box)
+// nested inside the page's own Card variant="page", the same
+// page-contains-cards shape src/app/(protected)/administration/settings
+// already uses for its own multi-section layout.
 export default async function Page() {
   const [organization, escapePoints] = await Promise.all([getMyOrganization(), getEscapePoints()]);
 
   return (
-    <Card variant="page" className="flex min-h-full flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <Heading as="h2">Assignment Rules</Heading>
-        <Body muted>Control how new leads get routed to your team: specialist matching, load balancing, capacity caps, and priority-lead handling.</Body>
+    <Card variant="page" className="flex min-h-full flex-col gap-2">
+
+      <Card variant="default" className="flex flex-col gap-4 rounded-xl">
+        <div className="flex flex-col gap-1">
+          <Heading as="h3">Auto-assignment</Heading>
+          <Body muted className="text-sm">
+            Turns automatic routing on or off for the whole organization.
+          </Body>
+        </div>
         <AutoAssignTogglePanel organization={organization} />
-      </div>
+      </Card>
 
-      <div className="flex flex-col gap-2 border-t border-border pt-6">
-        <Heading as="h3">Priority calendar</Heading>
+      <Card variant="default" className="flex flex-col gap-4 rounded-xl">
+        <div className="flex flex-col gap-1">
+          <Heading as="h3">Priority calendar</Heading>
+          <Body muted className="text-sm">
+            Honeymoon and family leads traveling within one of these windows are auto-flagged as priority.
+          </Body>
+        </div>
         <PriorityCalendarPanel />
-      </div>
+      </Card>
 
-      <div className="flex flex-col gap-2 border-t border-border pt-6">
-        <Heading as="h3">Agent settings</Heading>
-        <Body muted>Specialist escape points, capacity caps, priority-lead eligibility, and temporary opt-out per agent.</Body>
+      <Card variant="default" className="flex flex-col gap-4 rounded-xl">
+        <div className="flex flex-col gap-1">
+          <Heading as="h3">Agent settings</Heading>
+          <Body muted className="text-sm">
+            Specialist escape points, capacity caps, priority-lead eligibility, and temporary opt-out — per agent.
+          </Body>
+        </div>
         <AgentAssignmentSettingsPanel escapePoints={escapePoints} />
-      </div>
+      </Card>
     </Card>
   );
 }

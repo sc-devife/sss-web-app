@@ -137,13 +137,13 @@ export function InviteUserForm({ roles }: { roles: AppRole[] }) {
             </Alert>
           )}
 
-          <div className="flex gap-2 pt-2">
-            <Button type="submit" disabled={sending} loading={sending} loadingText="Sending…" className="flex-1">
+          <div className="flex gap-3 w-full border-t pt-5">
+            <Button type="button" variant="ghost" disabled={sending} onClick={() => setOpen(false)} className="w-full">
+              Cancel
+            </Button>
+            <Button type="submit" disabled={sending} loading={sending} loadingText="Sending…" className="w-full">
               <PiCheckCircleFill className="h-4 w-4" />
               Send Invitation
-            </Button>
-            <Button type="button" variant="ghost" disabled={sending} onClick={() => setOpen(false)}>
-              Cancel
             </Button>
           </div>
         </form>

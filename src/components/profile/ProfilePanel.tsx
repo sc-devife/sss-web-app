@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
 import type { IconType } from "react-icons";
 import {
@@ -11,6 +12,7 @@ import {
   PiUser,
   PiPhone,
   PiCameraFill,
+  PiGearSixFill,
 } from "react-icons/pi";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -36,6 +38,110 @@ import {
 } from "@/features/profile/profileSelectors";
 import { selectLoggedInUser } from "@/features/auth/authSelectors";
 import { setLoggedInUser } from "@/features/auth/authSlice";
+import { selectSoundEnabled } from "@/features/notifications/notificationsSelectors";
+import { updateNotificationSoundPreference } from "@/features/notifications/notificationsThunks";
+import { setSoundEnabled } from "@/features/notifications/notificationsSlice";
+
+// Vertical popup opened from the header band's Settings button — same
+// portal/fixed-position/outside-click-close mechanics as every other
+// floating panel in this app (ToolbarSelect, MoreFiltersPopover).
+function ProfileSettingsPopover({ onClose, anchorRef }: { onClose: () => void; anchorRef: React.RefObject<HTMLButtonElement> }) {
+  const dispatch = useAppDispatch();
+  const soundEnabled = useAppSelector(selectSoundEnabled);
+  const [pos, setPos] = useState<{ left: number; top: number }>({ left: 0, top: 0 });
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Optimistic: updateNotificationSoundPreference.fulfilled only updates
+  // Redux after the PATCH round-trips, which left the switch visually
+  // unresponsive for the gap between click and response (and a second click
+  // in that window would silently flip it back) — this flips the toggle
+  // immediately and reverts only if the request actually fails.
+  async function handleToggle() {
+    const next = !soundEnabled;
+    dispatch(setSoundEnabled(next));
+    try {
+      await dispatch(updateNotificationSoundPreference(next)).unwrap();
+    } catch {
+      dispatch(setSoundEnabled(!next));
+      toast.error("Failed to update notification sound preference.");
+    }
+  }
+
+  useLayoutEffect(() => {
+    function position() {
+      const trigger = anchorRef.current;
+      if (!trigger) return;
+      const rect = trigger.getBoundingClientRect();
+      const panelHeight = panelRef.current?.getBoundingClientRect().height ?? 140;
+      let top = rect.bottom + 8;
+      if (top + panelHeight > window.innerHeight - 8) top = Math.max(8, rect.top - panelHeight - 8);
+      const left = Math.min(rect.right - 260, window.innerWidth - 260 - 8);
+      setPos({ left: Math.max(8, left), top });
+    }
+    position();
+    window.addEventListener("resize", position);
+    window.addEventListener("scroll", position, true);
+    return () => {
+      window.removeEventListener("resize", position);
+      window.removeEventListener("scroll", position, true);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    function handlePointerDown(e: MouseEvent) {
+      const target = e.target as Node;
+      if (panelRef.current?.contains(target) || anchorRef.current?.contains(target)) return;
+      onClose();
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("mousedown", handlePointerDown, true);
+    document.addEventListener("keydown", handleKey, true);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown, true);
+      document.removeEventListener("keydown", handleKey, true);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return createPortal(
+    <div
+      ref={panelRef}
+      role="dialog"
+      aria-label="Settings"
+      style={{ position: "fixed", left: pos.left, top: pos.top, width: 260 }}
+      className="z-50 rounded border border-border bg-card p-4 text-card-foreground shadow-xl"
+    >
+      <span className="text-sm font-semibold text-foreground">Settings</span>
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <div>
+          <span className="block text-sm font-medium text-foreground">Notification Sound</span>
+          <span className="block text-xs text-muted-foreground">{soundEnabled ? "ON" : "OFF"}</span>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={soundEnabled}
+          onClick={handleToggle}
+          className={cn(
+            "relative h-6 w-11 shrink-0 overflow-hidden rounded-full transition-colors",
+            soundEnabled ? "bg-primary" : "bg-muted",
+          )}
+        >
+          <span
+            className={cn(
+              "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform",
+              soundEnabled ? "translate-x-5" : "translate-x-0",
+            )}
+          />
+        </button>
+      </div>
+    </div>,
+    document.body,
+  );
+}
 
 type ProfileFormState = { firstName: string; lastName: string; mobileNumber: string; designation: string; signature: string };
 
@@ -80,6 +186,9 @@ export function ProfilePanel() {
   const [original, setOriginal] = useState<ProfileFormState | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | undefined>();
+
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -310,6 +419,20 @@ export function ProfilePanel() {
               ))}
             </div>
           </div>
+
+          <button
+            ref={settingsButtonRef}
+            type="button"
+            onClick={() => setSettingsOpen((o) => !o)}
+            aria-label="Settings"
+            title="Settings"
+            className="flex h-9 w-9 shrink-0 items-center justify-center self-start rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <PiGearSixFill className="h-4 w-4" />
+          </button>
+          {settingsOpen && (
+            <ProfileSettingsPopover onClose={() => setSettingsOpen(false)} anchorRef={settingsButtonRef} />
+          )}
         </div>
 
         {photoError && (

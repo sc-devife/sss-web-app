@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/Select";
 import { MultiSelectSearch } from "@/components/ui/MultiSelectSearch";
 import { Modal } from "@/components/ui/Modal";
 import { countryCodeField, runValidators } from "@/lib/validators";
+import { todayIsoDate } from "@/lib/date";
 import type { Lead } from "@/lib/leads";
 import type { EscapePoint } from "@/lib/escape-points";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -28,7 +29,10 @@ const emptyForm = {
   name: "",
   email: "",
   phone: "",
-  destination: "",
+  // Kept in state (never rendered — the free-text field was removed) purely
+  // so editing a legacy lead round-trips its existing historical value
+  // instead of silently wiping it on save. New leads never populate this.
+  destination: null as string | null,
   escapePointIds: [] as string[],
   numberOfPeople: "",
   travelDate: "",
@@ -52,6 +56,8 @@ function validate(v: FormState): string | undefined {
   if (!v.name.trim()) return "Name is required";
   if (!v.email.trim() && !v.phone.trim()) return "Provide at least an email or phone number";
   if (v.sourceType === "AGENCY" && !v.agencyContactName.trim()) return "Agency contact name is required";
+  if (v.travelDate && v.travelDate < todayIsoDate()) return "Travel date cannot be in the past";
+  if (v.durationNights && Number(v.durationNights) < 0) return "No. of Night cannot be negative";
   return undefined;
 }
 
@@ -89,7 +95,7 @@ export function LeadFormModal({
         name: editing.name,
         email: editing.email,
         phone: editing.phone,
-        destination: editing.destination ?? "",
+        destination: editing.destination ?? null,
         escapePointIds: editing.escapePointIds,
         numberOfPeople: editing.numberOfPeople != null ? String(editing.numberOfPeople) : "",
         travelDate: editing.travelDate ?? "",
@@ -124,7 +130,7 @@ export function LeadFormModal({
   // what stay length a given night count implies, without doing the math.
   const durationNightsNumber = Number(form.durationNights);
   const durationInfoMessage =
-    Number.isInteger(durationNightsNumber) && durationNightsNumber >= 1
+    form.durationNights !== "" && Number.isInteger(durationNightsNumber) && durationNightsNumber >= 0
       ? `Day ${durationNightsNumber + 1} Night ${durationNightsNumber}`
       : "";
 
@@ -147,7 +153,7 @@ export function LeadFormModal({
       name: form.name,
       email: form.email,
       phone: form.phone,
-      destination: form.destination || null,
+      destination: form.destination,
       escapePointIds: form.escapePointIds,
       numberOfPeople: form.numberOfPeople ? Number(form.numberOfPeople) : null,
       travelDate: form.travelDate || null,
@@ -162,19 +168,19 @@ export function LeadFormModal({
       agencyDetails:
         form.sourceType === "AGENCY"
           ? {
-              contactName: form.agencyContactName,
-              contactEmail: form.agencyContactEmail || null,
-              contactPhone: form.agencyContactPhone || null,
-              billingName: form.agencyBillingName || null,
-              city: null,
-              state: null,
-              country: null,
-              pincode: null,
-              streetAddress: null,
-              locality: null,
-              landmark: null,
-              additionalBillingDetails: null,
-            }
+            contactName: form.agencyContactName,
+            contactEmail: form.agencyContactEmail || null,
+            contactPhone: form.agencyContactPhone || null,
+            billingName: form.agencyBillingName || null,
+            city: null,
+            state: null,
+            country: null,
+            pincode: null,
+            streetAddress: null,
+            locality: null,
+            landmark: null,
+            additionalBillingDetails: null,
+          }
           : null,
     };
     try {
@@ -202,30 +208,36 @@ export function LeadFormModal({
               update("phone", v);
               setPhoneError(undefined);
             }}
+            required
             error={phoneError}
           />
         </div>
-        <p className="-mt-2 text-xs text-muted-foreground">Email or phone is required (at least one).</p>
 
-        <TextInput label="Escape Point (free text)" value={form.destination} onChange={(e) => update("destination", e.target.value)} placeholder="e.g. Bali" />
         <MultiSelectSearch
-          label="Escape Point (library)"
-          helperText="Optional, select one or more"
+          label="Escape Point"
+          helperText="Select one or more"
           placeholder="Search Escape Point…"
           options={escapePoints.map((d) => ({ value: d.uid, label: d.name }))}
           value={form.escapePointIds}
           onChange={(next) => update("escapePointIds", next)}
+          required
         />
 
         <div className="grid grid-cols-2 gap-4">
           <TextInput label="Travellers" type="number" min={1} value={form.numberOfPeople} onChange={(e) => update("numberOfPeople", e.target.value)} />
           <div>
-            <TextInput label="No. of Night" type="number" min={1} value={form.durationNights} onChange={(e) => update("durationNights", e.target.value)} />
+            <TextInput
+              label="No. of Night"
+              type="number"
+              min={0}
+              value={form.durationNights}
+              onChange={(e) => update("durationNights", e.target.value.replace(/[^0-9]/g, ""))}
+            />
             {durationInfoMessage ? (
               <p className="mt-1 text-xs text-muted-foreground">{durationInfoMessage}</p>
             ) : null}
           </div>
-          <DatePicker label="Travel date" value={form.travelDate} onChange={(v) => update("travelDate", v)} />
+          <DatePicker label="Travel date" value={form.travelDate} onChange={(v) => update("travelDate", v)} min={todayIsoDate()} />
           <TextInput label="Budget" type="number" min={0} value={form.budget} onChange={(e) => update("budget", e.target.value)} />
           <TextInput label="Origin city" value={form.originCity} onChange={(e) => update("originCity", e.target.value)} placeholder="e.g. Mumbai" />
           <Select
@@ -313,17 +325,22 @@ export function LeadFormModal({
             value={form.notes}
             onChange={(e) => update("notes", e.target.value)}
             rows={2}
-            className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+            className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
           />
         </div>
 
         {(validationError || createError) && <p className="text-sm text-danger">{validationError || createError}</p>}
 
-        <div className="flex gap-2">
-          <Button type="submit" disabled={createStatus === "loading"}>
-            {createStatus === "loading" ? "Saving…" : editing ? "Save changes" : "Save lead"}
+        <div className="flex gap-3 w-full border-t pt-5">
+          <Button type="button" variant="ghost" onClick={onClose} className="w-full">Cancel</Button>
+          <Button
+            type="submit"
+            loading={createStatus === "loading"}
+            loadingText="Saving…"
+            className="w-full"
+          >
+            {editing ? "Save changes" : "Save lead"}
           </Button>
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
         </div>
       </form>
     </Modal>

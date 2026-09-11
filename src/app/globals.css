@@ -135,6 +135,14 @@ body {
   text-decoration: underline;
 }
 
+.prose-editor h2,
+.prose-content h2 {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 /* PhoneInput (react-phone-number-input) — the library ships unstyled inputs
    by design (see style.css comments); this makes the whole widget read as
    one bordered field matching TextInput's h-10/rounded/border-border look,
@@ -200,15 +208,21 @@ body {
   border: 1px solid hsl(var(--border));
   background: hsl(var(--background));
   padding: 0 0.75rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .app-phone-input:focus-within {
-  outline: 2px solid hsl(var(--primary));
-  outline-offset: 1px;
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
 }
 
 .app-phone-input-error {
   border-color: hsl(var(--danger));
+}
+
+.app-phone-input-error:focus-within {
+  border-color: hsl(var(--danger));
+  box-shadow: 0 0 0 2px hsl(var(--danger) / 0.2);
 }
 
 .app-phone-input .PhoneInputInput {
@@ -234,43 +248,70 @@ body {
   opacity: 0.5;
 }
 
-/* Signup page uses a fully custom, non-theme-token visual style (raw hex
-   colors, h-[50px]/rounded-[10px]) distinct from the rest of the app —
-   this re-skins the same PhoneInput component to match it instead of the
-   token-based .app-phone-input look. */
+/* Re-skins the PhoneInput component to match the Signup page's other fields,
+   which (per the Login-page-consistency pass) now reuse the same tokens as
+   src/app/(auth)/login/page.tsx's inputClass — border-border, rounded-xl,
+   bg-background, text-sm/text-foreground, and a focus:border-primary +
+   ring-2 ring-primary/20 focus state — rather than this page's former
+   one-off hex values. Kept as its own class (not the shared
+   .app-phone-input below) only because that one is h-10 while every other
+   field on this page is h-11. */
 .signup-phone-input {
   display: flex;
   align-items: center;
   height: 44px;
   width: 100%;
-  border-radius: 10px;
-  border: 1px solid #c8c8c8;
-  background: transparent;
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
   padding: 0 1rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .signup-phone-input:focus-within {
   border-color: hsl(var(--primary));
-  outline: 1px solid hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+}
+
+.signup-phone-input-error {
+  border-color: hsl(var(--danger));
+}
+
+.signup-phone-input-error:focus-within {
+  border-color: hsl(var(--danger));
+  box-shadow: 0 0 0 2px hsl(var(--danger) / 0.2);
 }
 
 .signup-phone-input .PhoneInputInput {
   border: none;
   background: transparent;
   outline: none;
-  font-size: 15px;
-  color: #000;
+  font-size: 0.875rem;
+  color: hsl(var(--foreground));
   height: 100%;
   padding-left: 0.75rem;
 }
 
 .signup-phone-input .PhoneInputInput::placeholder {
-  color: #aaa;
+  color: hsl(var(--muted-foreground));
 }
 
 .signup-phone-input .PhoneInputCountry {
   padding-right: 0.75rem;
-  border-right: 1px solid #c8c8c8;
+  border-right: 1px solid hsl(var(--border));
+}
+
+/* Recharts renders every chart's <svg> (DonutChart, TrendLineChart,
+   HorizontalBarChart — anything built on PieChart/LineChart/BarChart) with
+   tabindex="0" for keyboard/screen-reader data navigation, which means
+   simply clicking anywhere on a chart triggers the browser's native focus
+   ring around the whole thing. These dashboard charts are read-only
+   displays, not keyboard-operable widgets, so the ring only ever reads as a
+   stray border — suppressed globally here rather than per-component since
+   every chart renders through the same recharts internals. */
+.recharts-wrapper:focus,
+.recharts-wrapper *:focus {
+  outline: none;
 }
 
 /* Reduce toast height */

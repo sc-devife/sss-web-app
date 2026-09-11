@@ -238,7 +238,7 @@ export function ItineraryManagementCard({
                         }}
                         aria-label="Rename itinerary"
                         title="Rename"
-                        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
                       >
                         <PiPencilSimpleFill className="h-3.5 w-3.5" />
                       </button>
@@ -258,7 +258,7 @@ export function ItineraryManagementCard({
                       }}
                       aria-label="Duplicate itinerary"
                       title="Duplicate"
-                      className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-50"
+                      className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-50"
                     >
                       <PiCopyFill className="h-3.5 w-3.5" />
                     </button>
@@ -277,7 +277,7 @@ export function ItineraryManagementCard({
                       }}
                       aria-label="Delete itinerary"
                       title="Delete"
-                      className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+                      className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-50"
                     >
                       <PiTrashFill className="h-3.5 w-3.5" />
                     </button>
@@ -313,7 +313,7 @@ export function ItineraryManagementCard({
                 disabled={saving}
                 aria-label="Add itinerary"
                 title="Add itinerary"
-                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
               >
                 <PiPlusFill className="h-3.5 w-3.5" />
               </button>

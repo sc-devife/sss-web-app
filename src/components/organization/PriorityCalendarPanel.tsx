@@ -98,8 +98,6 @@ export function PriorityCalendarPanel() {
 
   return (
     <div className="flex flex-col gap-3">
-      <Caption>Honeymoon and family leads traveling within one of these windows are auto-flagged as priority.</Caption>
-
       {(status === "idle" || status === "loading") && entries.length === 0 ? (
         <>
           {Array.from({ length: 2 }).map((_, i) => (

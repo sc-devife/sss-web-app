@@ -3,6 +3,9 @@ import type { RootState } from "@/store/store";
 export const selectLeads = (state: RootState) => state.leads.items;
 export const selectLeadsStatus = (state: RootState) => state.leads.status;
 export const selectLeadsError = (state: RootState) => state.leads.error;
+export const selectLeadsPage = (state: RootState) => state.leads.page;
+export const selectLeadsTotalPages = (state: RootState) => state.leads.totalPages;
+export const selectLeadsTotalElements = (state: RootState) => state.leads.totalElements;
 
 export const selectCreateLeadStatus = (state: RootState) => state.leads.createStatus;
 export const selectCreateLeadError = (state: RootState) => state.leads.createError;

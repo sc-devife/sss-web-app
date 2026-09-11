@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -57,7 +57,14 @@ function ToolbarButton({
 
 function Toolbar({ editor }: { editor: Editor }) {
   return (
-    <div className="flex flex-wrap items-center gap-0.5 border-b border-border bg-muted/40 p-1">
+    <div className="flex flex-wrap items-center gap-0.5 p-1">
+      <ToolbarButton
+        label="Heading"
+        active={editor.isActive("heading", { level: 2 })}
+        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+      >
+        <span className="text-sm font-bold leading-none">H</span>
+      </ToolbarButton>
       <ToolbarButton label="Bold" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
         <MdFormatBold size={18} />
       </ToolbarButton>
@@ -92,9 +99,30 @@ function Toolbar({ editor }: { editor: Editor }) {
   );
 }
 
-// A small Word-like rich text editor: bold/italic/underline plus nested
-// bullet/numbered lists (indent = sub-bullet). Stores/emits plain HTML.
+function ModeTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "px-3 py-1.5 text-xs font-medium transition-colors",
+        active ? "border-b-2 border-primary text-foreground" : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+// A small Word-like rich text editor: heading/bold/italic/underline plus
+// nested bullet/numbered lists (indent = sub-bullet). Stores/emits plain
+// HTML. "Write"/"Preview" tabs (mirrors GitHub's markdown editor) let the
+// author check how the formatted content will actually look — headings/
+// bold/lists read very differently rendered than they do inline in the
+// editing surface.
 export function RichTextEditor({ label, value, onChange, placeholder, className, error }: RichTextEditorProps) {
+  const [mode, setMode] = useState<"write" | "preview">("write");
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [StarterKit, Underline],
@@ -127,11 +155,29 @@ export function RichTextEditor({ label, value, onChange, placeholder, className,
           error && "border-danger",
         )}
       >
-        {editor && <Toolbar editor={editor} />}
-        {editor && !value && (
-          <div className="pointer-events-none absolute px-3 py-2 text-sm text-muted-foreground">{placeholder}</div>
+        <div className="flex items-center justify-between border-b border-border bg-muted/40 px-1 pt-1">
+          <div>
+            <ModeTab active={mode === "write"} onClick={() => setMode("write")}>
+              Write
+            </ModeTab>
+            <ModeTab active={mode === "preview"} onClick={() => setMode("preview")}>
+              Preview
+            </ModeTab>
+          </div>
+          {mode === "write" && editor && <Toolbar editor={editor} />}
+        </div>
+        {mode === "write" ? (
+          <>
+            {editor && !value && (
+              <div className="pointer-events-none absolute px-3 py-2 text-sm text-muted-foreground">{placeholder}</div>
+            )}
+            <EditorContent editor={editor} />
+          </>
+        ) : value ? (
+          <div className="prose-editor min-h-[10rem] max-w-none px-3 py-2 text-sm text-foreground" dangerouslySetInnerHTML={{ __html: value }} />
+        ) : (
+          <div className="flex min-h-[10rem] items-center px-3 py-2 text-sm text-muted-foreground">Nothing to preview yet.</div>
         )}
-        <EditorContent editor={editor} />
       </div>
       {error && <span className="text-xs text-danger">{error}</span>}
     </div>

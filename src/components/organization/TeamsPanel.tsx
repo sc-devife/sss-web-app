@@ -146,9 +146,9 @@ export function TeamsPanel({ escapePoints }: { escapePoints: EscapePoint[] }) {
 
   if ((status === "idle" || status === "loading") && teams.length === 0) {
     return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i} className="flex flex-col gap-3">
+          <Card key={i} className="flex flex-col rounded-xl gap-3">
             <div className="flex items-center gap-2">
               <Skeleton className="h-7 w-7 rounded-lg" />
               <Skeleton className="h-4 w-28" />
@@ -183,9 +183,9 @@ export function TeamsPanel({ escapePoints }: { escapePoints: EscapePoint[] }) {
       {teams.length === 0 ? (
         <EmptyState icon={FaUsers} title="No teams yet" description="Create a team to group agents by destination specialization." />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {teams.map((team) => (
-            <Card key={team.uid} className="flex flex-col gap-3">
+            <Card key={team.uid} className="flex flex-col rounded-xl gap-3 p-5 transition-all duration-200 hover:shadow-lg">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <div className="rounded-lg bg-primary/10 p-1.5 text-primary">
@@ -326,12 +326,12 @@ export function TeamsPanel({ escapePoints }: { escapePoints: EscapePoint[] }) {
             </Alert>
           )}
 
-          <div className="flex gap-2">
-            <Button type="submit" disabled={saving || (!!editing && !isDirty)} loading={saving} loadingText="Saving…">
-              Save team
-            </Button>
-            <Button type="button" variant="ghost" disabled={saving} onClick={() => setModalOpen(false)}>
+          <div className="flex gap-3 w-full border-t pt-5">
+            <Button type="button" variant="ghost" disabled={saving} onClick={() => setModalOpen(false)} className="w-full">
               Cancel
+            </Button>
+            <Button type="submit" disabled={saving || (!!editing && !isDirty)} loading={saving} loadingText="Saving…" className="w-full">
+              Save team
             </Button>
           </div>
         </form>

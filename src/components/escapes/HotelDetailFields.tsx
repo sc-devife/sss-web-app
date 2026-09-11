@@ -33,6 +33,12 @@ export interface HotelDetailFormState {
   price: string;
   totalPrice: string;
   inclusions: HotelInclusionFormState[];
+  /** Initialize / Booked / Drop — see lib/hotel-booking-status. */
+  status: string;
+  /** Required when status is Drop; ignored otherwise. */
+  droppingReason: string;
+  /** Optional; only meaningful when status is Drop. */
+  cancellationCharge: string;
 }
 
 export function emptyInclusion(): HotelInclusionFormState {
@@ -53,6 +59,9 @@ export function emptyHotelDetailForm(): HotelDetailFormState {
     price: "",
     totalPrice: "",
     inclusions: [],
+    status: "Initialize",
+    droppingReason: "",
+    cancellationCharge: "",
   };
 }
 
@@ -79,6 +88,9 @@ export function fromHotelDetail(detail: HotelDetail | null): HotelDetailFormStat
       totalPrice: i.totalPrice != null ? String(i.totalPrice) : "",
       comments: i.comments ?? "",
     })),
+    status: detail.status || "Initialize",
+    droppingReason: detail.droppingReason ?? "",
+    cancellationCharge: detail.cancellationCharge != null ? String(detail.cancellationCharge) : "",
   };
 }
 
@@ -128,6 +140,9 @@ export function toHotelDetailPayload(form: HotelDetailFormState): HotelDetail | 
     price: form.price ? Number(form.price) : null,
     totalPrice: form.totalPrice ? Number(form.totalPrice) : null,
     inclusions,
+    status: form.status,
+    droppingReason: form.droppingReason || null,
+    cancellationCharge: form.cancellationCharge ? Number(form.cancellationCharge) : null,
   };
 }
 
@@ -158,6 +173,7 @@ export function HotelDetailFields({
   hotelUid,
   onMealPlanCreated,
   maxNights,
+  mode = "create",
 }: {
   value: HotelDetailFormState;
   onChange: (next: HotelDetailFormState) => void;
@@ -175,6 +191,11 @@ export function HotelDetailFields({
   // "No. of Night" field so one hotel can't claim nights another stay, or
   // the trip itself, doesn't have room for.
   maxNights?: number;
+  // "create": no Status control at all — a brand-new booking is always
+  // Initialize server-side, never picked by the user. "edit": shows the
+  // Status dropdown at the top, and switches the whole form into the
+  // Drop-only (reason + charge) layout once Drop is selected.
+  mode?: "create" | "edit";
 }) {
   const [addingMeal, setAddingMeal] = useState(false);
   const [newMeal, setNewMeal] = useState({ code: "", name: "" });
@@ -234,6 +255,42 @@ export function HotelDetailFields({
   // maxNights caps this field to what's actually left of the escape's total
   // hotel-night budget (see availableHotelNights).
   const nightsError = hotelNightsError(value, maxNights);
+
+  // Drop mode replaces the entire normal edit form — only the reason and
+  // an optional cancellation charge are shown/saved, per the Drop Hotel
+  // flow (see ItineraryItemHelper.saveHotelDetail on the backend, which
+  // enforces the same "normal fields untouched" rule server-side). The
+  // Status select itself lives in the caller (ItineraryDayPlanner), pinned
+  // to the very top of the Edit Hotel popup, above this component entirely.
+  if (mode === "edit" && value.status === "Drop") {
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-foreground" htmlFor="hotel-dropping-reason">
+            Dropping Reason <span className="text-danger">*</span>
+          </label>
+          <textarea
+            id="hotel-dropping-reason"
+            value={value.droppingReason}
+            onChange={(e) => update("droppingReason", e.target.value)}
+            rows={3}
+            required
+            placeholder="Why this hotel booking is being dropped"
+            className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+          />
+        </div>
+        <TextInput
+          label="Cancellation Charge (INR)"
+          type="number"
+          min={0}
+          step="0.01"
+          placeholder="Charged by the hotel, if any"
+          value={value.cancellationCharge}
+          onChange={(e) => update("cancellationCharge", e.target.value)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-3">

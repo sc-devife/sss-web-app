@@ -20,9 +20,11 @@ export function TextInput({ label, error, id, className, ...props }: TextInputPr
       <input
         id={inputId}
         className={cn(
-          "h-10 rounded border border-border bg-background px-3 text-sm text-foreground",
-          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary",
-          error && "border-danger",
+          "h-10 rounded border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground",
+          "focus:ring-2 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground",
+          error
+            ? "border-danger focus:border-danger focus:ring-danger/20"
+            : "border-border focus:border-primary focus:ring-primary/20",
           className,
         )}
         aria-invalid={!!error}

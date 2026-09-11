@@ -24,6 +24,10 @@ interface ToolbarSelectProps {
   searchable?: boolean;
   searchPlaceholder?: string;
   initialLimit?: number;
+  /** Suppresses the visible "Label:" prefix (for a control, like a period-type
+   * picker sitting between its own prev/next buttons, where the label would
+   * be redundant) — `label` is still used for the trigger's accessible name. */
+  hideLabel?: boolean;
 }
 
 // Compact single-line "Label: Value ▾" filter chip for a table toolbar —
@@ -42,6 +46,7 @@ export function ToolbarSelect({
   searchable,
   searchPlaceholder = "Search…",
   initialLimit,
+  hideLabel,
 }: ToolbarSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -161,12 +166,13 @@ export function ToolbarSelect({
         onClick={() => (open ? close() : openDropdown())}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-label={hideLabel ? `${label}: ${selected ? selected.label : placeholder}` : undefined}
         className={cn(
           "flex h-7 items-center gap-1 rounded-full border border-transparent bg-[#f8f8fa] px-3 text-sm text-foreground transition-colors",
           "hover:border-primary/30 focus-visible:border-primary/40 focus-visible:outline-none",
         )}
       >
-        <span className="text-muted-foreground">{label}:</span>
+        {!hideLabel && <span className="text-muted-foreground">{label}:</span>}
         <span className="font-medium">{selected ? selected.label : placeholder}</span>
         <HiOutlineChevronDown size={13} className={cn("shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} />
       </button>

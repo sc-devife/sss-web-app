@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks";
 import { setLoggedInUser } from "@/features/auth/authSlice";
+import { setSoundEnabled } from "@/features/notifications/notificationsSlice";
 import type { CurrentUser } from "@/lib/current-user";
 
 // Restores the Redux auth state from the server-resolved current user (see
@@ -26,6 +27,9 @@ export function AuthHydrator({ user, roles }: { user: CurrentUser; roles: string
         profilePicture: user.profile_picture,
       }),
     );
+    // Defaults true (matches the backend column's own default) when the
+    // field hasn't hydrated yet on an older cached response shape.
+    dispatch(setSoundEnabled(user.notificationSoundEnabled ?? true));
   }, [dispatch, user, roles]);
 
   return null;

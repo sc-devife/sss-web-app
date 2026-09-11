@@ -29,6 +29,10 @@ export interface UpdateItineraryItemPayload {
   price?: number;
   transportDetail?: TransportDetail;
   hotelDetail?: HotelDetail;
+  /** Item-level Initialize/Booked/Drop status — see lib/itinerary-items' ItineraryItem.status. */
+  status?: string;
+  droppingReason?: string | null;
+  cancellationCharge?: number | null;
 }
 
 export interface DeleteItineraryItemPayload {

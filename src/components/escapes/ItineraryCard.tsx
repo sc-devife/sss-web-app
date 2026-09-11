@@ -10,13 +10,14 @@ import type { Transport } from "@/lib/transports";
 import type { ServiceProvider } from "@/lib/service-providers";
 import { QuotesPanel } from "@/components/escapes/QuotesPanel";
 import { SummaryPanel } from "@/components/escapes/SummaryPanel";
+import { DocsPanel } from "@/components/escapes/DocsPanel";
 import { ItineraryContentSection } from "@/components/escapes/ItineraryContentSection";
 import { ItineraryDayPlanner } from "@/components/escapes/ItineraryDayPlanner";
 import { useAppDispatch } from "@/store/hooks";
 import { deleteItinerary, duplicateItinerary } from "@/features/itineraries/itinerariesThunks";
 import { createQuote, fetchQuotesForItinerary } from "@/features/quotes/quotesThunks";
 
-type SubTab = "itinerary" | "terms" | "inclusions" | "summary" | "quote";
+type SubTab = "itinerary" | "terms" | "inclusions" | "summary" | "quote" | "docs";
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "itinerary", label: "Itinerary" },
@@ -24,6 +25,7 @@ const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "inclusions", label: "Inclusions & Exclusions" },
   { id: "summary", label: "Summary" },
   { id: "quote", label: "Quote" },
+  { id: "docs", label: "Docs" },
 ];
 
 function IconButton({
@@ -47,7 +49,7 @@ function IconButton({
       aria-label={label}
       title={label}
       className={cn(
-        "flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors disabled:opacity-50",
+        "flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors disabled:opacity-50",
         danger ? "hover:bg-danger/10 hover:text-danger" : "hover:bg-primary/10 hover:text-primary",
       )}
     >
@@ -175,11 +177,13 @@ export function ItineraryCard({
           <ItineraryContentSection itineraryUid={itinerary.uid} types={["INCLUSION", "EXCLUSION"]} />
         )}
 
-        {subTab === "summary" && <SummaryPanel itineraryUid={itinerary.uid} />}
+        {subTab === "summary" && <SummaryPanel itineraryUid={itinerary.uid} escapeUid={escapeUid} />}
 
         {subTab === "quote" && (
           <QuotesPanel itineraryUid={itinerary.uid} escapeUid={escapeUid} onDealChanged={onDealChanged} />
         )}
+
+        {subTab === "docs" && <DocsPanel escapeUid={escapeUid} />}
       </div>
     </div>
   );

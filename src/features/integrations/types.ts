@@ -1,14 +1,8 @@
 import type { IntegrationConnection } from "@/lib/integrations";
 import type { WebhookEvent, LeadImportAttempt, FieldMapping } from "@/lib/leadSources";
+import type { Page } from "@/lib/pagination";
 
-export type { IntegrationConnection, WebhookEvent, LeadImportAttempt, FieldMapping };
-
-export interface Page<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  number: number;
-}
+export type { IntegrationConnection, WebhookEvent, LeadImportAttempt, FieldMapping, Page };
 
 export interface ConnectIntegrationPayload {
   channelCode: string;

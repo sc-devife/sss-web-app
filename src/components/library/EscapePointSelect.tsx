@@ -143,8 +143,8 @@ export function EscapePointSelect({ label, escapePoints, value, onChange, disabl
         aria-haspopup="listbox"
         aria-expanded={open}
         className={cn(
-          "flex h-10 w-full items-center justify-between gap-2 rounded border border-border bg-background px-3 text-left text-sm text-foreground",
-          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary",
+          "flex h-10 w-full items-center justify-between gap-2 rounded border border-border bg-background px-3 text-left text-sm text-foreground outline-none",
+          "focus:border-primary focus:ring-2 focus:ring-primary/20",
           !selected && "text-primary",
           disabled && "cursor-not-allowed opacity-60",
         )}

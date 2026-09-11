@@ -55,6 +55,7 @@ export function PhoneInput({
 }: PhoneInputProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
+  const baseInputClassName = inputClassName ?? "app-phone-input";
 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
@@ -79,7 +80,12 @@ export function PhoneInput({
         onChange={(v) => onChange(v ?? "")}
         disabled={disabled}
         placeholder={placeholder}
-        className={cn(inputClassName ?? "app-phone-input", error && (inputClassName ? "" : "app-phone-input-error"))}
+        // Error modifier is derived from whichever base class is active
+        // ("app-phone-input-error" / "signup-phone-input-error", see
+        // globals.css) rather than only ever applying to the default base
+        // class — a caller-supplied inputClassName still needs its own
+        // error styling, it just isn't the shared theme-token look.
+        className={cn(baseInputClassName, error && `${baseInputClassName}-error`)}
         aria-invalid={!!error}
         aria-required={required}
       />

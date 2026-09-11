@@ -5,6 +5,10 @@ import type { Traveller } from "@/lib/travellers";
 
 export interface Escape {
   uid: string;
+  // Human-readable trip code (e.g. "TRP-000123"), computed by the DB from
+  // the escape's internal seqp — see Escape.tripCode on the backend. Null
+  // only in the vanishingly unlikely case the DB computation hasn't run yet.
+  tripCode: string | null;
   lead: Lead | null;
   travellers: Traveller[];
   // uid of the traveller who represents the lead's original/primary
@@ -27,6 +31,10 @@ export interface Escape {
   assignmentReason: string | null;
   createdAt: string | null;
   updatedAt: string | null;
+  // Private, team-only — never rendered in the generated Quotation.
+  internalComments: string | null;
+  // Client-facing rich text (HTML), rendered in the generated Quotation.
+  remarkForLead: string | null;
 }
 
 export async function getEscapes(): Promise<Escape[]> {

@@ -1,7 +1,24 @@
+// A Date's local calendar day as YYYY-MM-DD (the browser's own clock, not
+// UTC) — built the same way DatePicker's own toIsoDate is, so anything
+// comparing against it (a DatePicker's `min`, an API date-range param)
+// agrees on the same day boundary.
+export function dateToIsoDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+// Today specifically — for DatePicker's `min` and for rejecting a past date
+// client-side before it ever reaches the API.
+export function todayIsoDate(): string {
+  return dateToIsoDate(new Date());
+}
+
 // Single shared date-display utility — every user-facing date in the app
 // should go through this rather than ad-hoc `toLocaleDateString()`/manual
 // formatting, so the display format stays consistent and changes in one
-// place. Format: DD-MM-YYYY (e.g. "20-08-2026").
+// place. Format: DD/MM/YYYY (e.g. "20/08/2026").
 //
 // Reads the YYYY-MM-DD prefix directly out of the string via regex instead
 // of `new Date(value).getDate()` — a plain date-only string like
@@ -18,7 +35,7 @@ export function formatDisplayDate(value: string | null | undefined): string | nu
   const isoMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(trimmed);
   if (isoMatch) {
     const [, year, month, day] = isoMatch;
-    return `${day}-${month}-${year}`;
+    return `${day}/${month}/${year}`;
   }
 
   const date = new Date(trimmed);
@@ -27,7 +44,7 @@ export function formatDisplayDate(value: string | null | undefined): string | nu
   const day = String(date.getDate()).padStart(2, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const year = date.getFullYear();
-  return `${day}-${month}-${year}`;
+  return `${day}/${month}/${year}`;
 }
 
 // "HH:mm" (24-hour, the shape TimePicker/native `type="time"` both use) ->
@@ -73,16 +90,16 @@ export function formatRelativeTime(value: string | null | undefined): string | n
   if (diffSec < 0) return "Just now";
   if (diffSec < 60) return "Just now";
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffMin < 60) return `${diffMin} minutes ago`;
   const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
+  if (diffHr < 24) return `${diffHr} hours ago`;
   const diffDay = Math.floor(diffHr / 24);
-  if (diffDay < 7) return `${diffDay}d ago`;
+  if (diffDay < 7) return `${diffDay} days ago`;
   return formatDisplayDateTime(value);
 }
 
 // Date + time-of-day, for real timestamps (createdAt, lastSyncedAt, etc.) —
-// the date portion uses the same DD-MM-YYYY formatting as formatDisplayDate,
+// the date portion uses the same DD/MM/YYYY formatting as formatDisplayDate,
 // the time portion reflects the viewer's local time (appropriate here since
 // a timestamp is a real moment, unlike a bare calendar date).
 export function formatDisplayDateTime(value: string | null | undefined): string | null {

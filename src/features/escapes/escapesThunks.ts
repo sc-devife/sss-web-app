@@ -10,6 +10,7 @@ import type {
   UpdateTravellerPayload,
   DeleteTravellerPayload,
   UpdateEscapeDurationPayload,
+  UpdateEscapeSummaryNotesPayload,
 } from "@/features/escapes/types";
 
 export const fetchEscapes = createAsyncThunk<Escape[], void, { rejectValue: string }>(
@@ -110,6 +111,17 @@ export const updateEscapeDuration = createAsyncThunk<void, UpdateEscapeDurationP
       await clientApi.put(`/escapes/${escapeUid}`, payload);
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to update escape duration"));
+    }
+  },
+);
+
+export const updateEscapeSummaryNotes = createAsyncThunk<void, UpdateEscapeSummaryNotesPayload, { rejectValue: string }>(
+  "escapes/updateEscapeSummaryNotes",
+  async ({ escapeUid, ...payload }, { rejectWithValue }) => {
+    try {
+      await clientApi.put(`/escapes/${escapeUid}/summary-notes`, payload);
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to save summary notes"));
     }
   },
 );

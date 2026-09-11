@@ -193,7 +193,7 @@ export function ActivityFormModal({
               value={form.description}
               onChange={(e) => update("description", e.target.value)}
               rows={3}
-              className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+              className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
             />
           </div>
 
@@ -229,12 +229,12 @@ export function ActivityFormModal({
           </Alert>
         )}
 
-        <div className="flex gap-2">
-          <Button type="submit" disabled={saving || (!!activity && !isDirty)} loading={saving} loadingText="Saving…">
-            Save activity
-          </Button>
-          <Button type="button" variant="ghost" disabled={saving} onClick={onClose}>
+        <div className="flex gap-3 w-full border-t pt-5">
+          <Button type="button" variant="ghost" disabled={saving} onClick={onClose} className="w-full">
             Cancel
+          </Button>
+          <Button type="submit" disabled={saving || (!!activity && !isDirty)} loading={saving} loadingText="Saving…" className="w-full">
+            Save activity
           </Button>
         </div>
       </form>

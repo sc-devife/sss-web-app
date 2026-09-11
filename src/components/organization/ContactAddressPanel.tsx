@@ -25,9 +25,9 @@ import { Badge } from "@/components/ui/Badge";
 import { FaEnvelope, FaPhoneAlt } from "react-icons/fa";
 import {
   PiMapPin,
-  PiPlusBold,
   PiBuildings,
 } from "react-icons/pi";
+import { FaPlus } from "react-icons/fa6";
 
 const ADDRESS_TYPE_OPTIONS: { value: AddressType; label: string }[] = [
   { value: "CONTACT", label: "Contact" },
@@ -212,7 +212,7 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
   // address forms need the same country list for their Country picker.
   const [countryOptions, setCountryOptions] = useState<ReferenceOption[]>([]);
   useEffect(() => {
-    fetchCountryOptions().then(setCountryOptions).catch(() => {});
+    fetchCountryOptions().then(setCountryOptions).catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -351,9 +351,9 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
         </div>
         <Button
           onClick={openAddModal}
-          className="self-start md:self-auto"
+          className="self-start md:self-auto rounded-full"
         >
-          <PiPlusBold className="mr-2 h-4 w-4" />
+          <FaPlus className="h-4 w-4" />
           Add Address
         </Button>
       </div>
@@ -446,7 +446,7 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
                             disabled={deletingId === address.uid}
                             onClick={() => startEdit(address)}
                           >
-                            <PiPencilSimple className="mr-0.5 h-4 w-4" />
+                            <PiPencilSimple className="h-4 w-4" />
                             Edit
                           </Button>
 
@@ -457,7 +457,7 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
                             disabled={deletingId === address.uid}
                             onClick={() => handleDelete(address.uid)}
                           >
-                            <PiTrash className="mr-0.5 h-4 w-4" />
+                            <PiTrash className="h-4 w-4" />
                             {deletingId === address.uid ? "Deleting..." : "Delete"}
                           </Button>
 
@@ -465,7 +465,7 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
 
                       </div>
 
-                      <div className="mt-4 space-y-2">
+                      <div className="mt-2 space-y-2">
 
                         <div className="flex gap-3">
 
@@ -546,7 +546,7 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
       )}
 
       {/* Add Address */}
-      <Modal open={showForm} onClose={closeAddModal} title="Add Address" className="max-w-2xl">
+      <Modal open={showForm} onClose={closeAddModal} title="Add Address" className="max-w-xl">
         <form onSubmit={handleAdd} className="space-y-6">
           <fieldset disabled={saving} className="contents">
 
@@ -561,11 +561,11 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
             </Alert>
           )}
 
-          <div className="flex flex-wrap justify-end gap-3 border-t pt-5">
-            <Button type="button" variant="ghost" disabled={saving} onClick={closeAddModal}>
+          <div className="flex gap-3 w-full border-t pt-5">
+            <Button type="button" variant="ghost" disabled={saving} onClick={closeAddModal} className="w-full rounded-full">
               Cancel
             </Button>
-            <Button type="submit" disabled={saving} loading={saving} loadingText="Saving...">
+            <Button type="submit" disabled={saving} loading={saving} loadingText="Saving..." className="w-full rounded-full">
               Save Address
             </Button>
           </div>
@@ -589,11 +589,11 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
             </Alert>
           )}
 
-          <div className="flex flex-wrap justify-end gap-3 border-t pt-5">
-            <Button type="button" variant="ghost" disabled={editSaving} onClick={closeEditModal}>
+          <div className="flex gap-3 w-full border-t pt-5">
+            <Button type="button" variant="ghost" disabled={editSaving} onClick={closeEditModal} className="w-full">
               Cancel
             </Button>
-            <Button type="submit" disabled={editSaving || !isEditDirty} loading={editSaving} loadingText="Saving...">
+            <Button type="submit" disabled={editSaving || !isEditDirty} loading={editSaving} loadingText="Saving..." className="w-full">
               Save Changes
             </Button>
           </div>

@@ -58,6 +58,12 @@ export function EscapesPanel() {
 
   const columns: DataTableColumn<Escape>[] = [
     {
+      key: "tripCode",
+      header: "Trip No.",
+      render: (t) => t.tripCode ?? "—",
+      filterValue: (t) => t.tripCode ?? "",
+    },
+    {
       key: "lead",
       header: "Customer",
       render: (t) => t.lead?.name ?? "—",

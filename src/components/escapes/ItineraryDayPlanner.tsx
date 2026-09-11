@@ -30,6 +30,8 @@ import {
 } from "@/lib/itinerary-planning";
 import { transportModeIcon } from "@/lib/transport-modes";
 import { formatInr } from "@/lib/currency";
+import { hotelStatusTone, HOTEL_BOOKING_STATUS_OPTIONS } from "@/lib/hotel-booking-status";
+import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/cn";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -71,6 +73,10 @@ interface ModalState {
   price: string;
   transportForm: TransportDetailFormState;
   hotelForm: HotelDetailFormState;
+  /** Item-level Initialize/Booked/Drop status — currently only used for Activity (Hotel keeps its own status on hotelForm). */
+  status: string;
+  droppingReason: string;
+  cancellationCharge: string;
 }
 
 function editModalState(item: ItineraryItem): ModalState {
@@ -88,6 +94,9 @@ function editModalState(item: ItineraryItem): ModalState {
     price: item.price != null ? String(item.price) : "",
     transportForm: fromTransportDetail(item.transportDetail),
     hotelForm: fromHotelDetail(item.hotelDetail),
+    status: item.status || "Initialize",
+    droppingReason: item.droppingReason ?? "",
+    cancellationCharge: item.cancellationCharge != null ? String(item.cancellationCharge) : "",
   };
 }
 
@@ -151,7 +160,15 @@ function TimelineRow({
         <Icon className="h-4 w-4" />
       </div>
       <div className="min-w-[120px] flex-1">
-        <Body className="font-medium">{item.referenceLabel}</Body>
+        <div className="flex items-center gap-2">
+          <Body className="font-medium">{item.referenceLabel}</Body>
+          {item.hotelDetail?.status && (
+            <Badge tone={hotelStatusTone(item.hotelDetail.status)}>{item.hotelDetail.status}</Badge>
+          )}
+          {item.itemType === "activity" && item.status && (
+            <Badge tone={hotelStatusTone(item.status)}>{item.status}</Badge>
+          )}
+        </div>
         {flightSummary && <Caption className="mt-0.5 block normal-case text-muted-foreground">{flightSummary}</Caption>}
         {hotelSummary && <Caption className="mt-0.5 block normal-case text-muted-foreground">{hotelSummary}</Caption>}
         {item.notes && <Caption className="mt-0.5 block normal-case text-muted-foreground">{item.notes}</Caption>}
@@ -164,7 +181,7 @@ function TimelineRow({
           type="button"
           onClick={() => onMove(-1)}
           disabled={isFirst}
-          className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
+          className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
           aria-label="Move up"
           title="Move up"
         >
@@ -174,7 +191,7 @@ function TimelineRow({
           type="button"
           onClick={() => onMove(1)}
           disabled={isLast}
-          className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
+          className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
           aria-label="Move down"
           title="Move down"
         >
@@ -183,7 +200,7 @@ function TimelineRow({
         <button
           type="button"
           onClick={onEdit}
-          className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
           aria-label="Edit"
           title="Edit"
         >
@@ -198,7 +215,7 @@ function TimelineRow({
             type="button"
             onClick={onDelete}
             disabled={deleting}
-            className="rounded p-1 text-muted-foreground hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+            className="rounded-full p-1 text-muted-foreground hover:bg-danger/10 hover:text-danger disabled:opacity-50"
             aria-label="Remove"
             title="Remove"
           >
@@ -390,6 +407,14 @@ export function ItineraryDayPlanner({
   // value it already has is never blocked against itself.
   const maxHotelNightsForEdit = modal ? availableHotelNights(items, numberOfDays, modal.editingUid) : undefined;
 
+  // Drop mode (status = Drop) replaces the entire modal body with just
+  // reason + charge. Hotel keeps its own status on hotelForm (see
+  // HotelDetailFields and ItineraryItemHelper.saveHotelDetail); Activity
+  // uses the item-level status field instead (see ItineraryItemHelper.update).
+  const isHotelDropMode = !!modal && modal.itemType === "hotel" && modal.hotelForm.status === "Drop";
+  const isActivityDropMode = !!modal && modal.itemType === "activity" && modal.status === "Drop";
+  const isDropMode = isHotelDropMode || isActivityDropMode;
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!modal) return;
@@ -409,6 +434,10 @@ export function ItineraryDayPlanner({
         return;
       }
     }
+    if (isActivityDropMode && !modal.droppingReason.trim()) {
+      setFormError("Dropping reason is required");
+      return;
+    }
     setSaving(true);
     setFormError(undefined);
     try {
@@ -427,6 +456,9 @@ export function ItineraryDayPlanner({
           transportDetail:
             modal.itemType === "transport" ? toTransportDetailPayload(modal.transportForm) : undefined,
           hotelDetail: modal.itemType === "hotel" ? toHotelDetailPayload(modal.hotelForm) : undefined,
+          status: isActivity ? modal.status : undefined,
+          droppingReason: isActivityDropMode ? modal.droppingReason.trim() : undefined,
+          cancellationCharge: isActivityDropMode && modal.cancellationCharge ? Number(modal.cancellationCharge) : undefined,
         }),
       ).unwrap();
       loadItems();
@@ -553,7 +585,7 @@ export function ItineraryDayPlanner({
             setAddDayError(undefined);
             setConfirmingAddDay(true);
           }}
-          className="flex h-11 min-w-[100px] shrink-0 items-center justify-center gap-1 rounded-lg border border-dashed border-border/70 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+          className="flex h-11 min-w-[100px] shrink-0 items-center justify-center gap-1 rounded-full border border-dashed border-border/70 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
         >
           <PiPlusFill className="h-3 w-3" />
           Add day
@@ -638,44 +670,97 @@ export function ItineraryDayPlanner({
         />
       )}
 
-      <Modal open={!!modal} onClose={() => setModal(null)} title="Edit planning item">
+      <Modal
+        open={!!modal}
+        onClose={() => setModal(null)}
+        title={isHotelDropMode ? "Drop Hotel" : isActivityDropMode ? "Drop Activity" : "Edit planning item"}
+      >
         {modal && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            <TimePicker
-              label="Start time"
-              value={modal.startTime}
-              onChange={(v) => setModal((m) => (m ? { ...m, startTime: v } : m))}
-            />
-            <Select
-              label="Type"
-              options={PLANNING_ITEM_TYPES}
-              value={modal.itemType}
-              onChange={(e) => handleTypeChange(e.target.value as PlanningItemType)}
-            />
-            {referenceOptions.length > 0 && (
+            {modal.itemType === "hotel" && (
               <Select
-                label={modal.itemType === "activity" ? "Select from library" : "Select from library (optional)"}
-                options={referenceOptions}
-                value={modal.referenceId}
-                onChange={(e) => handleReferenceChange(e.target.value)}
-                placeholder="Not linked to a library item"
+                label="Status"
+                options={HOTEL_BOOKING_STATUS_OPTIONS}
+                value={modal.hotelForm.status}
+                onChange={(e) =>
+                  setModal((m) => (m ? { ...m, hotelForm: { ...m.hotelForm, status: e.target.value } } : m))
+                }
               />
             )}
-            {modal.itemType !== "activity" && (
-              <TextInput
-                label="Title"
-                value={modal.title}
-                onChange={(e) => handleTitleChange(e.target.value)}
-                placeholder="e.g. Airport Pickup"
-                required={!modal.referenceId}
+            {modal.itemType === "activity" && (
+              <Select
+                label="Status"
+                options={HOTEL_BOOKING_STATUS_OPTIONS}
+                value={modal.status}
+                onChange={(e) => setModal((m) => (m ? { ...m, status: e.target.value } : m))}
               />
             )}
-            {modal.itemType === "transport" && (
-              <TransportDetailFields
-                value={modal.transportForm}
-                onChange={(next) => setModal((m) => (m ? { ...m, transportForm: next } : m))}
-                defaultPax={defaultPax}
-              />
+            {isActivityDropMode && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-foreground" htmlFor="activity-dropping-reason">
+                    Dropping Reason <span className="text-danger">*</span>
+                  </label>
+                  <textarea
+                    id="activity-dropping-reason"
+                    value={modal.droppingReason}
+                    onChange={(e) => setModal((m) => (m ? { ...m, droppingReason: e.target.value } : m))}
+                    rows={3}
+                    required
+                    placeholder="Why this activity is being dropped"
+                    className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+                  />
+                </div>
+                <TextInput
+                  label="Cancellation Charge (INR)"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="Charged for the cancellation, if any"
+                  value={modal.cancellationCharge}
+                  onChange={(e) => setModal((m) => (m ? { ...m, cancellationCharge: e.target.value } : m))}
+                />
+              </>
+            )}
+            {!isDropMode && (
+              <>
+                <TimePicker
+                  label="Start time"
+                  value={modal.startTime}
+                  onChange={(v) => setModal((m) => (m ? { ...m, startTime: v } : m))}
+                />
+                <Select
+                  label="Type"
+                  options={PLANNING_ITEM_TYPES}
+                  value={modal.itemType}
+                  onChange={(e) => handleTypeChange(e.target.value as PlanningItemType)}
+                />
+                {referenceOptions.length > 0 && (
+                  <Select
+                    label={modal.itemType === "activity" ? "Select from library" : "Select from library (optional)"}
+                    options={referenceOptions}
+                    value={modal.referenceId}
+                    onChange={(e) => handleReferenceChange(e.target.value)}
+                    placeholder="Not linked to a library item"
+                  />
+                )}
+                {modal.itemType !== "activity" && (
+                  <TextInput
+                    label="Title"
+                    value={modal.title}
+                    onChange={(e) => handleTitleChange(e.target.value)}
+                    placeholder="e.g. Airport Pickup"
+                    required={!modal.referenceId}
+                  />
+                )}
+                {modal.itemType === "transport" && (
+                  <TransportDetailFields
+                    value={modal.transportForm}
+                    onChange={(next) => setModal((m) => (m ? { ...m, transportForm: next } : m))}
+                    defaultPax={defaultPax}
+                  />
+                )}
+              </>
             )}
             {modal.itemType === "hotel" && (
               <HotelDetailFields
@@ -686,46 +771,51 @@ export function ItineraryDayPlanner({
                 hotelName={hotelsForEscape.find((h) => h.uid === modal.referenceId)?.name ?? modal.title}
                 hotelUid={modal.referenceId || null}
                 maxNights={maxHotelNightsForEdit}
+                mode="edit"
                 onMealPlanCreated={(mealPlan) => {
                   if (modal.referenceId) handleMealPlanCreated(modal.referenceId, mealPlan);
                 }}
               />
             )}
-            {modal.itemType === "activity" && (
-              <TextInput
-                label="Price (INR)"
-                type="number"
-                min={0}
-                step="0.01"
-                value={modal.price}
-                onChange={(e) => setModal((m) => (m ? { ...m, price: e.target.value } : m))}
-              />
+            {!isDropMode && (
+              <>
+                {modal.itemType === "activity" && (
+                  <TextInput
+                    label="Price (INR)"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={modal.price}
+                    onChange={(e) => setModal((m) => (m ? { ...m, price: e.target.value } : m))}
+                  />
+                )}
+                <TextInput
+                  label="Notes"
+                  value={modal.notes}
+                  onChange={(e) => setModal((m) => (m ? { ...m, notes: e.target.value } : m))}
+                  placeholder="e.g. Bengaluru → Netravati"
+                />
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-foreground" htmlFor="edit-planning-item-long-description">
+                    Description (optional)
+                  </label>
+                  <textarea
+                    id="edit-planning-item-long-description"
+                    value={modal.longDescription}
+                    onChange={(e) => setModal((m) => (m ? { ...m, longDescription: e.target.value } : m))}
+                    rows={3}
+                    placeholder="Longer descriptive copy shown as an expandable block in the quotation PDF"
+                    className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+                  />
+                </div>
+              </>
             )}
-            <TextInput
-              label="Notes"
-              value={modal.notes}
-              onChange={(e) => setModal((m) => (m ? { ...m, notes: e.target.value } : m))}
-              placeholder="e.g. Bengaluru → Netravati"
-            />
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-foreground" htmlFor="edit-planning-item-long-description">
-                Description (optional)
-              </label>
-              <textarea
-                id="edit-planning-item-long-description"
-                value={modal.longDescription}
-                onChange={(e) => setModal((m) => (m ? { ...m, longDescription: e.target.value } : m))}
-                rows={3}
-                placeholder="Longer descriptive copy shown as an expandable block in the quotation PDF"
-                className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
-              />
-            </div>
             {formError && <p className="text-sm text-danger">{formError}</p>}
-            <div className="flex justify-end gap-2 border-t border-border pt-3">
-              <Button type="button" variant="ghost" disabled={saving} onClick={() => setModal(null)}>
+            <div className="flex gap-3 w-full border-t border-border pt-5">
+              <Button type="button" variant="ghost" disabled={saving} onClick={() => setModal(null)} className="w-full">
                 Cancel
               </Button>
-              <Button type="submit" disabled={saving} loading={saving} loadingText="Saving…">
+              <Button type="submit" disabled={saving} loading={saving} loadingText="Saving…" className="w-full">
                 Save
               </Button>
             </div>

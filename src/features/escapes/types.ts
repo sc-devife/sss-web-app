@@ -67,3 +67,12 @@ export interface UpdateEscapeDurationPayload {
   startDate: string | null;
   numberOfDays: number;
 }
+
+// PUT /escape/{id}/summary-notes — its own small endpoint (Section 8's
+// Summary tab), not the full-object PUT above, so saving these never
+// touches lead/travellers/dates/etc.
+export interface UpdateEscapeSummaryNotesPayload {
+  escapeUid: string;
+  internalComments: string | null;
+  remarkForLead: string | null;
+}

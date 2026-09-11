@@ -17,6 +17,7 @@ interface MultiSelectSearchProps {
   error?: string;
   disabled?: boolean;
   className?: string;
+  required?: boolean;
 }
 
 // Search-first multi-select: nothing but the search box shows until the user
@@ -36,6 +37,7 @@ export function MultiSelectSearch({
   error,
   disabled,
   className,
+  required
 }: MultiSelectSearchProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -140,6 +142,7 @@ export function MultiSelectSearch({
     <div className={cn("flex flex-col gap-1.5", className)}>
       <div>
         <span className="text-sm font-medium text-foreground">{label}</span>
+        {required && <span className="ml-1 text-danger">*</span>}
         {helperText && <span className="ml-1.5 text-xs text-muted-foreground">{helperText}</span>}
       </div>
 
@@ -157,10 +160,11 @@ export function MultiSelectSearch({
           placeholder={placeholder}
           aria-haspopup="listbox"
           aria-expanded={open}
+          required={required}
           className={cn(
-            "h-9 w-full rounded border border-border bg-background pl-7 pr-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors",
-            "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary",
-            error && "border-danger",
+            "h-9 w-full rounded border bg-background pl-7 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors",
+            "focus:ring-2",
+            error ? "border-danger focus:border-danger focus:ring-danger/20" : "border-border focus:border-primary focus:ring-primary/20",
             disabled && "cursor-not-allowed opacity-60",
           )}
         />
@@ -194,6 +198,7 @@ export function MultiSelectSearch({
       {open && !disabled && createPortal(
         <div
           ref={panelRef}
+          data-floating-panel
           style={{ position: "fixed", left: pos.left, top: pos.top, width: pos.width }}
           className="z-50 flex flex-col overflow-hidden rounded border border-border bg-card text-card-foreground shadow-xl"
         >

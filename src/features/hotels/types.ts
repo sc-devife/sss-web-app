@@ -16,7 +16,8 @@ export interface HotelPayload {
   rateValidFrom: string | null;
   rateValidTo: string | null;
   address: string;
-  contactInfo: string;
+  phoneNumber: string;
+  email: string;
   images: string[];
   amenities: string[];
   status: string;

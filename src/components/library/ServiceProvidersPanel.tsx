@@ -318,12 +318,12 @@ export function ServiceProvidersPanel({
             </Alert>
           )}
 
-          <div className="flex gap-2">
-            <Button type="submit" disabled={saving || (!!editing && !isDirty)} loading={saving} loadingText="Saving…">
-              Save service provider
-            </Button>
-            <Button type="button" variant="ghost" disabled={saving} onClick={() => setModalOpen(false)}>
+          <div className="flex gap-3 w-full border-t pt-5">
+            <Button type="button" variant="ghost" disabled={saving} onClick={() => setModalOpen(false)} className="w-full">
               Cancel
+            </Button>
+            <Button type="submit" disabled={saving || (!!editing && !isDirty)} loading={saving} loadingText="Saving…" className="w-full">
+              Save service provider
             </Button>
           </div>
         </form>

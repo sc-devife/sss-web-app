@@ -36,7 +36,7 @@ function formatDisplay(value: string): string {
   if (!date) return "";
   const day = String(date.getDate()).padStart(2, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
-  return `${day}-${month}-${date.getFullYear()}`;
+  return `${day}/${month}/${date.getFullYear()}`;
 }
 
 function isSameDay(a: Date, b: Date | null): boolean {
@@ -211,10 +211,10 @@ export function DatePicker({
         aria-haspopup="dialog"
         aria-expanded={open}
         className={cn(
-          "flex h-10 items-center rounded border border-border bg-background px-3 text-left text-sm text-foreground",
-          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary",
+          "flex h-10 items-center rounded border bg-background px-3 text-left text-sm text-foreground outline-none",
+          "focus:ring-2",
           !value && "text-muted-foreground",
-          error && "border-danger",
+          error ? "border-danger focus:border-danger focus:ring-danger/20" : "border-border focus:border-primary focus:ring-primary/20",
           disabled && "cursor-not-allowed opacity-60",
           className,
         )}
@@ -228,6 +228,7 @@ export function DatePicker({
           ref={panelRef}
           role="dialog"
           aria-label="Choose a date"
+          data-floating-panel
           style={{ position: "fixed", left: pos.left, top: pos.top, visibility: pos.ready ? "visible" : "hidden" }}
           className="z-50 w-[300px] rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-xl"
         >

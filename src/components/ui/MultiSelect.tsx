@@ -10,6 +10,7 @@ interface MultiSelectProps {
   onChange: (next: string[]) => void;
   error?: string;
   className?: string;
+  required?: boolean;
 }
 
 // Long lists get a search box to narrow the visible chips; short ones don't
@@ -19,7 +20,7 @@ const SEARCH_THRESHOLD = 7;
 // A checkbox list rather than a native <select multiple> — much easier to
 // scan and touch-target on mobile, and it's the same interaction pattern
 // Section 12 asks for on small screens anyway.
-export function MultiSelect({ label, options, value, onChange, error, className }: MultiSelectProps) {
+export function MultiSelect({ label, options, value, onChange, error, className, required }: MultiSelectProps) {
   const groupId = useId();
   const [search, setSearch] = useState("");
 
@@ -39,6 +40,7 @@ export function MultiSelect({ label, options, value, onChange, error, className 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       <span id={groupId} className="text-sm font-medium text-foreground">{label}</span>
+      {required && <span className="ml-1 text-danger">*</span>}
 
       {showSearch && (
         <div className="relative max-w-[240px]">
@@ -48,6 +50,7 @@ export function MultiSelect({ label, options, value, onChange, error, className 
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search…"
             className="h-8 w-full rounded border border-transparent bg-[#f8f8fa] pl-7 pr-3 text-sm text-foreground placeholder:text-[#9da3af] transition-colors focus-visible:border-primary/40 focus-visible:bg-background focus-visible:outline-none"
+            required={required}
           />
         </div>
       )}

@@ -15,6 +15,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { Body, Caption } from "@/components/ui/Typography";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ActivityFormModal, CATEGORY_OPTIONS } from "@/components/library/ActivityFormModal";
+import { GalleryImage } from "@/components/library/GalleryImage";
 import { resolveFileUrl } from "@/lib/files";
 import { formatDisplayDate, formatDisplayTime } from "@/lib/date";
 import { clientApi } from "@/lib/axios/clientClient";
@@ -198,13 +199,13 @@ export function ActivityDetailPanel({
           <Caption>Gallery</Caption>
           <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-6">
             {images.map((url) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={url}
-                src={resolveFileUrl(url)}
-                alt={activity.name}
-                className="aspect-square w-full rounded-lg border border-border object-cover transition-transform hover:scale-[1.02]"
-              />
+              <div key={url} className="relative aspect-square overflow-hidden rounded-lg border border-border">
+                <GalleryImage
+                  src={resolveFileUrl(url)}
+                  alt={activity.name}
+                  className="h-full w-full object-cover transition-transform hover:scale-[1.02]"
+                />
+              </div>
             ))}
           </div>
         </div>

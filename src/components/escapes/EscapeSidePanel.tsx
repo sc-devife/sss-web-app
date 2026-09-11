@@ -64,7 +64,7 @@ export function EscapeSidePanel({
             onClick={onToggleCollapsed}
             aria-label="Expand panel to view itineraries"
             title="Itineraries"
-            className="flex items-center justify-center rounded-xl p-2.5 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground"
+            className="flex items-center justify-center rounded-full p-2.5 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground"
           >
             <PiSuitcaseRollingFill className="h-5 w-5 shrink-0" aria-hidden="true" />
           </button>
@@ -73,7 +73,7 @@ export function EscapeSidePanel({
             onClick={onToggleCollapsed}
             aria-label="Expand panel to view quotes"
             title="Quotes"
-            className="flex items-center justify-center rounded-xl p-2.5 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground"
+            className="flex items-center justify-center rounded-full p-2.5 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground"
           >
             <PiFileTextFill className="h-5 w-5 shrink-0" aria-hidden="true" />
           </button>

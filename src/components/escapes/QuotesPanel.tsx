@@ -387,9 +387,9 @@ export function QuotesPanel({
                       {computeWarnings.map((w, i) => <div key={i}>{w}</div>)}
                     </div>
                   )}
-                  <div className="flex justify-end gap-2 border-t border-border pt-4">
-                    <Button size="sm" variant="ghost" disabled={busy} onClick={closeCompute}>Close</Button>
-                    <Button size="sm" disabled={busy} loading={busy} loadingText="Computing…" onClick={() => handleCompute(q.uid)}>Compute</Button>
+                  <div className="flex gap-3 w-full border-t border-border pt-5">
+                    <Button size="sm" variant="ghost" disabled={busy} onClick={closeCompute} className="w-full">Close</Button>
+                    <Button size="sm" disabled={busy} loading={busy} loadingText="Computing…" onClick={() => handleCompute(q.uid)} className="w-full">Compute</Button>
                   </div>
                 </div>
               </Modal>

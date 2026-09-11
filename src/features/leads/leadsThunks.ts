@@ -2,7 +2,6 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import type {
-  Lead,
   AuditLogEntry,
   CreateLeadPayload,
   UpdateLeadPayload,
@@ -10,6 +9,8 @@ import type {
   SetLeadFollowUpDueDatePayload,
   ConvertLeadToEscapePayload,
   ConvertLeadToEscapeResult,
+  FetchLeadsParams,
+  LeadsPage,
 } from "@/features/leads/types";
 
 // Every thunk uses an explicit try/catch + rejectWithValue, rather than
@@ -18,11 +19,30 @@ import type {
 // of axios's own AxiosError shape — matching the `body?.message ?? fallback`
 // convention every fetch()-based call site used before this migration.
 
-export const fetchLeads = createAsyncThunk<Lead[], void, { rejectValue: string }>(
+// Search + Status + Month/Week/Day/All + pagination — every param is
+// forwarded straight through to GET /leads, which applies all of them as one
+// DB-level query and returns exactly one page (Page<Lead>), never the full
+// list. Omit an arg (or call with no argument at all) to get the backend's
+// own defaults (no filters, page 0, 20/page, newest first).
+export const fetchLeads = createAsyncThunk<LeadsPage, FetchLeadsParams | void, { rejectValue: string }>(
   "leads/fetchLeads",
-  async (_arg, { rejectWithValue }) => {
+  async (params, { rejectWithValue }) => {
     try {
-      const res = await clientApi.get<Lead[]>("/leads");
+      const search = new URLSearchParams();
+      if (params?.search) search.set("search", params.search);
+      if (params?.status) search.set("status", params.status);
+      if (params?.priority) search.set("priority", "true");
+      if (params?.from) search.set("from", params.from);
+      if (params?.to) search.set("to", params.to);
+      if (params?.escapePointId) search.set("escapePointId", params.escapePointId);
+      if (params?.source) params.source.forEach((s) => search.append("source", s));
+      // Always sent (defaults false) — the initial Leads page load must show
+      // non-archived leads only, never rely on the backend's own default.
+      search.set("archive", String(params?.archive ?? false));
+      if (params?.page != null) search.set("page", String(params.page));
+      if (params?.size != null) search.set("size", String(params.size));
+      const qs = search.toString();
+      const res = await clientApi.get<LeadsPage>(`/leads${qs ? `?${qs}` : ""}`);
       return res.data;
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to load leads"));
@@ -87,6 +107,17 @@ export const toggleLeadPriority = createAsyncThunk<void, string, { rejectValue: 
       await clientApi.post(`/leads/${leadUid}/actions/toggle-priority`);
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Action failed"));
+    }
+  },
+);
+
+export const archiveLead = createAsyncThunk<void, string, { rejectValue: string }>(
+  "leads/archiveLead",
+  async (leadUid, { rejectWithValue }) => {
+    try {
+      await clientApi.post(`/leads/${leadUid}/actions/archive`);
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to archive lead"));
     }
   },
 );

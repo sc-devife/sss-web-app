@@ -18,6 +18,7 @@ import { Caption } from "@/components/ui/Typography";
 import { Spinner } from "@/components/ui/Spinner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { HotelFormModal, AMENITY_OPTIONS } from "@/components/library/HotelFormModal";
+import { GalleryImage } from "@/components/library/GalleryImage";
 import { resolveFileUrl } from "@/lib/files";
 import { formatDisplayDate, formatDisplayTime } from "@/lib/date";
 import { clientApi } from "@/lib/axios/clientClient";
@@ -242,27 +243,13 @@ export function HotelDetailPanel({
         </div>
       </div>
 
-      {images.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto">
-          {images.filter((url) => url !== cover).map((url) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={url}
-              src={resolveFileUrl(url)}
-              alt={hotel.name}
-              className="h-20 w-28 shrink-0 rounded-lg border border-border object-cover"
-            />
-          ))}
-        </div>
-      )}
-
       {/* Escape point + quick facts */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="rounded-xl border border-border bg-background p-3">
           <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Escape Point</div>
           <div className="mt-1">
             {hotel.escapePoint ? (
-              <Badge tone="neutral">{hotel.escapePoint.name}</Badge>
+              <Badge tone="dark">{hotel.escapePoint.name}</Badge>
             ) : (
               <span className="text-sm text-muted-foreground">Not assigned</span>
             )}
@@ -295,8 +282,12 @@ export function HotelDetailPanel({
             <div className="mt-0.5 text-sm font-medium text-foreground">{hotel.address || "—"}</div>
           </div>
           <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contact Info</div>
-            <div className="mt-0.5 text-sm font-medium text-foreground">{hotel.contactInfo || "—"}</div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Phone Number</div>
+            <div className="mt-0.5 text-sm font-medium text-foreground">{hotel.phoneNumber || "—"}</div>
+          </div>
+          <div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Email</div>
+            <div className="mt-0.5 text-sm font-medium text-foreground">{hotel.email || "—"}</div>
           </div>
         </div>
 
@@ -315,7 +306,7 @@ export function HotelDetailPanel({
 
       {hotel.amenities && hotel.amenities.length > 0 && (
         <div className="rounded-xl border border-border bg-muted/20 p-4">
-          <Caption>Amenities</Caption>
+          <Caption className="font-semibold">Amenities</Caption>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {hotel.amenities.map((a) => (
               <Badge key={a} tone="neutral">
@@ -329,7 +320,7 @@ export function HotelDetailPanel({
       {images.length > 1 && (
         <div>
           <div className="flex items-center justify-between">
-            <Caption>Gallery</Caption>
+            <Caption className="font-semibold">Gallery</Caption>
             <span className="text-xs text-muted-foreground">Hover an image to set it as the priority image</span>
           </div>
 
@@ -345,8 +336,7 @@ export function HotelDetailPanel({
               const isSettingThis = settingPriorityFor === url;
               return (
                 <div key={url} className="group relative aspect-square overflow-hidden rounded-lg border border-border">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <GalleryImage
                     src={resolveFileUrl(url)}
                     alt={hotel.name}
                     className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]"

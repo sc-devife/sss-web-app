@@ -1,5 +1,6 @@
 import { backendJson } from "@/lib/backend";
 import type { IntegrationConnection } from "@/lib/integrations";
+import type { Page } from "@/lib/pagination";
 
 export interface WebhookEvent {
   seqp: number;
@@ -36,13 +37,6 @@ export interface FieldMapping {
   formId: string | null;
   metaFieldKey: string;
   crmField: string;
-}
-
-interface Page<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  number: number;
 }
 
 export async function getLeadSources(): Promise<IntegrationConnection[]> {

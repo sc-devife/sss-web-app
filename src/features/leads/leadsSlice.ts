@@ -17,8 +17,20 @@ type RequestStatus = "idle" | "loading" | "succeeded" | "failed";
 
 interface LeadsState {
   items: Lead[];
+  // Pagination metadata from the last GET /leads response (all server-side —
+  // see leadsThunks.fetchLeads/LeadController.getAllLeads).
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
   status: RequestStatus;
   error: string | null;
+  // The requestId of the most recently *dispatched* fetchLeads call. Every
+  // filter change (search/status/period/page) dispatches a new fetchLeads
+  // while an earlier one may still be in flight, so responses can resolve
+  // out of order. fulfilled/rejected only apply their result when it matches
+  // this — otherwise it's a stale response and is dropped.
+  currentRequestId: string | null;
 
   createStatus: RequestStatus;
   createError: string | null;
@@ -38,8 +50,13 @@ interface LeadsState {
 
 const initialState: LeadsState = {
   items: [],
+  page: 0,
+  size: 20,
+  totalElements: 0,
+  totalPages: 0,
   status: "idle",
   error: null,
+  currentRequestId: null,
   createStatus: "idle",
   createError: null,
   actionStatus: "idle",
@@ -73,15 +90,25 @@ const leadsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchLeads.pending, (state) => {
+      .addCase(fetchLeads.pending, (state, action) => {
+        // Always tracks the *latest* dispatch, even while an older one is
+        // still in flight — that older one's fulfilled/rejected will see
+        // this no longer matches its own requestId and drop its result.
+        state.currentRequestId = action.meta.requestId;
         state.status = "loading";
         state.error = null;
       })
       .addCase(fetchLeads.fulfilled, (state, action) => {
+        if (action.meta.requestId !== state.currentRequestId) return;
         state.status = "succeeded";
-        state.items = action.payload;
+        state.items = action.payload.content;
+        state.page = action.payload.number;
+        state.size = action.payload.size;
+        state.totalElements = action.payload.totalElements;
+        state.totalPages = action.payload.totalPages;
       })
       .addCase(fetchLeads.rejected, (state, action) => {
+        if (action.meta.requestId !== state.currentRequestId) return;
         state.status = "failed";
         state.error = action.payload ?? "Failed to load leads";
       })

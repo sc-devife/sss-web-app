@@ -1,5 +1,6 @@
 import type { IconType } from "react-icons";
-import { PiCarFill, PiTaxiFill, PiBedFill, PiMountainsFill, PiBinocularsFill, PiForkKnifeFill, PiSunFill, PiDotsThreeCircleFill } from "react-icons/pi";
+import { PiCarFill, PiTaxiFill, PiMountainsFill, PiBinocularsFill, PiForkKnifeFill, PiSunFill, PiDotsThreeCircleFill } from "react-icons/pi";
+import { MdHotel } from "react-icons/md";
 import type { ItineraryItem, PlanningItemType } from "@/lib/itinerary-items";
 
 // "hotel" is deliberately excluded here — this list only drives the Add
@@ -20,7 +21,7 @@ export const PLANNING_ITEM_TYPES: { value: PlanningItemType; label: string }[] =
 export const PLANNING_ITEM_ICON: Record<PlanningItemType, IconType> = {
   transport: PiCarFill,
   pickup_drop: PiTaxiFill,
-  hotel: PiBedFill,
+  hotel: MdHotel,
   activity: PiMountainsFill,
   sightseeing: PiBinocularsFill,
   meal: PiForkKnifeFill,

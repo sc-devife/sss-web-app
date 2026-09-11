@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
@@ -11,11 +12,93 @@ import { fetchQuotesForItinerary, computeQuote } from "@/features/quotes/quotesT
 import { selectQuotesForItinerary, selectQuotesStatus } from "@/features/quotes/quotesSelectors";
 import { fetchTaxProfiles } from "@/features/taxProfiles/taxProfilesThunks";
 import { selectTaxProfiles } from "@/features/taxProfiles/taxProfilesSelectors";
+import { fetchEscapeById, updateEscapeSummaryNotes } from "@/features/escapes/escapesThunks";
+import { selectCurrentEscape } from "@/features/escapes/escapesSelectors";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import type { PricingBreakdown } from "@/features/quotes/types";
 
+// Dynamically imported (TipTap/ProseMirror add ~90KB) — same pattern as
+// ItineraryContentSection's Terms/Inclusions/Exclusions editor.
+const RichTextEditor = dynamic(() => import("@/components/ui/RichTextEditor").then((m) => m.RichTextEditor), {
+  ssr: false,
+  loading: () => <div className="skeleton h-40 rounded border border-border" />,
+});
+
 function money(value: number | null | undefined) {
   return `₹${(value ?? 0).toFixed(2)}`;
+}
+
+// Internal Comments (private, team-only — never sent to QuotationDataService)
+// and Remark for Lead (client-facing rich text, rendered in the generated
+// Quotation) — both live on Escape, saved via their own small endpoint
+// (PUT /escape/{id}/summary-notes) so they never collide with the
+// full-object escape-duration PUT. Reads the escape from the store's
+// currentEscape (already loaded by EscapeDetailPanel for this same page)
+// rather than fetching it again here.
+function SummaryNotesSection({ escapeUid }: { escapeUid: string }) {
+  const dispatch = useAppDispatch();
+  const escape = useAppSelector(selectCurrentEscape);
+
+  const [internalComments, setInternalComments] = useState("");
+  const [remarkForLead, setRemarkForLead] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | undefined>();
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (!escape || escape.uid !== escapeUid) return;
+    setInternalComments(escape.internalComments ?? "");
+    setRemarkForLead(escape.remarkForLead ?? "");
+  }, [escape, escapeUid]);
+
+  async function handleSave() {
+    setBusy(true);
+    setError(undefined);
+    setSaved(false);
+    try {
+      await dispatch(updateEscapeSummaryNotes({ escapeUid, internalComments, remarkForLead })).unwrap();
+      dispatch(fetchEscapeById(escapeUid));
+      setSaved(true);
+    } catch (err) {
+      setError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to save"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+      <div className="flex flex-col gap-1.5 rounded border border-border p-3">
+        <div className="flex flex-col gap-0.5">
+          <Caption>Internal Comments</Caption>
+          <span className="text-xs text-muted-foreground">Private — never shown to the client or in the quotation.</span>
+        </div>
+        <textarea
+          value={internalComments}
+          onChange={(e) => setInternalComments(e.target.value)}
+          rows={5}
+          placeholder="Notes for the team — reminders, operational details, anything internal…"
+          className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5 rounded border border-border p-3">
+        <div className="flex flex-col gap-0.5">
+          <Caption>Remark for Lead</Caption>
+          <span className="text-xs text-muted-foreground">Visible to the client — included in the generated quotation.</span>
+        </div>
+        <RichTextEditor value={remarkForLead} onChange={setRemarkForLead} placeholder="A note for the client, shown on the quotation…" />
+      </div>
+
+      <div className="flex items-center gap-3 lg:col-span-2">
+        <Button size="sm" disabled={busy} loading={busy} loadingText="Saving…" onClick={handleSave}>
+          Save
+        </Button>
+        {saved && !busy && <span className="text-xs text-success">Saved.</span>}
+        {error && <span className="text-sm text-danger">{error}</span>}
+      </div>
+    </div>
+  );
 }
 
 // This tab never computes pricing itself — it's a thin display + controls
@@ -23,7 +106,7 @@ function money(value: number | null | undefined) {
 // "Compute pricing" action already calls (via the same computeQuote thunk),
 // so the breakdown/subtotal/tax/discount/total shown here can never drift
 // from what a quote actually prices. There's no separate calculation here.
-export function SummaryPanel({ itineraryUid }: { itineraryUid: string }) {
+export function SummaryPanel({ itineraryUid, escapeUid }: { itineraryUid: string; escapeUid: string }) {
   const dispatch = useAppDispatch();
   const quotes = useAppSelector((s) => selectQuotesForItinerary(s, itineraryUid));
   const quotesStatus = useAppSelector((s) => selectQuotesStatus(s, itineraryUid));
@@ -143,8 +226,11 @@ export function SummaryPanel({ itineraryUid }: { itineraryUid: string }) {
 
   if (!targetQuote) {
     return (
-      <div className="flex items-center justify-center rounded border border-border py-10">
-        <Body muted>No quote yet for this itinerary — add one from the Quote tab to see a pricing summary.</Body>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-center rounded border border-border py-10">
+          <Body muted>No quote yet for this itinerary — add one from the Quote tab to see a pricing summary.</Body>
+        </div>
+        <SummaryNotesSection escapeUid={escapeUid} />
       </div>
     );
   }
@@ -238,6 +324,8 @@ export function SummaryPanel({ itineraryUid }: { itineraryUid: string }) {
       )}
 
       {error && <p className="text-sm text-danger">{error}</p>}
+
+      <SummaryNotesSection escapeUid={escapeUid} />
     </div>
   );
 }

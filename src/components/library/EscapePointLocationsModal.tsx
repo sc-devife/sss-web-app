@@ -96,12 +96,12 @@ export function EscapePointLocationsModal({
           </Alert>
         )}
 
-        <div className="flex gap-2">
-          <Button type="button" disabled={saving} loading={saving} loadingText="Saving…" onClick={handleSave}>
-            Save locations
-          </Button>
-          <Button type="button" variant="ghost" disabled={saving} onClick={onClose}>
+        <div className="flex gap-3 w-full border-t pt-5">
+          <Button type="button" variant="ghost" disabled={saving} onClick={onClose} className="w-full">
             Cancel
+          </Button>
+          <Button type="button" disabled={saving} loading={saving} loadingText="Saving…" onClick={handleSave} className="w-full">
+            Save locations
           </Button>
         </div>
       </div>

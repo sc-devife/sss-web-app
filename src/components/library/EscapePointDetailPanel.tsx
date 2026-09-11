@@ -15,6 +15,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Body, Caption } from "@/components/ui/Typography";
 import { EscapePointFormModal } from "@/components/library/EscapePointFormModal";
 import { EscapePointLocationsModal } from "@/components/library/EscapePointLocationsModal";
+import { GalleryImage } from "@/components/library/GalleryImage";
 import { resolveFileUrl } from "@/lib/files";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import type { EscapePoint } from "@/lib/escape-points";
@@ -191,8 +192,7 @@ export function EscapePointDetailPanel({
               const isSettingThis = settingPriorityFor === url;
               return (
                 <div key={url} className="group relative aspect-square overflow-hidden rounded-lg border border-border">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <GalleryImage
                     src={resolveFileUrl(url)}
                     alt={current.name}
                     className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]"

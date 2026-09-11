@@ -20,7 +20,7 @@ import type { Service } from "@/lib/services";
 import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
-import { required, requiredSelection, runValidators } from "@/lib/validators";
+import { required, requiredSelection, runValidators, emailField } from "@/lib/validators";
 import { fetchCountryOptions, fetchRegionOptions } from "@/lib/reference-data-client";
 import type { ReferenceOption } from "@/lib/reference-data-client";
 import { useAppDispatch } from "@/store/hooks";
@@ -51,7 +51,8 @@ const emptyForm = {
   rateValidFrom: "",
   rateValidTo: "",
   address: "",
-  contactInfo: "",
+  phoneNumber: "",
+  email: "",
   images: [] as string[],
   amenities: [] as string[],
   status: "active",
@@ -70,6 +71,9 @@ function validate(
   const errors: Record<string, string> = {};
   const nameErr = runValidators(v.name, [required("Hotel name is required")]);
   if (nameErr) errors.name = nameErr;
+
+  const emailErr = runValidators(v.email, [emailField()]);
+  if (emailErr) errors.email = emailErr;
 
   if (addingLocation) {
     const cityErr = runValidators(newLocation.city, [required("City is required")]);
@@ -99,7 +103,8 @@ function snapshotFromHotel(hotel: Hotel | null): FormState {
     rateValidFrom: hotel.rateValidFrom ?? "",
     rateValidTo: hotel.rateValidTo ?? "",
     address: hotel.address ?? "",
-    contactInfo: hotel.contactInfo ?? "",
+    phoneNumber: hotel.phoneNumber ?? "",
+    email: hotel.email ?? "",
     images: hotel.images ?? [],
     amenities: hotel.amenities ?? [],
     status: hotel.status ?? "active",
@@ -275,7 +280,8 @@ export function HotelFormModal({
         rateValidFrom: form.rateValidFrom || null,
         rateValidTo: form.rateValidTo || null,
         address: form.address,
-        contactInfo: form.contactInfo,
+        phoneNumber: form.phoneNumber,
+        email: form.email,
         images: form.images,
         amenities: form.amenities,
         status: form.status,
@@ -523,7 +529,26 @@ export function HotelFormModal({
           </div>
 
           <TextInput label="Address" value={form.address} onChange={(e) => update("address", e.target.value)} />
-          <TextInput label="Contact info" value={form.contactInfo} onChange={(e) => update("contactInfo", e.target.value)} />
+          <div className="grid grid-cols-2 gap-3">
+            <TextInput
+              label="Phone Number"
+              type="tel"
+              placeholder="e.g. +91 98765 43210"
+              value={form.phoneNumber}
+              onChange={(e) => update("phoneNumber", e.target.value)}
+            />
+            <TextInput
+              label="Email"
+              type="email"
+              placeholder="e.g. reservations@hotel.com"
+              value={form.email}
+              onChange={(e) => {
+                update("email", e.target.value);
+                setErrors((p) => ({ ...p, email: "" }));
+              }}
+              error={errors.email}
+            />
+          </div>
 
           <MultiSelect label="Amenities" options={AMENITY_OPTIONS} value={form.amenities} onChange={(v) => update("amenities", v)} />
 
@@ -546,17 +571,18 @@ export function HotelFormModal({
           </Alert>
         )}
 
-        <div className="flex gap-2">
-          <Button type="submit" disabled={saving || (!!hotel && !canSubmit)} loading={saving} loadingText="Saving…">
-            Save hotel
-          </Button>
+        <div className="flex gap-3 w-full border-t pt-5">
           <Button
             type="button"
             variant="ghost"
             disabled={saving}
             onClick={onClose}
+            className="w-full"
           >
             Cancel
+          </Button>
+          <Button type="submit" disabled={saving || (!!hotel && !canSubmit)} loading={saving} loadingText="Saving…" className="w-full">
+            Save hotel
           </Button>
         </div>
       </form>

@@ -8,10 +8,17 @@ import { Body, Caption } from "@/components/ui/Typography";
 import type { AppUser, AppRole } from "@/lib/users";
 import type { Team } from "@/lib/teams";
 import { formatRelativeTime } from "@/lib/date";
-import { PiUsersThree, PiUsersFourFill, PiPencilSimple, PiWarningCircleFill, PiLockKeyOpenBold } from "react-icons/pi";
+import {
+  PiUsersThree,
+  PiUsersFourFill,
+  PiPencilSimple,
+  PiWarningCircleFill,
+  PiLockKeyOpenBold,
+} from "react-icons/pi";
 import { useAppDispatch } from "@/store/hooks";
 import { updateUserRoles, updateUserTeams, setUserBlockedStatus, fetchUsers } from "@/features/users/usersThunks";
 import { ImBlocked } from "react-icons/im";
+import { MdOutlineEmail, MdOutlinePhone } from "react-icons/md";
 
 function RoleEditor({ user, roles, onClose }: { user: AppUser; roles: AppRole[]; onClose: () => void }) {
   const dispatch = useAppDispatch();
@@ -169,23 +176,49 @@ export function UsersList({ users, roles, teams }: { users: AppUser[]; roles: Ap
                     {user.last_name[0]}
                   </span>
                 </div>
-                <div className="min-w-0 flex-1">
+
+                <div className="min-w-0 flex-1 space-y-0.2">
                   <div className="flex items-center gap-2">
                     <Body className="truncate font-semibold">
                       {user.first_name} {user.last_name}
                     </Body>
-                    {user.blocked && <PiWarningCircleFill className="h-4 w-4 shrink-0 text-danger" />}
+
+                    {user.blocked && (
+                      <PiWarningCircleFill className="h-4 w-4 shrink-0 text-danger" />
+                    )}
                   </div>
-                  <Caption className="truncate">{user.email}</Caption>
-                  {user.lastActiveAt && (
-                    <Caption className="truncate text-muted-foreground">
-                      Active {formatRelativeTime(user.lastActiveAt)}
+                  <div className="flex flex-col gap-0.5 md:flex-row sm:items-center md:gap-2">
+                    <Caption className="flex items-center gap-1.5 truncate lowercase text-muted-foreground">
+                      <MdOutlineEmail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                      <span className="truncate">{user.email}</span>
                     </Caption>
-                  )}
-                  {user.invitedByName && (
-                    <Caption className="truncate text-muted-foreground">
-                      Invited by {user.invitedByName}
-                    </Caption>
+
+                    {user.contact_number && (
+                      <Caption className="flex items-center gap-1.5 truncate text-muted-foreground">
+                        <MdOutlinePhone className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        <span className="truncate">{user.contact_number}</span>
+                      </Caption>
+                    )}
+                  </div>
+
+                  {(user.lastActiveAt || user.invitedByName) && (
+                    <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                      {user.lastActiveAt && (
+                        <Caption className="truncate">
+                          Active {formatRelativeTime(user.lastActiveAt)}
+                        </Caption>
+                      )}
+
+                      {user.lastActiveAt && user.invitedByName && (
+                        <span className="text-xs text-muted-foreground/50">•</span>
+                      )}
+
+                      {user.invitedByName && (
+                        <Caption className="truncate">
+                          Invited by {user.invitedByName}
+                        </Caption>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

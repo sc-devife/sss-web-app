@@ -16,7 +16,8 @@ export interface Hotel {
   rateValidTo: string | null;
   isActive: boolean;
   address: string | null;
-  contactInfo: string | null;
+  phoneNumber: string | null;
+  email: string | null;
   images: string[] | null;
   // The manually-chosen main image — used wherever a single representative
   // image is needed instead of assuming images[0].

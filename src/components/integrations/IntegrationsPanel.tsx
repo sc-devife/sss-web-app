@@ -298,10 +298,10 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
                         </div>
                       </div>
                     ) : (
-                      <Button size="sm" className="h-10 w-full rounded-xl" onClick={() => startConnecting(integration.channelCode)}>Connect</Button>
+                      <Button size="sm" className="h-10 w-full" onClick={() => startConnecting(integration.channelCode)}>Connect</Button>
                     )
                   ) : (
-                    <Button size="sm" variant="danger" className="h-10 w-full rounded-xl" disabled={busy} onClick={() => handleDisconnect(integration.channelCode)}>
+                    <Button size="sm" variant="danger" className="h-10 w-full" disabled={busy} onClick={() => handleDisconnect(integration.channelCode)}>
                       Disconnect
                     </Button>
                   )}

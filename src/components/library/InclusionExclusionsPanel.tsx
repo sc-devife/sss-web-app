@@ -181,13 +181,13 @@ export function InclusionExclusionsPanel({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1 rounded border border-border p-1">
+        <div className="flex gap-1 rounded-full border border-border p-1">
           {TABS.map((tab) => (
             <button
               key={tab.value}
               type="button"
               onClick={() => setActiveTab(tab.value)}
-              className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === tab.value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === tab.value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                 }`}
             >
               {tab.label}
@@ -272,12 +272,12 @@ export function InclusionExclusionsPanel({
               {formError}
             </Alert>
           )}
-          <div className="flex gap-2">
-            <Button type="submit" disabled={saving || (!!editingUid && !isDirty)} loading={saving} loadingText="Saving…">
-              Save
-            </Button>
-            <Button type="button" variant="ghost" disabled={saving} onClick={() => setModalOpen(false)}>
+          <div className="flex gap-3 w-full border-t pt-5">
+            <Button type="button" variant="ghost" disabled={saving} onClick={() => setModalOpen(false)} className="w-full">
               Cancel
+            </Button>
+            <Button type="submit" disabled={saving || (!!editingUid && !isDirty)} loading={saving} loadingText="Saving…" className="w-full">
+              Save
             </Button>
           </div>
         </form>

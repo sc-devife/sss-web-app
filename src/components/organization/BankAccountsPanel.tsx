@@ -101,7 +101,7 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
 
   const [countryOptions, setCountryOptions] = useState<ReferenceOption[]>([]);
   useEffect(() => {
-    fetchCountryOptions().then(setCountryOptions).catch(() => {});
+    fetchCountryOptions().then(setCountryOptions).catch(() => { });
   }, []);
 
   // Branch-state options are scoped to the selected country — resolve the
@@ -175,7 +175,7 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-5 border-b border-border/70 pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-2">
           <Body className="max-w-2xl text-muted-foreground">Manage settlement accounts and keep your organization&apos;s banking details organized in one secure place.</Body>
@@ -186,9 +186,9 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
       </header>
 
       {(status === "idle" || status === "loading") && accounts.length === 0 ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Loading bank accounts">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3" aria-label="Loading bank accounts">
           {[1, 2, 3].map((item) => (
-            <Card key={item} className="flex min-h-[280px] flex-col gap-5 border-border/70 p-5">
+            <Card key={item} className="flex min-h-[280px] rounded-xl flex-col gap-5 border-border/70 p-5">
               <div className="flex items-center gap-3">
                 <div className="skeleton size-11 rounded-xl" />
                 <div className="flex flex-1 flex-col gap-2"><div className="skeleton h-4 w-32 rounded" /><div className="skeleton h-3 w-20 rounded" /></div>
@@ -207,11 +207,11 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
           <Button variant="secondary" size="sm" onClick={openAddModal}><FaPlus /> Add bank account</Button>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {accounts.map((account) => {
             const isActive = account.status === "active";
             return (
-              <Card key={account.uid} className="group flex min-h-[280px] flex-col gap-5 border-border/70 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
+              <Card key={account.uid} className="group flex min-h-[280px] flex-col gap-5 rounded-xl border-border/70 p-5 transition-all duration-200 hover:shadow-lg">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex min-w-0 items-start gap-3">
                     <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/50 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground"><FaUniversity className="size-5" /></div>
@@ -358,11 +358,11 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
             </Alert>
           )}
 
-          <div className="flex justify-end gap-3 border-t pt-5 sm:col-span-2">
-            <Button type="button" variant="ghost" disabled={saving} onClick={closeAddModal}>
+          <div className="flex gap-3 w-full border-t pt-5 sm:col-span-2">
+            <Button type="button" variant="ghost" disabled={saving} onClick={closeAddModal} className="w-full">
               Cancel
             </Button>
-            <Button type="submit" disabled={saving} loading={saving} loadingText="Saving…">
+            <Button type="submit" disabled={saving} loading={saving} loadingText="Saving…" className="w-full">
               Save account
             </Button>
           </div>

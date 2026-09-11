@@ -4,7 +4,6 @@ import { LiaUserSolid } from "react-icons/lia";
 import {
   PiFunnelFill,
   PiGitForkFill,
-  PiAirplaneTiltFill,
   PiMapPinFill,
   PiStorefrontFill,
   PiBooksFill,
@@ -23,10 +22,14 @@ import {
   PiCalculatorFill,
   PiReceiptFill,
   PiSparkleFill,
+  PiMountainsFill,
+  PiCarFill,
+  PiBellFill,
 } from "react-icons/pi";
-import { TbKayak, TbBusFilled, TbRoute, TbPlug } from "react-icons/tb";
-import { FaBuildingUser } from "react-icons/fa6";
+import { TbRoute } from "react-icons/tb";
+import { FaBuildingUser, FaPersonWalkingLuggage } from "react-icons/fa6";
 import { MdHotel } from "react-icons/md";
+import { BsPlugin, BsFillInboxesFill } from "react-icons/bs";
 
 // Nav is a plain data structure — the sidebar renders from it, and each
 // `path` maps 1:1 onto an `app/(protected)/<path>/page.tsx` route. Adding a
@@ -61,7 +64,7 @@ export const routeGroups: RouteGroup[] = [
     routes: [
       { path: "/leads", title: "Leads", icon: PiFunnelFill },
       { path: "/leads/sources", title: "Lead Sources", icon: PiGitForkFill },
-      { path: "/escapes", title: "Escapes", icon: PiAirplaneTiltFill },
+      { path: "/escapes", title: "Escapes", icon: FaPersonWalkingLuggage },
     ],
   },
   {
@@ -71,8 +74,8 @@ export const routeGroups: RouteGroup[] = [
     routes: [
       { path: "/library/hotels", title: "Hotels", icon: MdHotel },
       { path: "/library/escape-points", title: "Escape Points", icon: PiMapPinFill },
-      { path: "/library/activities", title: "Activities", icon: TbKayak },
-      { path: "/library/transport", title: "Transport", icon: TbBusFilled },
+      { path: "/library/activities", title: "Activities", icon: PiMountainsFill },
+      { path: "/library/transport", title: "Transport", icon: PiCarFill },
       { path: "/library/service-providers", title: "Service Providers", icon: PiStorefrontFill },
       { path: "/library/meal-plans", title: "Meal Plans", icon: PiForkKnifeFill },
       { path: "/library/room-types", title: "Room Types", icon: PiDoorOpenFill },
@@ -92,8 +95,8 @@ export const routeGroups: RouteGroup[] = [
       //{ path: "/administration/roles", title: "Roles", icon: PiShieldCheckFill },
       { path: "/administration/bank-accounts", title: "Bank Accounts", icon: PiBankFill },
       { path: "/administration/assignment-rules", title: "Assignment Rules", icon: TbRoute },
-      { path: "/administration/integrations", title: "Integrations", icon: TbPlug },
-      { path: "/administration/templates", title: "Quote/Invoice Templates", icon: PiFileTextFill },
+      { path: "/administration/integrations", title: "Integrations", icon: BsPlugin },
+      { path: "/administration/templates", title: "Quotation Templates", icon: PiFileTextFill },
       { path: "/administration/settings", title: "Settings", icon: PiGearSixFill },
     ],
   },
@@ -125,10 +128,20 @@ export const routeGroups: RouteGroup[] = [
 
 export const profileRoute: AppRoute = { path: "/profile", title: "Profile", icon: LiaUserSolid };
 
+// Reached via the header's Follow-up icon (Header.tsx), not the sidebar —
+// same "own route, no sidebar group" shape as profileRoute.
+export const followUpsRoute: AppRoute = { path: "/follow-ups", title: "Follow-ups", icon: BsFillInboxesFill };
+
+// Reached via the sidebar's bell icon (NotificationBell), not a sidebar nav
+// item itself — same shape as followUpsRoute/profileRoute.
+export const notificationsRoute: AppRoute = { path: "/notifications", title: "Notifications", icon: PiBellFill };
+
 export const protectedRoutes: AppRoute[] = [
   dashboardRoute,
   ...routeGroups.flatMap((group) => group.routes),
   profileRoute,
+  followUpsRoute,
+  notificationsRoute,
 ];
 
 export const findRouteByPath = (pathname: string) =>

@@ -6,12 +6,23 @@ import { usePathname, useRouter } from "next/navigation";
 import { dashboardRoute, protectedRoutes, visibleGroupsForRoles, type RouteGroup } from "@/lib/nav-config";
 import { cn } from "@/lib/cn";
 import { FaChevronLeft, FaChevronRight, FaChevronDown, FaPowerOff } from "react-icons/fa";
-import { PiBellFill } from "react-icons/pi";
+import { BsFillInboxesFill } from "react-icons/bs";
 import { clientApi } from "@/lib/axios/clientClient";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { closeMobile as closeMobileAction } from "@/features/ui/uiSlice";
 import { clearLoggedInUser } from "@/features/auth/authSlice";
+import { fetchFollowUpCount } from "@/features/followups/followupsThunks";
+import { selectFollowUpCount } from "@/features/followups/followupsSelectors";
 import pkg from "../../../package.json";
+
+// No existing polling/pub-sub infra to hook into — a 60s interval is the
+// simplest way to keep the badge reasonably fresh; a create/complete action
+// elsewhere also re-dispatches fetchFollowUpCount directly for an immediate
+// update. Lives on the top-level Sidebar (mounted once), not inside
+// FollowUpsLink/SidebarFooter (which mount twice — once for the collapsed
+// rail, once for the overlay panel) — same reasoning Header.tsx's polling
+// used to follow before this swap.
+const FOLLOWUP_COUNT_POLL_MS = 60000;
 
 function NavLink({
   path,
@@ -93,7 +104,7 @@ function ExpandedGroup({
         type="button"
         onClick={onToggle}
         aria-expanded={isOpen}
-        className="mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        className="mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
         <group.icon className="size-4 shrink-0" aria-hidden="true" />
         <span className="flex-1 text-left">{group.title}</span>
@@ -139,7 +150,7 @@ function SidebarBrand({
           onClick={onToggle}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={collapsed ? "Maximize sidebar" : "Minimize sidebar"}
-          className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="shrink-0 rounded-xl p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           {collapsed ? <FaChevronRight className="h-4 w-4" /> : <FaChevronLeft className="h-4 w-4" />}
         </button>
@@ -148,17 +159,19 @@ function SidebarBrand({
   );
 }
 
-// TODO: no notifications backend/feed exists yet — this is a UI placeholder.
-// Wire `hasUnread` to a real unread-count selector once that feature lands.
-function NotificationsLink({ collapsed }: { collapsed: boolean }) {
+// Swapped in from Header.tsx's old compact icon — same plain navigating
+// Link + numeric pill badge (Follow-ups has no dropdown panel, unlike
+// Notifications), just restyled to fit the sidebar's collapsed-rail/
+// expanded-row nav-item convention instead of Header's icon-only chrome.
+function FollowUpsLink({ collapsed }: { collapsed: boolean }) {
   const pathname = usePathname();
-  const active = pathname === "/notifications" || pathname.startsWith("/notifications/");
-  const hasUnread = false;
+  const active = pathname === "/follow-ups" || pathname.startsWith("/follow-ups/");
+  const followUpCount = useAppSelector(selectFollowUpCount);
 
   return (
     <Link
-      href="/notifications"
-      title={collapsed ? "Notifications" : undefined}
+      href="/follow-ups"
+      title={collapsed ? "Follow-ups" : undefined}
       className={cn(
         "relative flex items-center gap-3 rounded-xl p-2.5 text-sm font-medium transition-colors",
         collapsed ? "w-auto justify-center" : "w-full",
@@ -168,12 +181,14 @@ function NotificationsLink({ collapsed }: { collapsed: boolean }) {
       )}
     >
       <span className="relative shrink-0">
-        <PiBellFill className="h-4 w-4" />
-        {hasUnread && (
-          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-danger ring-2 ring-card" aria-hidden="true" />
+        <BsFillInboxesFill className="h-4 w-4" />
+        {followUpCount > 0 && (
+          <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+            {followUpCount > 99 ? "99+" : followUpCount}
+          </span>
         )}
       </span>
-      {!collapsed && <span>Notifications</span>}
+      {!collapsed && <span>Follow-ups</span>}
     </Link>
   );
 }
@@ -181,7 +196,7 @@ function NotificationsLink({ collapsed }: { collapsed: boolean }) {
 function SidebarFooter({ collapsed, loggingOut, onLogout }: { collapsed: boolean; loggingOut: boolean; onLogout: () => void }) {
   return (
     <div className={cn("p-4", collapsed && "flex flex-col items-center gap-1 p-2")}>
-      <NotificationsLink collapsed={collapsed} />
+      <FollowUpsLink collapsed={collapsed} />
       <button
         onClick={onLogout}
         disabled={loggingOut}
@@ -213,6 +228,15 @@ export function Sidebar({ roles }: { roles: string[] }) {
   // independently by clicking its header (or opened by clicking its icon on
   // the collapsed rail), and stays open until the user collapses it again.
   const [openGroupIds, setOpenGroupIds] = useState<Set<string>>(new Set());
+
+  // Sidebar renders once (unlike SidebarFooter/FollowUpsLink, which mount
+  // twice — once for the collapsed rail, once for the overlay panel) — so
+  // this is where the single follow-up-count poll lives, never duplicated.
+  useEffect(() => {
+    dispatch(fetchFollowUpCount());
+    const interval = setInterval(() => dispatch(fetchFollowUpCount()), FOLLOWUP_COUNT_POLL_MS);
+    return () => clearInterval(interval);
+  }, [dispatch]);
 
   function toggleGroup(groupId: string) {
     setOpenGroupIds((current) => {

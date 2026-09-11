@@ -203,12 +203,12 @@ export function MealPlansPanel() {
             </Alert>
           )}
 
-          <div className="flex gap-2">
-            <Button type="submit" disabled={saving || (!!editing && !isDirty)} loading={saving} loadingText="Saving…">
-              Save meal plan
-            </Button>
-            <Button type="button" variant="ghost" disabled={saving} onClick={() => setModalOpen(false)}>
+          <div className="flex gap-3 w-full border-t pt-5">
+            <Button type="button" variant="ghost" disabled={saving} onClick={() => setModalOpen(false)} className="w-full">
               Cancel
+            </Button>
+            <Button type="submit" disabled={saving || (!!editing && !isDirty)} loading={saving} loadingText="Saving…" className="w-full">
+              Save meal plan
             </Button>
           </div>
         </form>

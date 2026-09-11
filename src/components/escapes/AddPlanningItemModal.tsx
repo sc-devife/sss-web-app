@@ -347,17 +347,17 @@ export function AddPlanningItemModal({
               onChange={(e) => setLongDescription(e.target.value)}
               rows={3}
               placeholder="Add a detailed description, highlights, or important information..."
-              className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+              className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
             />
           </div>
 
           {error && <p className="text-sm text-danger">{error}</p>}
 
-          <div className="flex justify-end gap-2 border-t border-border pt-3">
-            <Button type="button" variant="ghost" disabled={saving} onClick={() => setStep("select")}>
+          <div className="flex gap-3 w-full border-t border-border pt-5">
+            <Button type="button" variant="ghost" disabled={saving} onClick={() => setStep("select")} className="w-full">
               Back
             </Button>
-            <Button type="button" disabled={saving} loading={saving} loadingText="Saving…" onClick={handleSave}>
+            <Button type="button" disabled={saving} loading={saving} loadingText="Saving…" onClick={handleSave} className="w-full">
               Save
             </Button>
           </div>

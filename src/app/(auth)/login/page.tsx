@@ -182,12 +182,7 @@ function LoginForm() {
             Email Address
           </label>
 
-          <div
-            className={`relative ${emailError
-              ? "rounded-[10px] ring-1 ring-red-500"
-              : ""
-              }`}
-          >
+          <div className="relative">
             {/* Email Icon */}
             <IoMailOutline
               aria-hidden="true"
@@ -207,13 +202,18 @@ function LoginForm() {
               autoComplete="username"
               placeholder="Enter your email"
               disabled={loading}
-              className="h-11 w-full rounded-xl border border-border bg-background px-12 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted"
+              className={`h-11 w-full rounded-xl border bg-background px-12 text-sm text-foreground outline-none transition placeholder:text-muted-foreground
+  focus:ring-2 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground
+  ${emailError
+                  ? "border-danger focus:border-danger focus:ring-danger/20"
+                  : "border-border focus:border-primary focus:ring-primary/20"
+                }`}
             />
           </div>
 
           {/* Email Error */}
           {emailError && (
-            <Body className="mt-1 text-sm text-red-500">
+            <Body className="mt-1 text-sm text-danger">
               {emailError}
             </Body>
           )}
@@ -228,12 +228,7 @@ function LoginForm() {
             Password
           </label>
 
-          <div
-            className={`relative ${passwordError
-              ? "rounded-[10px] ring-1 ring-red-500"
-              : ""
-              }`}
-          >
+          <div className="relative">
             {/* Password Icon */}
             <IoLockClosedOutline
               aria-hidden="true"
@@ -243,11 +238,7 @@ function LoginForm() {
             <input
               id="password"
               name="password"
-              type={
-                showPassword
-                  ? "text"
-                  : "password"
-              }
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
@@ -257,35 +248,29 @@ function LoginForm() {
               autoComplete="current-password"
               placeholder="Enter your password"
               disabled={loading}
-              className="h-11 w-full rounded-xl border border-border bg-background px-12 pr-12 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted"
+              className={`h-11 w-full rounded-xl border bg-background px-12 pr-12 text-sm text-foreground outline-none transition placeholder:text-muted-foreground
+        focus:ring-2 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground
+        ${passwordError
+                  ? "border-danger focus:border-danger focus:ring-danger/20"
+                  : "border-border focus:border-primary focus:ring-primary/20"
+                }`}
             />
 
             {/* Password Visibility */}
             <button
               type="button"
-              onClick={() =>
-                setShowPassword(
-                  (previous) => !previous,
-                )
-              }
+              onClick={() => setShowPassword((previous) => !previous)}
               disabled={loading}
-              aria-label={
-                showPassword
-                  ? "Hide password"
-                  : "Show password"
-              }
+              aria-label={showPassword ? "Hide password" : "Show password"}
               className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {showPassword ? (
-                <FaEyeSlash />
-              ) : (
-                <FaEye />
-              )}
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
             </button>
           </div>
+
           {/* Password Error */}
           {passwordError && (
-            <Body className="mt-1 text-sm text-red-500">
+            <Body className="mt-1 text-sm text-danger">
               {passwordError}
             </Body>
           )}

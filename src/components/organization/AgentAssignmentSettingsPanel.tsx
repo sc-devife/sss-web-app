@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
-import { MultiSelect } from "@/components/ui/MultiSelect";
+import { MultiSelectSearch } from "@/components/ui/MultiSelectSearch";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -179,8 +179,8 @@ export function AgentAssignmentSettingsPanel({ escapePoints }: { escapePoints: E
         const rowDirty = !deepEqual(originalRows[user.uid], row);
         const errs = rowErrors[user.uid] ?? {};
         return (
-          <Card key={user.uid} className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
+          <Card key={user.uid} className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-3">
               <div>
                 <Body className="font-medium">{user.name}</Body>
                 <Caption>{user.email}</Caption>
@@ -188,35 +188,37 @@ export function AgentAssignmentSettingsPanel({ escapePoints }: { escapePoints: E
               {!row.acceptingLeads && <Badge tone="neutral">Not accepting leads</Badge>}
             </div>
 
-            <fieldset disabled={rowIsSaving} className="contents">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="flex items-center gap-2 text-sm text-foreground">
-                <input
-                  type="checkbox"
-                  className="h-3.5 w-3.5 accent-primary"
-                  checked={row.isSpecialist}
-                  onChange={(e) => update(user.uid, { isSpecialist: e.target.checked })}
-                />
-                Escape Point specialist
-              </label>
-              <label className="flex items-center gap-2 text-sm text-foreground">
-                <input
-                  type="checkbox"
-                  className="h-3.5 w-3.5 accent-primary"
-                  checked={row.eligibleForPriorityLeads}
-                  onChange={(e) => update(user.uid, { eligibleForPriorityLeads: e.target.checked })}
-                />
-                Eligible for priority leads
-              </label>
-              <label className="flex items-center gap-2 text-sm text-foreground">
-                <input
-                  type="checkbox"
-                  className="h-3.5 w-3.5 accent-primary"
-                  checked={row.acceptingLeads}
-                  onChange={(e) => update(user.uid, { acceptingLeads: e.target.checked })}
-                />
-                Accepting leads
-              </label>
+            <fieldset disabled={rowIsSaving} className="flex flex-col gap-4 border-t border-border pt-4">
+              <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-3">
+                <label className="flex items-center gap-2 text-sm text-foreground">
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5 accent-primary"
+                    checked={row.isSpecialist}
+                    onChange={(e) => update(user.uid, { isSpecialist: e.target.checked })}
+                  />
+                  Escape Point specialist
+                </label>
+                <label className="flex items-center gap-2 text-sm text-foreground">
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5 accent-primary"
+                    checked={row.eligibleForPriorityLeads}
+                    onChange={(e) => update(user.uid, { eligibleForPriorityLeads: e.target.checked })}
+                  />
+                  Eligible for priority leads
+                </label>
+                <label className="flex items-center gap-2 text-sm text-foreground">
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5 accent-primary"
+                    checked={row.acceptingLeads}
+                    onChange={(e) => update(user.uid, { acceptingLeads: e.target.checked })}
+                  />
+                  Accepting leads
+                </label>
+              </div>
+
               <TextInput
                 label="Max concurrent leads/escapes"
                 type="number"
@@ -225,18 +227,25 @@ export function AgentAssignmentSettingsPanel({ escapePoints }: { escapePoints: E
                 onChange={(e) => update(user.uid, { maxConcurrentAssignments: e.target.value })}
                 error={errs.maxConcurrentAssignments}
                 placeholder="No cap"
+                className="max-w-xs"
               />
-            </div>
 
-            {row.isSpecialist && (
-              <MultiSelect
-                label="Specialist escape points"
-                options={escapePoints.map((d) => ({ value: String(d.seqp), label: d.name }))}
-                value={row.specialistEscapePoints}
-                onChange={(next) => update(user.uid, { specialistEscapePoints: next })}
-                error={errs.specialistEscapePoints}
-              />
-            )}
+              {/* Tied to "Escape Point specialist" above — left border reads as
+                  a child of that checkbox rather than an unrelated field. */}
+              {row.isSpecialist && (
+                <div className="border-l-2 border-border pl-4">
+                  <MultiSelectSearch
+                    label="Specialist escape points"
+                    helperText="Select one or more"
+                    placeholder="Search escape points…"
+                    options={escapePoints.map((d) => ({ value: String(d.seqp), label: d.name }))}
+                    value={row.specialistEscapePoints}
+                    onChange={(next) => update(user.uid, { specialistEscapePoints: next })}
+                    error={errs.specialistEscapePoints}
+                    disabled={rowIsSaving}
+                  />
+                </div>
+              )}
             </fieldset>
 
             <div>
