@@ -142,50 +142,56 @@ export function ActivityFormModal({
         if (saving) return;
         onClose();
       }}
-      title={activity ? "Edit activity" : "Add activity"}
+      title={activity ? "Edit Activity" : "Add Activity"}
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <fieldset disabled={saving} className="contents">
-          <TextInput
-            label="Name"
-            value={form.name}
-            onChange={(e) => {
-              update("name", e.target.value);
-              setErrors((p) => ({ ...p, name: "" }));
-            }}
-            error={errors.name}
-            required
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <TextInput
+              label="Name"
+              value={form.name}
+              onChange={(e) => {
+                update("name", e.target.value);
+                setErrors((p) => ({ ...p, name: "" }));
+              }}
+              error={errors.name}
+              required
+            />
 
-          <Select
-            label="Escape Point"
-            options={escapePoints.map((d) => ({ value: d.uid, label: d.name }))}
-            value={form.escapePointId}
-            onChange={(e) => update("escapePointId", e.target.value)}
-            placeholder="Select an escape point"
-            searchable
-          />
+            <Select
+              label="Escape Point"
+              options={escapePoints.map((d) => ({ value: d.uid, label: d.name }))}
+              value={form.escapePointId}
+              onChange={(e) => update("escapePointId", e.target.value)}
+              placeholder="Select an escape point"
+              searchable
+            />
+          </div>
 
-          <Select
-            label="Category"
-            options={CATEGORY_OPTIONS}
-            value={form.categoryCode}
-            onChange={(e) => update("categoryCode", e.target.value)}
-            placeholder="Select a category"
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <Select
+              label="Category"
+              options={CATEGORY_OPTIONS}
+              value={form.categoryCode}
+              onChange={(e) => update("categoryCode", e.target.value)}
+              placeholder="Select a category"
+            />
 
-          <TextInput
-            label="Duration (minutes)"
-            type="number"
-            min={1}
-            value={form.durationMinutes}
-            onChange={(e) => {
-              update("durationMinutes", e.target.value);
-              setErrors((p) => ({ ...p, durationMinutes: "" }));
-            }}
-            error={errors.durationMinutes}
-          />
+            <TextInput
+              label="Duration (minutes)"
+              type="number"
+              min={1}
+              value={form.durationMinutes}
+              onChange={(e) => {
+                update("durationMinutes", e.target.value);
+                setErrors((p) => ({ ...p, durationMinutes: "" }));
+              }}
+              error={errors.durationMinutes}
+            />
+          </div>
 
+          {/* Textarea and image upload both need more room than a half-width
+              column allows, so each stays full-width on its own row. */}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="activity-description" className="text-sm font-medium text-foreground">Description</label>
             <textarea
@@ -199,28 +205,30 @@ export function ActivityFormModal({
 
           <FileUpload label="Images" value={form.images} onChange={(images) => update("images", images)} />
 
-          <TextInput
-            label="Base price (INR)"
-            type="number"
-            min={0}
-            step="0.01"
-            value={form.basePrice}
-            onChange={(e) => {
-              update("basePrice", e.target.value);
-              setErrors((p) => ({ ...p, basePrice: "" }));
-            }}
-            error={errors.basePrice}
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <TextInput
+              label="Base price (INR)"
+              type="number"
+              min={0}
+              step="0.01"
+              value={form.basePrice}
+              onChange={(e) => {
+                update("basePrice", e.target.value);
+                setErrors((p) => ({ ...p, basePrice: "" }));
+              }}
+              error={errors.basePrice}
+            />
 
-          <Select
-            label="Status"
-            options={[
-              { value: "active", label: "Active" },
-              { value: "inactive", label: "Inactive" },
-            ]}
-            value={form.status}
-            onChange={(e) => update("status", e.target.value)}
-          />
+            <Select
+              label="Status"
+              options={[
+                { value: "active", label: "Active" },
+                { value: "inactive", label: "Inactive" },
+              ]}
+              value={form.status}
+              onChange={(e) => update("status", e.target.value)}
+            />
+          </div>
         </fieldset>
 
         {formError && (

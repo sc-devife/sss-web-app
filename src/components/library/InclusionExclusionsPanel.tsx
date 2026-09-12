@@ -235,7 +235,7 @@ export function InclusionExclusionsPanel({
           if (saving) return;
           setModalOpen(false);
         }}
-        title={editingUid ? "Edit item" : "Add item"}
+        title={editingUid ? "Edit Item" : "Add Item"}
         className="max-w-2xl"
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

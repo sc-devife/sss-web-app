@@ -6,15 +6,17 @@ import { getEscapePoints } from "@/lib/escape-points";
 import { getMealPlans } from "@/lib/meal-plans";
 import { getRoomTypes } from "@/lib/room-types";
 import { getServices } from "@/lib/services";
+import { getAmenities } from "@/lib/amenities";
 
 export default async function Page({ params }: { params: { uid: string } }) {
-  const [hotel, locations, escapePoints, mealPlans, roomTypes, services] = await Promise.all([
+  const [hotel, locations, escapePoints, mealPlans, roomTypes, services, amenities] = await Promise.all([
     getHotelByUid(params.uid).catch(() => null),
     getLocations(),
     getEscapePoints(),
     getMealPlans(),
     getRoomTypes(),
     getServices(),
+    getAmenities(),
   ]);
 
   if (!hotel) {
@@ -29,6 +31,7 @@ export default async function Page({ params }: { params: { uid: string } }) {
       mealPlans={mealPlans}
       roomTypes={roomTypes}
       services={services}
+      amenities={amenities}
     />
   );
 }

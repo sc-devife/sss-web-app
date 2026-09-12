@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { IoClose, IoSearchOutline } from "react-icons/io5";
+import { IoAdd, IoClose, IoSearchOutline } from "react-icons/io5";
 import { cn } from "@/lib/cn";
 import type { SelectOption } from "@/components/ui/Select";
 
@@ -18,6 +18,14 @@ interface MultiSelectSearchProps {
   disabled?: boolean;
   className?: string;
   required?: boolean;
+  /**
+   * Opt-in "creatable" affordance: when provided, a "+ Add "<query>"" row
+   * appears at the bottom of the dropdown once the search text doesn't
+   * exactly match an existing option's label. Resolving to an option
+   * selects it immediately, same as picking an existing one. Rejecting
+   * (thrown error) surfaces its message inline in the panel.
+   */
+  onCreateOption?: (query: string) => Promise<SelectOption>;
 }
 
 // Search-first multi-select: nothing but the search box shows until the user
@@ -37,12 +45,15 @@ export function MultiSelectSearch({
   error,
   disabled,
   className,
-  required
+  required,
+  onCreateOption,
 }: MultiSelectSearchProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
   const [pos, setPos] = useState<{ left: number; top: number; width: number }>({ left: 0, top: 0, width: 0 });
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | undefined>();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -69,10 +80,31 @@ export function MultiSelectSearch({
   function close() {
     setOpen(false);
     setSearch("");
+    setCreateError(undefined);
+  }
+
+  const trimmedSearch = search.trim();
+  const hasExactMatch = options.some((o) => o.label.toLowerCase() === trimmedSearch.toLowerCase());
+  const showCreateRow = !!onCreateOption && trimmedSearch.length > 0 && !hasExactMatch;
+
+  async function handleCreate() {
+    if (!onCreateOption || !trimmedSearch || creating) return;
+    setCreating(true);
+    setCreateError(undefined);
+    try {
+      const created = await onCreateOption(trimmedSearch);
+      onChange([...value, created.value]);
+      close();
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : "Failed to add option");
+    } finally {
+      setCreating(false);
+    }
   }
 
   useEffect(() => {
     setActiveIndex(-1);
+    setCreateError(undefined);
   }, [search]);
 
   useLayoutEffect(() => {
@@ -121,7 +153,11 @@ export function MultiSelectSearch({
       } else if (e.key === "Enter") {
         e.preventDefault();
         const opt = filtered[activeIndex];
-        if (opt) toggle(opt.value);
+        if (opt) {
+          toggle(opt.value);
+        } else if (showCreateRow) {
+          handleCreate();
+        }
       } else if (e.key === "Backspace" && !search && value.length > 0) {
         // Same "backspace pops the last chip" affordance most tag inputs have.
         remove(value[value.length - 1]);
@@ -231,6 +267,22 @@ export function MultiSelectSearch({
               );
             })}
           </div>
+          {showCreateRow && (
+            <div className="border-t border-border p-1">
+              <button
+                type="button"
+                onClick={handleCreate}
+                disabled={creating}
+                className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm text-primary transition-colors hover:bg-primary/10 disabled:cursor-wait disabled:opacity-60"
+              >
+                <IoAdd size={14} />
+                <span className="truncate">
+                  {creating ? "Adding…" : `Add "${trimmedSearch}"`}
+                </span>
+              </button>
+              {createError && <p className="px-2 pb-1 text-xs text-danger">{createError}</p>}
+            </div>
+          )}
         </div>,
         document.body,
       )}

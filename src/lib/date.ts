@@ -47,6 +47,15 @@ export function formatDisplayDate(value: string | null | undefined): string | nu
   return `${day}/${month}/${year}`;
 }
 
+// Rewrites every bare YYYY-MM-DD substring embedded in free text (e.g. a
+// backend-generated notification message like "Travel date for TRP-000014
+// is approaching (2026-09-15).") to DD/MM/YYYY — unlike formatDisplayDate
+// above, which only handles a string that IS a date, this handles a date
+// sitting inside a longer sentence, without touching anything else in it.
+export function formatEmbeddedDates(text: string): string {
+  return text.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, (_match, year, month, day) => `${day}/${month}/${year}`);
+}
+
 // "HH:mm" (24-hour, the shape TimePicker/native `type="time"` both use) ->
 // "h:mm AM/PM" for display.
 export function formatDisplayTime(value: string | null | undefined): string | null {

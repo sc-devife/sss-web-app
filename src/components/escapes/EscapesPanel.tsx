@@ -8,23 +8,18 @@ import { Badge } from "@/components/ui/Badge";
 import { Body } from "@/components/ui/Typography";
 import { formatDisplayDate } from "@/lib/date";
 import type { Escape } from "@/lib/escapes";
-import { ESCAPE_STATUS_ORDER, ESCAPE_STATUS_CANCELLED } from "@/lib/escape-status";
+import { ESCAPE_STATUS_ORDER, ESCAPE_STATUS_CANCELLED, ESCAPE_STATUS_HOLD, escapeStatusTone } from "@/lib/escape-status";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchEscapes } from "@/features/escapes/escapesThunks";
 import { selectEscapes, selectEscapesStatus, selectEscapesError } from "@/features/escapes/escapesSelectors";
 
-const TERMINAL_TONES: Record<string, "success" | "danger" | "neutral"> = {
-  Completed: "success",
-  Cancelled: "danger",
-};
-
-// Every valid status (mirrors backend EscapeStatus.ORDER + CANCELLED, via
-// the same shared constant already used for status badges/icons elsewhere)
-// — not just whichever statuses happen to be present in today's data, so
-// the filter doesn't silently miss one once an escape reaches it.
+// Every valid status (mirrors backend EscapeStatus.ORDER + Cancelled + Hold,
+// via the same shared constants already used for status badges/icons
+// elsewhere) — not just whichever statuses happen to be present in today's
+// data, so the filter doesn't silently miss one once an escape reaches it.
 const STATUS_OPTIONS = [
   { value: "", label: "Default" },
-  ...[...ESCAPE_STATUS_ORDER, ESCAPE_STATUS_CANCELLED].map((s) => ({ value: s, label: s })),
+  ...[...ESCAPE_STATUS_ORDER, ESCAPE_STATUS_CANCELLED, ESCAPE_STATUS_HOLD].map((s) => ({ value: s, label: s })),
 ];
 
 const SORT_OPTIONS = [
@@ -89,7 +84,7 @@ export function EscapesPanel() {
     {
       key: "status",
       header: "Status",
-      render: (t) => <Badge tone={TERMINAL_TONES[t.status] ?? "neutral"}>{t.status}</Badge>,
+      render: (t) => <Badge tone={escapeStatusTone(t.status)}>{t.status}</Badge>,
       sortValue: (t) => t.status,
     },
   ];

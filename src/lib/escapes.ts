@@ -35,6 +35,8 @@ export interface Escape {
   internalComments: string | null;
   // Client-facing rich text (HTML), rendered in the generated Quotation.
   remarkForLead: string | null;
+  // Only meaningful when status === "Hold" — see EscapeStatus.HOLD on the backend.
+  holdDate: string | null;
 }
 
 export async function getEscapes(): Promise<Escape[]> {

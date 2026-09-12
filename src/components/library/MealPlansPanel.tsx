@@ -131,7 +131,7 @@ export function MealPlansPanel() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-end">
-        <Button className="self-start" onClick={openCreate}><FaPlus />Add meal plan</Button>
+        <Button className="self-start" onClick={openCreate}><FaPlus />Add Meal Plan</Button>
       </div>
 
       {status === "failed" ? (
@@ -159,7 +159,7 @@ export function MealPlansPanel() {
           if (saving) return;
           setModalOpen(false);
         }}
-        title={editing ? "Edit meal plan" : "Add meal plan"}
+        title={editing ? "Edit Meal Plan" : "Add Meal Plan"}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <fieldset disabled={saving} className="contents">
@@ -208,7 +208,7 @@ export function MealPlansPanel() {
               Cancel
             </Button>
             <Button type="submit" disabled={saving || (!!editing && !isDirty)} loading={saving} loadingText="Saving…" className="w-full">
-              Save meal plan
+              Save Meal Plan
             </Button>
           </div>
         </form>

@@ -6,7 +6,14 @@ export interface ServiceProvider {
   name: string;
   typeCode: string;
   contactInfo: string | null;
+  contactName: string | null;
+  contactNumber: string | null;
+  contactEmail: string | null;
   countryCode: string | null;
+  // Meaning depends on typeCode — vehicles/activities/guides/"other" count.
+  quantity: number | null;
+  // Only meaningful when typeCode === "other".
+  otherTypeLabel: string | null;
   escapePoint: { uid: string; name: string } | null;
   status: string | null;
   countryLabel: string;

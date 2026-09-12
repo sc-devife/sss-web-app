@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Select } from "@/components/ui/Select";
 import { ToolbarSelect } from "@/components/ui/ToolbarSelect";
 import { Modal } from "@/components/ui/Modal";
@@ -16,8 +17,8 @@ import type { EscapePoint } from "@/lib/escape-points";
 import type { ReferenceOption } from "@/lib/reference-data";
 import { fetchCountryOptions } from "@/lib/reference-data-client";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
-import { useIsDirty } from "@/lib/forms";
-import { required, runValidators } from "@/lib/validators";
+import { useIsDirty, chunkPairs } from "@/lib/forms";
+import { required, runValidators, emailField, countryCodeField, mobileField } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchServiceProviders,
@@ -42,10 +43,24 @@ const TYPE_OPTIONS = [
 
 const TYPE_FILTER_OPTIONS = [{ value: "", label: "Default" }, ...TYPE_OPTIONS];
 
+// The one quantity field's label changes with the selected Type — see
+// ServiceProvider.quantity on the backend for why this is a single column
+// rather than four type-specific ones.
+const QUANTITY_LABELS: Record<string, string> = {
+  transport: "No. of Vehicles",
+  activity: "No. of Activities",
+  guide: "No. of Guides",
+  other: "No. of Other",
+};
+
 const emptyForm = {
   name: "",
   typeCode: "transport",
-  contactInfo: "",
+  quantity: "",
+  otherTypeLabel: "",
+  contactName: "",
+  contactNumber: "",
+  contactEmail: "",
   countryCode: "",
   escapePointId: "",
   status: "active",
@@ -57,6 +72,10 @@ function validate(v: FormState): Record<string, string> {
   const errors: Record<string, string> = {};
   const nameErr = runValidators(v.name, [required("Name is required")]);
   if (nameErr) errors.name = nameErr;
+  const contactEmailErr = runValidators(v.contactEmail, [emailField()]);
+  if (contactEmailErr) errors.contactEmail = contactEmailErr;
+  const contactNumberErr = runValidators(v.contactNumber, [countryCodeField(), mobileField()]); // optional, format-checked only if filled
+  if (contactNumberErr) errors.contactNumber = contactNumberErr;
   return errors;
 }
 
@@ -123,7 +142,11 @@ export function ServiceProvidersPanel({
     const snapshot: FormState = {
       name: provider.name,
       typeCode: provider.typeCode,
-      contactInfo: provider.contactInfo ?? "",
+      quantity: provider.quantity != null ? String(provider.quantity) : "",
+      otherTypeLabel: provider.otherTypeLabel ?? "",
+      contactName: provider.contactName ?? "",
+      contactNumber: provider.contactNumber ?? "",
+      contactEmail: provider.contactEmail ?? "",
       countryCode: provider.countryCode ?? "",
       escapePointId: provider.escapePoint?.uid ?? "",
       status: provider.status ?? "active",
@@ -151,7 +174,12 @@ export function ServiceProvidersPanel({
     setErrors({});
     setSaving(true);
     try {
-      const payload = { ...form, escapePointId: form.escapePointId || null };
+      const payload = {
+        ...form,
+        quantity: form.quantity ? Number(form.quantity) : null,
+        otherTypeLabel: form.typeCode === "other" ? form.otherTypeLabel || null : null,
+        escapePointId: form.escapePointId || null,
+      };
       if (editing) {
         await dispatch(updateServiceProvider({ uid: editing.uid, payload })).unwrap();
       } else {
@@ -210,11 +238,112 @@ export function ServiceProvidersPanel({
     },
   ];
 
+  // One flat, ordered list — chunkPairs() below groups it into 2-per-row,
+  // so the Type-dependent field(s) always reflow into whatever comes next
+  // (Country/Status) instead of leaving a gap next to them.
+  const formFields = [
+    <TextInput key="contactName" label="Contact Name" value={form.contactName} onChange={(e) => update("contactName", e.target.value)} />,
+    <PhoneInput
+      key="contactNumber"
+      label="Contact Number"
+      value={form.contactNumber}
+      onChange={(v) => {
+        update("contactNumber", v);
+        setErrors((p) => ({ ...p, contactNumber: "" }));
+      }}
+      error={errors.contactNumber}
+    />,
+    <TextInput
+      key="contactEmail"
+      label="Contact Email"
+      type="email"
+      value={form.contactEmail}
+      onChange={(e) => {
+        update("contactEmail", e.target.value);
+        setErrors((p) => ({ ...p, contactEmail: "" }));
+      }}
+      error={errors.contactEmail}
+    />,
+    <Select
+      key="escapePoint"
+      label="Escape Point"
+      options={escapePoints.map((ep) => ({ value: ep.uid, label: ep.name }))}
+      value={form.escapePointId}
+      onChange={(e) => update("escapePointId", e.target.value)}
+      placeholder={escapePoints.length ? "Select an escape point" : "No escape points added yet"}
+      searchable
+    />,
+    <TextInput
+      key="name"
+      label="Company Name"
+      value={form.name}
+      onChange={(e) => {
+        update("name", e.target.value);
+        setErrors((p) => ({ ...p, name: "" }));
+      }}
+      error={errors.name}
+      required
+    />,
+    <Select
+      key="typeCode"
+      label="Type"
+      options={TYPE_OPTIONS}
+      value={form.typeCode}
+      onChange={(e) => update("typeCode", e.target.value)}
+      searchable
+    />,
+    ...(form.typeCode === "other"
+      ? [
+        <TextInput
+          key="otherTypeLabel"
+          label="Specify Other"
+          value={form.otherTypeLabel}
+          onChange={(e) => update("otherTypeLabel", e.target.value)}
+        />,
+        <TextInput
+          key="quantityOther"
+          label="No. of Other"
+          type="number"
+          min={0}
+          value={form.quantity}
+          onChange={(e) => update("quantity", e.target.value)}
+        />,
+      ]
+      : [
+        <TextInput
+          key="quantity"
+          label={QUANTITY_LABELS[form.typeCode] ?? "Quantity"}
+          type="number"
+          min={0}
+          value={form.quantity}
+          onChange={(e) => update("quantity", e.target.value)}
+        />,
+      ]),
+    <Select
+      key="countryCode"
+      label="Country"
+      options={countryOptions.map((c) => ({ value: c.code, label: c.label }))}
+      value={form.countryCode}
+      onChange={(e) => update("countryCode", e.target.value)}
+      placeholder="Select a country"
+    />,
+    <Select
+      key="status"
+      label="Status"
+      options={[
+        { value: "active", label: "Active" },
+        { value: "inactive", label: "Inactive" },
+      ]}
+      value={form.status}
+      onChange={(e) => update("status", e.target.value)}
+    />,
+  ];
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-2 justify-end">
-        <Button className="self-start" onClick={openCreate}><FaPlus />Add service provider</Button>
-        <Button variant="secondary" className="self-start" onClick={() => setBulkImportOpen(true)}><LuImport size={18} />Bulk import</Button>
+        <Button className="self-start" onClick={openCreate}><FaPlus />Add Service Provider</Button>
+        <Button variant="secondary" className="self-start" onClick={() => setBulkImportOpen(true)}><LuImport size={18} />Bulk Import</Button>
       </div>
 
       {bulkImportOpen && (
@@ -265,51 +394,15 @@ export function ServiceProvidersPanel({
           if (saving) return;
           setModalOpen(false);
         }}
-        title={editing ? "Edit service provider" : "Add service provider"}
+        title={editing ? "Edit Service Provider" : "Add Service Provider"}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <fieldset disabled={saving} className="contents">
-            <TextInput
-              label="Name"
-              value={form.name}
-              onChange={(e) => {
-                update("name", e.target.value);
-                setErrors((p) => ({ ...p, name: "" }));
-              }}
-              error={errors.name}
-              required
-            />
-
-            <Select label="Type" options={TYPE_OPTIONS} value={form.typeCode} onChange={(e) => update("typeCode", e.target.value)} searchable />
-
-            <Select
-              label="Escape Point"
-              options={escapePoints.map((ep) => ({ value: ep.uid, label: ep.name }))}
-              value={form.escapePointId}
-              onChange={(e) => update("escapePointId", e.target.value)}
-              placeholder={escapePoints.length ? "Select an escape point" : "No escape points added yet"}
-              searchable
-            />
-
-            <TextInput label="Contact info" value={form.contactInfo} onChange={(e) => update("contactInfo", e.target.value)} />
-
-            <Select
-              label="Country"
-              options={countryOptions.map((c) => ({ value: c.code, label: c.label }))}
-              value={form.countryCode}
-              onChange={(e) => update("countryCode", e.target.value)}
-              placeholder="Select a country"
-            />
-
-            <Select
-              label="Status"
-              options={[
-                { value: "active", label: "Active" },
-                { value: "inactive", label: "Inactive" },
-              ]}
-              value={form.status}
-              onChange={(e) => update("status", e.target.value)}
-            />
+            {chunkPairs(formFields).map((pair, i) => (
+              <div key={i} className="grid grid-cols-2 gap-3">
+                {pair}
+              </div>
+            ))}
           </fieldset>
 
           {formError && (

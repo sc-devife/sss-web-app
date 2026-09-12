@@ -19,6 +19,14 @@ export interface CancelEscapePayload {
   reason: string;
 }
 
+// POST /escape/{id}/hold — idempotent: same call sets Hold the first time
+// and just updates holdDate on later calls (Docs tab's "already on Hold,
+// change the date" flow).
+export interface HoldEscapePayload {
+  escapeUid: string;
+  holdDate: string;
+}
+
 export interface AddEscapeTravellerPayload {
   escapeUid: string;
   firstName: string;

@@ -127,7 +127,7 @@ export function RoomTypesPanel() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-end">
-        <Button className="self-start" onClick={openCreate}><FaPlus />Add room type</Button>
+        <Button className="self-start" onClick={openCreate}><FaPlus />Add Room Type</Button>
       </div>
 
       {status === "failed" ? (
@@ -155,7 +155,7 @@ export function RoomTypesPanel() {
           if (saving) return;
           setModalOpen(false);
         }}
-        title={editing ? "Edit room type" : "Add room type"}
+        title={editing ? "Edit Room Type" : "Add Room Type"}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <fieldset disabled={saving} className="contents">
@@ -196,7 +196,7 @@ export function RoomTypesPanel() {
               Cancel
             </Button>
             <Button type="submit" disabled={saving || (!!editing && !isDirty)} loading={saving} loadingText="Saving…" className="w-full">
-              Save room type
+              Save Room Type
             </Button>
           </div>
         </form>

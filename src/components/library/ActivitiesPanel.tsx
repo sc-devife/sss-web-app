@@ -144,8 +144,8 @@ export function ActivitiesPanel({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-2 justify-end">
-        <Button className="self-start" onClick={openCreate}><FaPlus />Add activity</Button>
-        <Button variant="secondary" className="self-start" onClick={() => setBulkImportOpen(true)}><LuImport size={18} />Bulk import</Button>
+        <Button className="self-start" onClick={openCreate}><FaPlus />Add Activity</Button>
+        <Button variant="secondary" className="self-start" onClick={() => setBulkImportOpen(true)}><LuImport size={18} />Bulk Import</Button>
       </div>
 
       {bulkImportOpen && (
@@ -194,7 +194,7 @@ export function ActivitiesPanel({
         open={modalOpen}
         activity={editing}
         onClose={() => setModalOpen(false)}
-        onSaved={() => {}}
+        onSaved={() => { }}
         escapePoints={escapePoints}
       />
     </div>

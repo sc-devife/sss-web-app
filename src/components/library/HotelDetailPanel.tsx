@@ -17,7 +17,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Caption } from "@/components/ui/Typography";
 import { Spinner } from "@/components/ui/Spinner";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { HotelFormModal, AMENITY_OPTIONS } from "@/components/library/HotelFormModal";
+import { HotelFormModal } from "@/components/library/HotelFormModal";
 import { GalleryImage } from "@/components/library/GalleryImage";
 import { resolveFileUrl } from "@/lib/files";
 import { formatDisplayDate, formatDisplayTime } from "@/lib/date";
@@ -29,6 +29,7 @@ import type { EscapePoint } from "@/lib/escape-points";
 import type { MealPlan } from "@/lib/meal-plans";
 import type { RoomType } from "@/lib/room-types";
 import type { Service } from "@/lib/services";
+import type { Amenity } from "@/lib/amenities";
 import { useAppDispatch } from "@/store/hooks";
 import { updateHotel, setHotelPriorityImage } from "@/features/hotels/hotelsThunks";
 
@@ -132,6 +133,7 @@ export function HotelDetailPanel({
   mealPlans,
   roomTypes,
   services,
+  amenities,
 }: {
   hotel: Hotel;
   locations: LibraryLocation[];
@@ -139,6 +141,7 @@ export function HotelDetailPanel({
   mealPlans: MealPlan[];
   roomTypes: RoomType[];
   services: Service[];
+  amenities: Amenity[];
 }) {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -204,7 +207,7 @@ export function HotelDetailPanel({
         <BackToHotels />
         <Button onClick={() => setEditOpen(true)}>
           <TbEditFilled size={16} />
-          Edit hotel
+          Edit Hotel
         </Button>
       </div>
 
@@ -310,7 +313,7 @@ export function HotelDetailPanel({
           <div className="mt-2 flex flex-wrap gap-1.5">
             {hotel.amenities.map((a) => (
               <Badge key={a} tone="neutral">
-                {AMENITY_OPTIONS.find((o) => o.value === a)?.label ?? a}
+                {a}
               </Badge>
             ))}
           </div>
@@ -466,6 +469,7 @@ export function HotelDetailPanel({
         mealPlans={mealPlans}
         roomTypes={roomTypes}
         services={services}
+        amenities={amenities}
       />
     </Card>
   );

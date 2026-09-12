@@ -103,7 +103,7 @@ export function EscapePointFormModal({
   // already uses for this exact sub-form.
   const [countryOptions, setCountryOptions] = useState<ReferenceOption[]>([]);
   useEffect(() => {
-    fetchCountryOptions().then(setCountryOptions).catch(() => {});
+    fetchCountryOptions().then(setCountryOptions).catch(() => { });
   }, []);
 
   const newLocationCountryCode = countryOptions.find((c) => c.label === newLocation.country)?.code;
@@ -216,31 +216,33 @@ export function EscapePointFormModal({
         if (saving) return;
         onClose();
       }}
-      title={editing ? "Edit escape point" : "Add escape point"}
+      title={editing ? "Edit Escape Point" : "Add Escape Point"}
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <fieldset disabled={saving} className="contents">
-          <TextInput
-            label="Code"
-            value={form.id}
-            onChange={(e) => {
-              update("id", e.target.value);
-              setErrors((p) => ({ ...p, id: "" }));
-            }}
-            error={errors.id}
-            disabled={!!editing}
-            required
-          />
-          <TextInput
-            label="Name"
-            value={form.name}
-            onChange={(e) => {
-              update("name", e.target.value);
-              setErrors((p) => ({ ...p, name: "" }));
-            }}
-            error={errors.name}
-            required
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <TextInput
+              label="Code"
+              value={form.id}
+              onChange={(e) => {
+                update("id", e.target.value);
+                setErrors((p) => ({ ...p, id: "" }));
+              }}
+              error={errors.id}
+              disabled={!!editing}
+              required
+            />
+            <TextInput
+              label="Name"
+              value={form.name}
+              onChange={(e) => {
+                update("name", e.target.value);
+                setErrors((p) => ({ ...p, name: "" }));
+              }}
+              error={errors.name}
+              required
+            />
+          </div>
 
           {!addingLocation ? (
             <div className="flex flex-col gap-1.5">
@@ -337,35 +339,40 @@ export function EscapePointFormModal({
 
           <FileUpload label="Images" value={form.images} onChange={(images) => update("images", images)} />
 
-          <TextInput
-            label="Nearest Airport"
-            value={form.nearest_airport}
-            onChange={(e) => update("nearest_airport", e.target.value)}
-            placeholder="e.g. BOM — Chhatrapati Shivaji Maharaj International"
-          />
-          <Select
-            label="Currency"
-            options={currencyOptions.map((c) => ({ value: c.code, label: c.label }))}
-            value={form.currency}
-            onChange={(e) => update("currency", e.target.value)}
-            placeholder="Select a currency"
-          />
-          <TextInput
-            label="Time Zone"
-            value={form.time_zone}
-            onChange={(e) => update("time_zone", e.target.value)}
-            placeholder="e.g. Asia/Kolkata"
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <TextInput
+              label="Nearest Airport"
+              value={form.nearest_airport}
+              onChange={(e) => update("nearest_airport", e.target.value)}
+              placeholder="e.g. BOM — Chhatrapati Shivaji Maharaj International"
+            />
+            <Select
+              label="Currency"
+              options={currencyOptions.map((c) => ({ value: c.code, label: c.label }))}
+              value={form.currency}
+              onChange={(e) => update("currency", e.target.value)}
+              placeholder="Select a currency"
+            />
+          </div>
 
-          <Select
-            label="Status"
-            options={[
-              { value: "active", label: "Active" },
-              { value: "inactive", label: "Inactive" },
-            ]}
-            value={form.status}
-            onChange={(e) => update("status", e.target.value)}
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <TextInput
+              label="Time Zone"
+              value={form.time_zone}
+              onChange={(e) => update("time_zone", e.target.value)}
+              placeholder="e.g. Asia/Kolkata"
+            />
+
+            <Select
+              label="Status"
+              options={[
+                { value: "active", label: "Active" },
+                { value: "inactive", label: "Inactive" },
+              ]}
+              value={form.status}
+              onChange={(e) => update("status", e.target.value)}
+            />
+          </div>
         </fieldset>
 
         {formError && (

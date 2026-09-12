@@ -12,7 +12,7 @@ import { BsFillInboxesFill } from "react-icons/bs";
 import type { IconType } from "react-icons";
 import { Caption } from "@/components/ui/Typography";
 import { cn } from "@/lib/cn";
-import { formatRelativeTime } from "@/lib/date";
+import { formatRelativeTime, formatEmbeddedDates } from "@/lib/date";
 import type { AppNotification } from "@/features/notifications/types";
 import { useAppDispatch } from "@/store/hooks";
 import { markNotificationRead } from "@/features/notifications/notificationsThunks";
@@ -66,13 +66,13 @@ export function NotificationRow({ notification, onNavigate }: { notification: Ap
       type="button"
       onClick={handleClick}
       className={cn(
-        "flex w-full items-start gap-3 rounded-lg p-3 text-left transition-colors hover:bg-muted",
+        "flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors hover:bg-muted",
         !notification.isRead && "bg-primary/5",
       )}
     >
       <span
         className={cn(
-          "mt-0.5 flex h-3 w-3 shrink-0 items-center justify-center rounded-full",
+          "flex h-2 w-2 shrink-0 items-center justify-center rounded-full",
           notification.isRead ? "bg-transparent" : "bg-primary",
         )}
         aria-hidden="true"
@@ -84,7 +84,7 @@ export function NotificationRow({ notification, onNavigate }: { notification: Ap
         <span className={cn("block truncate text-sm", notification.isRead ? "font-medium text-muted-foreground" : "font-semibold text-foreground")}>
           {notification.title}
         </span>
-        <span className="block text-sm text-muted-foreground line-clamp-2">{notification.message}</span>
+        <span className="block text-sm text-muted-foreground line-clamp-2">{formatEmbeddedDates(notification.message)}</span>
         <Caption className="mt-0.5">{formatRelativeTime(notification.createdAt)}</Caption>
       </span>
     </button>

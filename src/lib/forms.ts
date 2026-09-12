@@ -25,3 +25,16 @@ export function deepEqual(a: unknown, b: unknown): boolean {
 export function useIsDirty<T>(original: T | null, current: T): boolean {
   return useMemo(() => original !== null && !deepEqual(original, current), [original, current]);
 }
+
+// Groups a flat, ordered field list into rows of 2 — so a conditionally
+// hidden field (e.g. a Type/Owner-Type-dependent field, or a field only
+// shown for one branch) never leaves a blank cell behind: the next field in
+// order always reflows up into the space instead of every conditional
+// branch needing its own hand-authored grid pairing.
+export function chunkPairs<T>(items: T[]): T[][] {
+  const pairs: T[][] = [];
+  for (let i = 0; i < items.length; i += 2) {
+    pairs.push(items.slice(i, i + 2));
+  }
+  return pairs;
+}

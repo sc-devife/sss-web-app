@@ -127,7 +127,7 @@ export function ServicesPanel() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-end">
-        <Button className="self-start" onClick={openCreate}><FaPlus />Add service</Button>
+        <Button className="self-start" onClick={openCreate}><FaPlus />Add Service</Button>
       </div>
 
       {status === "failed" ? (
@@ -155,7 +155,7 @@ export function ServicesPanel() {
           if (saving) return;
           setModalOpen(false);
         }}
-        title={editing ? "Edit service" : "Add service"}
+        title={editing ? "Edit Service" : "Add Service"}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <fieldset disabled={saving} className="contents">

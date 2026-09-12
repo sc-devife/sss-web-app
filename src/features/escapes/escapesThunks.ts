@@ -6,6 +6,7 @@ import type {
   EscapeAuditLogEntry,
   AdvanceEscapePayload,
   CancelEscapePayload,
+  HoldEscapePayload,
   AddEscapeTravellerPayload,
   UpdateTravellerPayload,
   DeleteTravellerPayload,
@@ -67,6 +68,19 @@ export const cancelEscape = createAsyncThunk<void, CancelEscapePayload, { reject
       await clientApi.post(`/escapes/${escapeUid}/cancel`, { reason });
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to cancel escape"));
+    }
+  },
+);
+
+// Idempotent server-side — same call sets Hold the first time and just
+// updates holdDate on later calls.
+export const holdEscape = createAsyncThunk<void, HoldEscapePayload, { rejectValue: string }>(
+  "escapes/holdEscape",
+  async ({ escapeUid, holdDate }, { rejectWithValue }) => {
+    try {
+      await clientApi.post(`/escapes/${escapeUid}/hold`, { holdDate });
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to update hold date"));
     }
   },
 );

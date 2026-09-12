@@ -4,11 +4,18 @@ export interface Transport {
   uid: string;
   modeCode: string;
   vehicleTypeCode: string | null;
+  vehicleNumber: string | null;
   capacity: number | null;
+  // "single" (individual owner-operator) vs "multi" (fleet/provider
+  // company) — see Transport.ownerType on the backend.
+  ownerType: string | null;
   provider: { uid: string; name: string } | null;
   basePrice: number | null;
   pickupLocation: string | null;
   dropLocation: string | null;
+  contactName: string | null;
+  contactNumber: string | null;
+  contactEmail: string | null;
   escapePoint: { uid: string; name: string } | null;
   status: string | null;
 }

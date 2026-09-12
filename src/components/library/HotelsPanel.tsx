@@ -15,6 +15,7 @@ import type { EscapePoint } from "@/lib/escape-points";
 import type { MealPlan } from "@/lib/meal-plans";
 import type { RoomType } from "@/lib/room-types";
 import type { Service } from "@/lib/services";
+import type { Amenity } from "@/lib/amenities";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchHotels, deleteHotel } from "@/features/hotels/hotelsThunks";
 import { formatDisplayDate } from "@/lib/date";
@@ -28,12 +29,14 @@ export function HotelsPanel({
   mealPlans,
   roomTypes,
   services,
+  amenities,
 }: {
   locations: LibraryLocation[];
   escapePoints: EscapePoint[];
   mealPlans: MealPlan[];
   roomTypes: RoomType[];
   services: Service[];
+  amenities: Amenity[];
 }) {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -199,6 +202,7 @@ export function HotelsPanel({
         mealPlans={mealPlans}
         roomTypes={roomTypes}
         services={services}
+        amenities={amenities}
       />
     </div>
   );

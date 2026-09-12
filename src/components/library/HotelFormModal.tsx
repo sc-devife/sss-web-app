@@ -6,7 +6,7 @@ import { TextInput } from "@/components/ui/TextInput";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { TimePicker } from "@/components/ui/TimePicker";
 import { Select } from "@/components/ui/Select";
-import { MultiSelect } from "@/components/ui/MultiSelect";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { MultiSelectSearch } from "@/components/ui/MultiSelectSearch";
 import { Modal } from "@/components/ui/Modal";
 import { FileUpload } from "@/components/ui/FileUpload";
@@ -17,25 +17,15 @@ import type { EscapePoint } from "@/lib/escape-points";
 import type { MealPlan } from "@/lib/meal-plans";
 import type { RoomType } from "@/lib/room-types";
 import type { Service } from "@/lib/services";
+import type { Amenity } from "@/lib/amenities";
 import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
-import { required, requiredSelection, runValidators, emailField } from "@/lib/validators";
+import { required, requiredSelection, runValidators, emailField, countryCodeField, mobileField } from "@/lib/validators";
 import { fetchCountryOptions, fetchRegionOptions } from "@/lib/reference-data-client";
 import type { ReferenceOption } from "@/lib/reference-data-client";
 import { useAppDispatch } from "@/store/hooks";
 import { createHotel, updateHotel, fetchHotels } from "@/features/hotels/hotelsThunks";
-
-export const AMENITY_OPTIONS = [
-  { value: "wifi", label: "Wi-Fi" },
-  { value: "pool", label: "Pool" },
-  { value: "parking", label: "Parking" },
-  { value: "gym", label: "Gym" },
-  { value: "spa", label: "Spa" },
-  { value: "restaurant", label: "Restaurant" },
-  { value: "ac", label: "Air Conditioning" },
-  { value: "breakfast", label: "Breakfast Included" },
-];
 
 const emptyForm = {
   name: "",
@@ -74,6 +64,9 @@ function validate(
 
   const emailErr = runValidators(v.email, [emailField()]);
   if (emailErr) errors.email = emailErr;
+
+  const phoneErr = runValidators(v.phoneNumber, [countryCodeField(), mobileField()]); // optional, format-checked only if filled
+  if (phoneErr) errors.phoneNumber = phoneErr;
 
   if (addingLocation) {
     const cityErr = runValidators(newLocation.city, [required("City is required")]);
@@ -125,6 +118,7 @@ export function HotelFormModal({
   mealPlans,
   roomTypes,
   services,
+  amenities,
 }: {
   open: boolean;
   hotel: Hotel | null;
@@ -135,6 +129,7 @@ export function HotelFormModal({
   mealPlans: MealPlan[];
   roomTypes: RoomType[];
   services: Service[];
+  amenities: Amenity[];
 }) {
   const dispatch = useAppDispatch();
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -150,7 +145,7 @@ export function HotelFormModal({
   // else this app needs a searchable country list.
   const [countryOptions, setCountryOptions] = useState<ReferenceOption[]>([]);
   useEffect(() => {
-    fetchCountryOptions().then(setCountryOptions).catch(() => {});
+    fetchCountryOptions().then(setCountryOptions).catch(() => { });
   }, []);
 
   // State options for the new-location form are scoped to its selected
@@ -178,6 +173,12 @@ export function HotelFormModal({
   const [savingService, setSavingService] = useState(false);
   const [serviceError, setServiceError] = useState<string | undefined>();
 
+  // Amenities are always global (unlike Services, a newly-added one is
+  // immediately reusable by every hotel) — seeded from the page-level prop,
+  // with newly-created ones appended locally so they're selectable right
+  // away without waiting on a refetch.
+  const [amenityOptions, setAmenityOptions] = useState<Amenity[]>(amenities);
+
   useEffect(() => {
     if (!open) return;
     const snapshot = snapshotFromHotel(hotel);
@@ -185,13 +186,13 @@ export function HotelFormModal({
     setOriginal(
       hotel
         ? {
-            ...snapshot,
-            mealPlanIds: [...snapshot.mealPlanIds],
-            roomTypeIds: [...snapshot.roomTypeIds],
-            serviceIds: [...snapshot.serviceIds],
-            images: [...snapshot.images],
-            amenities: [...snapshot.amenities],
-          }
+          ...snapshot,
+          mealPlanIds: [...snapshot.mealPlanIds],
+          roomTypeIds: [...snapshot.roomTypeIds],
+          serviceIds: [...snapshot.serviceIds],
+          images: [...snapshot.images],
+          amenities: [...snapshot.amenities],
+        }
         : null,
     );
     setErrors({});
@@ -202,14 +203,26 @@ export function HotelFormModal({
     setAddingService(false);
     setNewService({ name: "", description: "" });
     setServiceError(undefined);
+    setAmenityOptions(amenities);
     if (hotel) {
       clientApi
         .get<Service[]>(`/library/services?hotelId=${hotel.uid}`)
         .then((res) => setServiceOptions(res.data))
-        .catch(() => {});
+        .catch(() => { });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, hotel]);
+
+  async function handleCreateAmenity(name: string) {
+    const created = await clientApi
+      .post<Amenity>("/library/amenities", { name })
+      .then((res) => res.data)
+      .catch((err) => {
+        throw new Error(extractErrorMessage(err, "Failed to add amenity"));
+      });
+    setAmenityOptions((opts) => [...opts, created]);
+    return { value: created.name, label: created.name };
+  }
 
   async function handleAddService() {
     if (!hotel || !newService.name.trim()) return;
@@ -310,28 +323,30 @@ export function HotelFormModal({
         if (saving) return;
         onClose();
       }}
-      title={hotel ? "Edit hotel" : "Add hotel"}
+      title={hotel ? "Edit Hotel" : "Add Hotel"}
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <fieldset disabled={saving} className="contents">
-          <TextInput
-            label="Name"
-            value={form.name}
-            onChange={(e) => {
-              update("name", e.target.value);
-              setErrors((p) => ({ ...p, name: "" }));
-            }}
-            error={errors.name}
-            required
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <TextInput
+              label="Name"
+              value={form.name}
+              onChange={(e) => {
+                update("name", e.target.value);
+                setErrors((p) => ({ ...p, name: "" }));
+              }}
+              error={errors.name}
+              required
+            />
 
-          <Select
-            label="Stars"
-            options={[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: `${n} star${n > 1 ? "s" : ""}` }))}
-            value={form.stars}
-            onChange={(e) => update("stars", e.target.value)}
-            placeholder="Select a rating"
-          />
+            <Select
+              label="Stars"
+              options={[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: `${n} star${n > 1 ? "s" : ""}` }))}
+              value={form.stars}
+              onChange={(e) => update("stars", e.target.value)}
+              placeholder="Select a rating"
+            />
+          </div>
 
           <Select
             label="Escape Point"
@@ -530,12 +545,14 @@ export function HotelFormModal({
 
           <TextInput label="Address" value={form.address} onChange={(e) => update("address", e.target.value)} />
           <div className="grid grid-cols-2 gap-3">
-            <TextInput
+            <PhoneInput
               label="Phone Number"
-              type="tel"
-              placeholder="e.g. +91 98765 43210"
               value={form.phoneNumber}
-              onChange={(e) => update("phoneNumber", e.target.value)}
+              onChange={(v) => {
+                update("phoneNumber", v);
+                setErrors((p) => ({ ...p, phoneNumber: "" }));
+              }}
+              error={errors.phoneNumber}
             />
             <TextInput
               label="Email"
@@ -550,7 +567,14 @@ export function HotelFormModal({
             />
           </div>
 
-          <MultiSelect label="Amenities" options={AMENITY_OPTIONS} value={form.amenities} onChange={(v) => update("amenities", v)} />
+          <MultiSelectSearch
+            label="Amenities"
+            placeholder="Search amenities…"
+            options={amenityOptions.map((a) => ({ value: a.name, label: a.name }))}
+            value={form.amenities}
+            onChange={(v) => update("amenities", v)}
+            onCreateOption={handleCreateAmenity}
+          />
 
           <FileUpload label="Images" value={form.images} onChange={(images) => update("images", images)} />
 
