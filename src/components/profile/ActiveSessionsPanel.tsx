@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption, Heading } from "@/components/ui/Typography";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { formatDisplayDateTime, formatRelativeTime } from "@/lib/date";
@@ -46,13 +47,13 @@ function SessionRow({ session, onRevoke, revoking }: { session: UserSessionInfo;
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <Body className="truncate font-medium">{label}</Body>
+            <HoverMarqueeText as="p" className="truncate text-sm leading-relaxed text-foreground font-medium">{label}</HoverMarqueeText>
             {session.isCurrent && <Badge tone="success">This device</Badge>}
           </div>
-          <Caption className="truncate text-muted-foreground">
+          <HoverMarqueeText className="truncate text-xs uppercase tracking-wide text-muted-foreground">
             {session.ipAddress ? `${session.ipAddress} · ` : ""}
             {session.lastAccessed ? `Active ${formatRelativeTime(session.lastAccessed)}` : `Signed in ${formatDisplayDateTime(session.createdAt)}`}
-          </Caption>
+          </HoverMarqueeText>
         </div>
       </div>
       {!session.isCurrent && (

@@ -11,6 +11,7 @@ import { FaPersonWalkingLuggage } from "react-icons/fa6";
 import { BsFillInboxesFill } from "react-icons/bs";
 import type { IconType } from "react-icons";
 import { Caption } from "@/components/ui/Typography";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { cn } from "@/lib/cn";
 import { formatRelativeTime, formatEmbeddedDates } from "@/lib/date";
 import type { AppNotification } from "@/features/notifications/types";
@@ -81,9 +82,9 @@ export function NotificationRow({ notification, onNavigate }: { notification: Ap
         <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className={cn("block truncate text-sm", notification.isRead ? "font-medium text-muted-foreground" : "font-semibold text-foreground")}>
+        <HoverMarqueeText className={cn("block truncate text-sm", notification.isRead ? "font-medium text-muted-foreground" : "font-semibold text-foreground")}>
           {notification.title}
-        </span>
+        </HoverMarqueeText>
         <span className="block text-sm text-muted-foreground line-clamp-2">{formatEmbeddedDates(notification.message)}</span>
         <Caption className="mt-0.5">{formatRelativeTime(notification.createdAt)}</Caption>
       </span>

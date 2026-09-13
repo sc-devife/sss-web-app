@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { TextInput } from "@/components/ui/TextInput";
+import { TimePicker } from "@/components/ui/TimePicker";
 import { Select } from "@/components/ui/Select";
 import { Caption } from "@/components/ui/Typography";
 import { MODE_OPTIONS, VEHICLE_TYPE_OPTIONS } from "@/lib/transport-modes";
@@ -173,10 +174,17 @@ export function TransportDetailFields({
   value,
   onChange,
   defaultPax,
+  startTime,
+  onStartTimeChange,
 }: {
   value: TransportDetailFormState;
   onChange: (next: TransportDetailFormState) => void;
   defaultPax: { adults: number; children: number; infants: number };
+  // Owned by the parent (it's a sibling field on the itinerary item itself,
+  // not part of TransportDetailFormState) — rendered here purely so it can
+  // sit paired with Price in the same row instead of on its own row below.
+  startTime: string;
+  onStartTimeChange: (value: string) => void;
 }) {
   function update<K extends keyof TransportDetailFormState>(key: K, v: TransportDetailFormState[K]) {
     onChange({ ...value, [key]: v });
@@ -255,18 +263,22 @@ export function TransportDetailFields({
       </div>
 
       {!isFlight && (
-        <TextInput
-          label="Price (INR)"
-          type="number"
-          min={0}
-          step="0.01"
-          value={value.price}
-          onChange={(e) => update("price", e.target.value)}
-        />
+        <div className="grid grid-cols-2 gap-3">
+          <TextInput
+            label="Price (INR)"
+            type="number"
+            min={0}
+            step="0.01"
+            value={value.price}
+            onChange={(e) => update("price", e.target.value)}
+          />
+          <TimePicker label="Start time" value={startTime} onChange={onStartTimeChange} />
+        </div>
       )}
 
       {isFlight && (
         <>
+          <TimePicker label="Start time" value={startTime} onChange={onStartTimeChange} />
           <div className="inline-flex items-center gap-0.5 self-start rounded-full bg-muted p-1">
             {TRIP_TYPES.map(({ value: tripType, label }) => (
               <button

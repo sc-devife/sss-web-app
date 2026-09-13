@@ -33,7 +33,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
         aria-modal="true"
         aria-label={title}
         className={cn(
-          "relative flex max-h-[85vh] w-full max-w-lg flex-col rounded border border-border bg-card text-card-foreground shadow-lg",
+          "relative flex max-h-[85vh] w-full max-w-lg flex-col rounded-2xl border border-border bg-card text-card-foreground shadow-lg",
           className,
         )}
       >

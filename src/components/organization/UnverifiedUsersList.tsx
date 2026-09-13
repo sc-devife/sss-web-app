@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Body, Caption } from "@/components/ui/Typography";
+import { Caption } from "@/components/ui/Typography";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { cn } from "@/lib/cn";
 import type { PendingInvitation } from "@/lib/users";
 import { PiClock, PiCheckCircleFill, PiXCircle, PiXCircleBold } from "react-icons/pi";
@@ -61,7 +62,7 @@ export function UnverifiedUsersList({ invitations }: { invitations: PendingInvit
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <Body className="truncate font-semibold">{invitation.email}</Body>
+                    <HoverMarqueeText as="p" className="truncate text-sm leading-relaxed text-foreground font-semibold">{invitation.email}</HoverMarqueeText>
                     <Caption className="mt-0.5">
                       {expired ? (
                         "Invitation expired"

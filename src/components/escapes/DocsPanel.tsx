@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { MdContentCopy } from "react-icons/md";
-import { FaFilePdf, FaFileWord } from "react-icons/fa6";
+import { FaFilePdf } from "react-icons/fa6";
+import { IoMailOutline } from "react-icons/io5";
 import { Button } from "@/components/ui/Button";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -205,6 +206,7 @@ async function downloadFile(url: string, fallbackFilename: string) {
 // panel are GETs). The whole block only renders once the Escape is on Hold
 // — see HoldPrompt above.
 export function DocsPanel({ escapeUid }: { escapeUid: string }) {
+  const escape = useAppSelector(selectCurrentEscape);
   const [isOnHold, setIsOnHold] = useState(false);
   const [sections, setSections] = useState<Sections>({
     transports: true,
@@ -217,8 +219,17 @@ export function DocsPanel({ escapeUid }: { escapeUid: string }) {
   const [html, setHtml] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | undefined>();
   const [copying, setCopying] = useState(false);
-  const [downloading, setDownloading] = useState<"pdf" | "word" | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [attempt, setAttempt] = useState(0);
+
+  // Only meaningful once this matches the currently-loaded Escape in Redux
+  // (the same guard HoldPrompt uses) — never the lead or any other
+  // traveller, per the Send Email spec.
+  const primaryTraveller =
+    escape?.uid === escapeUid && escape.primaryTravellerUid
+      ? escape.travellers.find((t) => t.uid === escape.primaryTravellerUid) ?? null
+      : null;
 
   const query = sectionsQuery(sections);
 
@@ -270,15 +281,33 @@ export function DocsPanel({ escapeUid }: { escapeUid: string }) {
     }
   }
 
-  async function handleDownload(format: "pdf" | "word") {
-    setDownloading(format);
+  async function handleDownloadPdf() {
+    setDownloading(true);
     try {
-      const extension = format === "pdf" ? "pdf" : "docx";
-      await downloadFile(`/api/escapes/${escapeUid}/docs-preview/${format}?${query}`, `escape-document.${extension}`);
+      await downloadFile(`/api/escapes/${escapeUid}/docs-preview/pdf?${query}`, "escape-document.pdf");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : `Failed to download the ${format.toUpperCase()}`);
+      toast.error(err instanceof Error ? err.message : "Failed to download the PDF");
     } finally {
-      setDownloading(null);
+      setDownloading(false);
+    }
+  }
+
+  async function handleSendEmail() {
+    if (!primaryTraveller?.email) {
+      toast.error("The primary traveller does not have a valid email address.");
+      return;
+    }
+    setSendingEmail(true);
+    try {
+      const res = await fetch(`/api/escapes/${escapeUid}/docs-preview/send-email?${query}`, { method: "POST" });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.message ?? "Failed to send the email");
+      const name = [primaryTraveller.firstName, primaryTraveller.lastName].filter(Boolean).join(" ");
+      toast.success(`Email sent successfully to ${name}.`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send the email");
+    } finally {
+      setSendingEmail(false);
     }
   }
 
@@ -347,10 +376,10 @@ export function DocsPanel({ escapeUid }: { escapeUid: string }) {
               <Button
                 type="button"
                 size="sm"
-                disabled={status !== "success" || downloading !== null}
-                loading={downloading === "pdf"}
+                disabled={status !== "success" || downloading}
+                loading={downloading}
                 loadingText="Generating…"
-                onClick={() => handleDownload("pdf")}
+                onClick={handleDownloadPdf}
               >
                 <FaFilePdf size={12} />
                 PDF
@@ -358,13 +387,13 @@ export function DocsPanel({ escapeUid }: { escapeUid: string }) {
               <Button
                 type="button"
                 size="sm"
-                disabled={status !== "success" || downloading !== null}
-                loading={downloading === "word"}
-                loadingText="Generating…"
-                onClick={() => handleDownload("word")}
+                disabled={status !== "success" || sendingEmail}
+                loading={sendingEmail}
+                loadingText="Sending…"
+                onClick={handleSendEmail}
               >
-                <FaFileWord size={12} />
-                Word
+                <IoMailOutline size={13} />
+                Send Email
               </Button>
             </div>
           </div>

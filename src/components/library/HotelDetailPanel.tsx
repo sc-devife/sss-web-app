@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Tabs } from "@/components/ui/Tabs";
 import { Alert } from "@/components/ui/Alert";
 import { Caption } from "@/components/ui/Typography";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { Spinner } from "@/components/ui/Spinner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { HotelFormModal } from "@/components/library/HotelFormModal";
@@ -81,7 +82,7 @@ function ServiceList({ services }: { services: { uid: string; name: string; desc
             <BsBookmarkCheckFill size={14} />
           </span>
           <div className="min-w-0">
-            <div className="truncate text-sm font-semibold text-foreground">{s.name}</div>
+            <HoverMarqueeText as="div" className="truncate text-sm font-semibold text-foreground">{s.name}</HoverMarqueeText>
             {s.description && (
               <div className="mt-0.5 text-xs leading-snug text-muted-foreground">{s.description}</div>
             )}
@@ -227,7 +228,7 @@ export function HotelDetailPanel({
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5">
           <div className="min-w-0">
-            <h1 className="truncate text-2xl font-bold tracking-tight text-white md:text-3xl">{hotel.name}</h1>
+            <HoverMarqueeText as="h1" className="truncate text-2xl font-bold tracking-tight text-white md:text-3xl">{hotel.name}</HoverMarqueeText>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/90">
               {hotel.stars != null && (
                 <span className="flex items-center gap-1">

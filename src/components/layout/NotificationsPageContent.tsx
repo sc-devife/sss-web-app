@@ -40,9 +40,9 @@ export function NotificationsPageContent() {
 
   return (
     <Card variant="page" className="flex min-h-full flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-end">
         {unreadCount > 0 && (
-          <Button size="sm" variant="ghost" onClick={() => dispatch(markAllRead())}>
+          <Button size="sm" variant="primary" onClick={() => dispatch(markAllRead())}>
             Mark all as read
           </Button>
         )}

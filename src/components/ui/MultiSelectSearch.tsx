@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { IoAdd, IoClose, IoSearchOutline } from "react-icons/io5";
 import { cn } from "@/lib/cn";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import type { SelectOption } from "@/components/ui/Select";
 
 interface MultiSelectSearchProps {
@@ -261,7 +262,7 @@ export function MultiSelectSearch({
                     activeIndex === i && !isSelected && "bg-muted",
                   )}
                 >
-                  <span className="truncate">{opt.label}</span>
+                  <HoverMarqueeText className="truncate">{opt.label}</HoverMarqueeText>
                   {isSelected && <span className="text-xs font-medium">Selected</span>}
                 </button>
               );
@@ -276,9 +277,9 @@ export function MultiSelectSearch({
                 className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm text-primary transition-colors hover:bg-primary/10 disabled:cursor-wait disabled:opacity-60"
               >
                 <IoAdd size={14} />
-                <span className="truncate">
+                <HoverMarqueeText className="truncate">
                   {creating ? "Adding…" : `Add "${trimmedSearch}"`}
-                </span>
+                </HoverMarqueeText>
               </button>
               {createError && <p className="px-2 pb-1 text-xs text-danger">{createError}</p>}
             </div>

@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Spinner";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { cn } from "@/lib/cn";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -181,13 +182,13 @@ export function DocumentsCard({
                         title="Double-click to rename"
                         className="flex items-center gap-1.5"
                       >
-                        <span className="truncate text-xs font-medium text-foreground">{quote.name ?? `Quote ${quote.version}`}</span>
+                        <HoverMarqueeText className="truncate text-xs font-medium text-foreground">{quote.name ?? `Quote ${quote.version}`}</HoverMarqueeText>
                         <Badge tone={quote.status === "accepted" ? "success" : "neutral"}>{quote.status}</Badge>
                       </div>
                     )}
-                    <span className="truncate text-[11px] text-muted-foreground">
+                    <HoverMarqueeText className="truncate text-[11px] text-muted-foreground">
                       {quote.totalInr != null ? `₹${quote.totalInr.toFixed(2)} INR` : "Not priced yet"}
-                    </span>
+                    </HoverMarqueeText>
                   </div>
                   <div className="flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
                     {!isEditing && (

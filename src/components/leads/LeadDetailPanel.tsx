@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { formatDisplayDate } from "@/lib/date";
 import { formatAuditActor, formatAuditChange } from "@/lib/audit";
@@ -147,7 +148,7 @@ export function LeadDetailPanel({
       <div className="rounded-2xl border border-border bg-muted/20 p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="truncate text-xl font-bold tracking-tight text-foreground md:text-2xl">{lead.name}</h1>
+            <HoverMarqueeText as="h1" className="truncate text-xl font-bold tracking-tight text-foreground md:text-2xl">{lead.name}</HoverMarqueeText>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <Badge tone={isTerminal ? (lead.status === "Converted" ? "success" : "danger") : "neutral"}>{lead.status}</Badge>
               {lead.isPriority && <Badge tone="warning">Priority</Badge>}

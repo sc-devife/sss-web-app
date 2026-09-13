@@ -152,7 +152,7 @@ export function ItineraryCard({
               </>
             )}
             {subTab === "quote" && (
-              <IconButton icon={PiPlusFill} label="Add quote" onClick={handleAddQuote} disabled={busy} />
+              <IconButton icon={PiPlusFill} label="Add Quote" onClick={handleAddQuote} disabled={busy} />
             )}
           </div>
         </div>

@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
 import { Alert } from "@/components/ui/Alert";
 import { Body, Caption } from "@/components/ui/Typography";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { accountNumberField, ifscField, pattern, required, runValidators, swiftField } from "@/lib/validators";
 import { fetchCountryOptions, fetchRegionOptions } from "@/lib/reference-data-client";
@@ -45,7 +46,7 @@ function OptionalDetail({ label, value }: { label: string; value?: string | null
   return (
     <div className="flex min-w-0 flex-col gap-1">
       <Caption className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</Caption>
-      <Body className="truncate text-sm">{value}</Body>
+      <HoverMarqueeText as="p" className="truncate text-sm leading-relaxed text-foreground">{value}</HoverMarqueeText>
     </div>
   );
 }
@@ -217,10 +218,10 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
                     <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/50 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground"><FaUniversity className="size-5" /></div>
                     <div className="flex min-w-0 flex-col gap-1">
                       <div className="flex items-center gap-2">
-                        <Body className="truncate font-semibold">{account.bankName}</Body>
+                        <HoverMarqueeText as="p" className="truncate text-sm leading-relaxed text-foreground font-semibold">{account.bankName}</HoverMarqueeText>
                         {account.isDefault && <span className="shrink-0 rounded bg-success/15 px-1.5 py-0.5 text-[10px] font-medium text-success">Default</span>}
                       </div>
-                      <Caption className="truncate text-muted-foreground">{account.bankShortName} · {account.branchName}</Caption>
+                      <HoverMarqueeText className="truncate text-xs uppercase tracking-wide text-muted-foreground">{account.bankShortName} · {account.branchName}</HoverMarqueeText>
                     </div>
                   </div>
                   <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground"><span className={isActive ? "size-2 rounded-full bg-success" : "size-2 rounded-full bg-muted-foreground/50"} />{isActive ? "Active" : "Inactive"}</span>
@@ -244,7 +245,7 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
                 </div>
                 <div className="grid grid-cols-2 gap-4"><OptionalDetail label="Account holder" value={account.accountName} /><OptionalDetail label="IFSC" value={account.ifsc} /><OptionalDetail label="SWIFT" value={account.swiftCode} /><OptionalDetail label="MICR" value={account.micrCode} /></div>
                 <div className="mt-auto flex items-end justify-between gap-4 border-t border-border/70 pt-4">
-                  <div className="flex min-w-0 items-center gap-2 text-muted-foreground"><FaMapMarkerAlt className="size-3.5 shrink-0" /><Caption className="truncate">{account.branchCity}, {account.country} · {account.currency}</Caption></div>
+                  <div className="flex min-w-0 items-center gap-2 text-muted-foreground"><FaMapMarkerAlt className="size-3.5 shrink-0" /><HoverMarqueeText className="truncate text-xs uppercase tracking-wide text-muted-foreground">{account.branchCity}, {account.country} · {account.currency}</HoverMarqueeText></div>
                   <div className="flex shrink-0 gap-2">
                     {!account.isDefault && (
                       <Button variant="secondary" size="sm" disabled={updatingId === account.uid} onClick={() => handleSetStatus(account.uid, "set-default")}>Set Default</Button>

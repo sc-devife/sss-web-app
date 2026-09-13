@@ -6,6 +6,7 @@ import { HiOutlineChevronDown } from "react-icons/hi";
 import { IoSearchOutline } from "react-icons/io5";
 import type { Country } from "react-phone-number-input";
 import { cn } from "@/lib/cn";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 
 interface CountryOption {
   value?: Country;
@@ -227,7 +228,7 @@ export function CountrySelect({
                   )}
                 >
                   {opt.value && <Icon country={opt.value} label={opt.label} aria-hidden />}
-                  <span className="flex-1 truncate">{opt.label}</span>
+                  <HoverMarqueeText className="flex-1 truncate">{opt.label}</HoverMarqueeText>
                 </button>
               );
             })}

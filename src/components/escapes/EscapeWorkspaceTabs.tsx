@@ -8,6 +8,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { Avatar } from "@/components/ui/Avatar";
 import { TextInput } from "@/components/ui/TextInput";
 import { DatePicker } from "@/components/ui/DatePicker";
@@ -335,7 +336,7 @@ function TravellerCard({
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <Avatar name={name} />
-          <span className="truncate text-sm font-semibold text-foreground">{name}</span>
+          <HoverMarqueeText className="truncate text-sm font-semibold text-foreground">{name}</HoverMarqueeText>
           {typeLabel && <Badge tone="neutral">{typeLabel}</Badge>}
           {isPrimary && (
             <Badge tone="success" icon={IoCheckmarkCircle}>
@@ -488,7 +489,7 @@ function AddTravellerForm({
   if (!open) {
     return (
       <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>
-        + Add traveller
+        + Add Traveller
       </Button>
     );
   }
@@ -530,7 +531,7 @@ function AddTravellerForm({
         {formError && <p className="text-xs text-danger">{formError}</p>}
         <div className="flex gap-1.5">
           <Button type="submit" size="sm" disabled={saving} loading={saving} loadingText="Saving…">
-            Save traveller
+            Save Traveller
           </Button>
           <Button
             type="button"
@@ -658,13 +659,13 @@ export function EscapeWorkspaceTabs({
     <div className="flex shrink-0 items-start gap-4">
       <div className="flex max-w-[9rem] shrink-0 flex-col">
         <span className="whitespace-nowrap text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Itinerary</span>
-        <span className="truncate whitespace-nowrap text-sm font-semibold text-foreground">{activeItinerary.name}</span>
+        <HoverMarqueeText className="truncate whitespace-nowrap text-sm font-semibold text-foreground">{activeItinerary.name}</HoverMarqueeText>
       </div>
       <div className="flex max-w-[9rem] shrink-0 flex-col">
         <span className="whitespace-nowrap text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Quote</span>
-        <span className="truncate whitespace-nowrap text-sm font-semibold text-foreground">
+        <HoverMarqueeText className="truncate whitespace-nowrap text-sm font-semibold text-foreground">
           {latestQuote ? latestQuote.name ?? `Quote ${latestQuote.version}` : "No quotes yet"}
-        </span>
+        </HoverMarqueeText>
       </div>
     </div>
   );

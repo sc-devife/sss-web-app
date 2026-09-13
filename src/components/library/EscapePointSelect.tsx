@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { HiOutlineChevronDown } from "react-icons/hi";
 import { IoSearchOutline } from "react-icons/io5";
 import { cn } from "@/lib/cn";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import type { EscapePoint } from "@/lib/escape-points";
 
 interface EscapePointSelectProps {
@@ -149,7 +150,7 @@ export function EscapePointSelect({ label, escapePoints, value, onChange, disabl
           disabled && "cursor-not-allowed opacity-60",
         )}
       >
-        <span className="truncate">{selected ? selected.name : "Apply for All"}</span>
+        <HoverMarqueeText className="truncate">{selected ? selected.name : "Apply for All"}</HoverMarqueeText>
         <HiOutlineChevronDown
           size={16}
           className={cn("shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}

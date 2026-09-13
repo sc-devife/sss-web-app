@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 
 export interface RowMenuAction {
   key: string;
@@ -114,9 +115,9 @@ export function RowContextMenu({
       className="z-50 min-w-[170px] overflow-hidden rounded border border-border bg-card py-1 text-card-foreground shadow-lg"
     >
       {label && (
-        <div className="truncate border-b border-border px-3 py-1.5 text-xs font-medium text-muted-foreground">
+        <HoverMarqueeText as="div" className="truncate border-b border-border px-3 py-1.5 text-xs font-medium text-muted-foreground">
           {label}
-        </div>
+        </HoverMarqueeText>
       )}
       {actions.map((action, i) => {
         const Icon = action.icon;

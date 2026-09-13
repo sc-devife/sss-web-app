@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Spinner";
 import { Alert } from "@/components/ui/Alert";
 import { Body, Caption } from "@/components/ui/Typography";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { EscapePointFormModal } from "@/components/library/EscapePointFormModal";
 import { EscapePointLocationsModal } from "@/components/library/EscapePointLocationsModal";
 import { GalleryImage } from "@/components/library/GalleryImage";
@@ -122,7 +123,7 @@ export function EscapePointDetailPanel({
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5">
           <div className="min-w-0">
-            <h1 className="truncate text-2xl font-bold tracking-tight text-white md:text-3xl">{current.name}</h1>
+            <HoverMarqueeText as="h1" className="truncate text-2xl font-bold tracking-tight text-white md:text-3xl">{current.name}</HoverMarqueeText>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/90">
               <span className="rounded-md bg-white/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide backdrop-blur-sm">
                 {current.id}

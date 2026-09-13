@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Body, Caption } from "@/components/ui/Typography";
+import { Caption } from "@/components/ui/Typography";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import type { AppUser, AppRole } from "@/lib/users";
 import type { Team } from "@/lib/teams";
 import { formatRelativeTime } from "@/lib/date";
@@ -179,9 +180,9 @@ export function UsersList({ users, roles, teams }: { users: AppUser[]; roles: Ap
 
                 <div className="min-w-0 flex-1 space-y-0.2">
                   <div className="flex items-center gap-2">
-                    <Body className="truncate font-semibold">
+                    <HoverMarqueeText as="p" className="truncate text-sm leading-relaxed text-foreground font-semibold">
                       {user.first_name} {user.last_name}
-                    </Body>
+                    </HoverMarqueeText>
 
                     {user.blocked && (
                       <PiWarningCircleFill className="h-4 w-4 shrink-0 text-danger" />
@@ -190,13 +191,13 @@ export function UsersList({ users, roles, teams }: { users: AppUser[]; roles: Ap
                   <div className="flex flex-col gap-0.5 md:flex-row sm:items-center md:gap-2">
                     <Caption className="flex items-center gap-1.5 truncate lowercase text-muted-foreground">
                       <MdOutlineEmail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                      <span className="truncate">{user.email}</span>
+                      <HoverMarqueeText className="truncate">{user.email}</HoverMarqueeText>
                     </Caption>
 
                     {user.contact_number && (
                       <Caption className="flex items-center gap-1.5 truncate text-muted-foreground">
                         <MdOutlinePhone className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                        <span className="truncate">{user.contact_number}</span>
+                        <HoverMarqueeText className="truncate">{user.contact_number}</HoverMarqueeText>
                       </Caption>
                     )}
                   </div>
@@ -204,9 +205,9 @@ export function UsersList({ users, roles, teams }: { users: AppUser[]; roles: Ap
                   {(user.lastActiveAt || user.invitedByName) && (
                     <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
                       {user.lastActiveAt && (
-                        <Caption className="truncate">
+                        <HoverMarqueeText className="truncate text-xs uppercase tracking-wide text-muted-foreground">
                           Active {formatRelativeTime(user.lastActiveAt)}
-                        </Caption>
+                        </HoverMarqueeText>
                       )}
 
                       {user.lastActiveAt && user.invitedByName && (
@@ -214,9 +215,9 @@ export function UsersList({ users, roles, teams }: { users: AppUser[]; roles: Ap
                       )}
 
                       {user.invitedByName && (
-                        <Caption className="truncate">
+                        <HoverMarqueeText className="truncate text-xs uppercase tracking-wide text-muted-foreground">
                           Invited by {user.invitedByName}
-                        </Caption>
+                        </HoverMarqueeText>
                       )}
                     </div>
                   )}

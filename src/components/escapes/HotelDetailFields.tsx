@@ -350,7 +350,7 @@ export function HotelDetailFields({
                 loadingText="Saving…"
                 onClick={handleAddMeal}
               >
-                Add meal
+                Add Meal
               </Button>
               <Button
                 type="button"
@@ -369,7 +369,7 @@ export function HotelDetailFields({
         )
       )}
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
           <TextInput
             label="No. of Night"
@@ -392,6 +392,9 @@ export function HotelDetailFields({
           value={value.paxPerRoom}
           onChange={(e) => update("paxPerRoom", e.target.value)}
         />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
         <TextInput
           label="No. of Rooms"
           type="number"
@@ -399,9 +402,6 @@ export function HotelDetailFields({
           value={value.roomCount}
           onChange={(e) => update("roomCount", e.target.value)}
         />
-      </div>
-
-      <div className="grid grid-cols-4 gap-3">
         <TextInput
           label="AWEB"
           type="number"
@@ -409,6 +409,9 @@ export function HotelDetailFields({
           value={value.adultsWithExtraBed}
           onChange={(e) => update("adultsWithExtraBed", e.target.value)}
         />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
         <TextInput
           label="CWEB"
           type="number"
@@ -423,14 +426,15 @@ export function HotelDetailFields({
           value={value.childrenNoBed}
           onChange={(e) => update("childrenNoBed", e.target.value)}
         />
-        <TextInput
-          label="Comp Child"
-          type="number"
-          min={0}
-          value={value.complimentaryChildCount}
-          onChange={(e) => update("complimentaryChildCount", e.target.value)}
-        />
       </div>
+
+      <TextInput
+        label="Comp Child"
+        type="number"
+        min={0}
+        value={value.complimentaryChildCount}
+        onChange={(e) => update("complimentaryChildCount", e.target.value)}
+      />
 
       <div className="grid grid-cols-2 gap-3">
         <TextInput
@@ -498,20 +502,22 @@ export function HotelDetailFields({
                     onChange={(e) => updateInclusion(i, { durationMinutes: e.target.value })}
                   />
                 </div>
-                <TextInput
-                  label="Total Price (INR)"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={inclusion.totalPrice}
-                  onChange={(e) => updateInclusion(i, { totalPrice: e.target.value })}
-                />
-                <TextInput
-                  label="Comments"
-                  placeholder="Any comments regarding service"
-                  value={inclusion.comments}
-                  onChange={(e) => updateInclusion(i, { comments: e.target.value })}
-                />
+                <div className="grid grid-cols-2 gap-3">
+                  <TextInput
+                    label="Total Price (INR)"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={inclusion.totalPrice}
+                    onChange={(e) => updateInclusion(i, { totalPrice: e.target.value })}
+                  />
+                  <TextInput
+                    label="Comments"
+                    placeholder="Any comments regarding service"
+                    value={inclusion.comments}
+                    onChange={(e) => updateInclusion(i, { comments: e.target.value })}
+                  />
+                </div>
               </div>
             ))}
           </div>

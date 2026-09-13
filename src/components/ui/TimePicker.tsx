@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useId } from "react";
 import { createPortal } from "react-dom";
 import { IoTimeOutline } from "react-icons/io5";
 import { cn } from "@/lib/cn";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { formatDisplayTime } from "@/lib/date";
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 1); // 1..12
@@ -206,7 +207,7 @@ export function TimePicker({
           className,
         )}
       >
-        <span className="truncate">{value ? formatDisplayTime(value) : placeholder}</span>
+        <HoverMarqueeText className="truncate">{value ? formatDisplayTime(value) : placeholder}</HoverMarqueeText>
         <IoTimeOutline size={15} className="shrink-0 text-muted-foreground" />
       </button>
       {error && <span className="text-xs text-danger">{error}</span>}

@@ -17,6 +17,7 @@ import { armAudioUnlock, playNotificationChime } from "@/lib/notificationSound";
 import { useNotificationStream } from "@/lib/notificationStream";
 import { resolveFileUrl } from "@/lib/files";
 import { cn } from "@/lib/cn";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { RiMenuUnfoldLine } from "react-icons/ri";
 
 // First letter of first + last name (e.g. "John Doe" -> "JD"); just the
@@ -130,9 +131,9 @@ export function Header() {
                 <PiBuildingsFill className="h-3.5 w-3.5" />
               )}
             </div>
-            <span className="hidden max-w-[8rem] truncate text-sm font-medium text-foreground sm:inline">
+            <HoverMarqueeText className="hidden max-w-[8rem] truncate text-sm font-medium text-foreground sm:inline">
               {user.organizationName}
-            </span>
+            </HoverMarqueeText>
           </div>
         )}
         <Link
@@ -153,8 +154,8 @@ export function Header() {
             )}
           </span>
           <span className="hidden flex-col leading-tight sm:flex">
-            <span className="max-w-[9rem] truncate text-sm font-medium text-foreground">{userFullName(user)}</span>
-            <span className="max-w-[9rem] truncate text-xs text-muted-foreground">{user?.role}</span>
+            <HoverMarqueeText className="max-w-[9rem] truncate text-sm font-medium text-foreground">{userFullName(user)}</HoverMarqueeText>
+            <HoverMarqueeText className="max-w-[9rem] truncate text-xs text-muted-foreground">{user?.role}</HoverMarqueeText>
           </span>
         </Link>
       </div>

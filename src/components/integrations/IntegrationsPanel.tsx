@@ -17,6 +17,7 @@ import { TextInput } from "@/components/ui/TextInput";
 import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
 import { Body, Caption } from "@/components/ui/Typography";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { formatDisplayDateTime } from "@/lib/date";
@@ -194,7 +195,7 @@ export function IntegrationsPanel({ orgUid }: { orgUid: string }) {
                     <ProviderIcon className="size-5" aria-hidden="true" />
                   </div>
                   <div className="flex min-w-0 flex-col gap-1">
-                    <Body className="truncate text-base font-semibold">{integration.label}</Body>
+                    <HoverMarqueeText as="p" className="truncate text-base leading-relaxed text-foreground font-semibold">{integration.label}</HoverMarqueeText>
                     <Caption className="uppercase tracking-wider text-muted-foreground">{integration.channelCode}</Caption>
                   </div>
                 </div>

@@ -19,7 +19,7 @@ import { LEAD_STATUS_ORDER } from "@/lib/lead-status";
 import { FaPlus } from "react-icons/fa";
 import { BsFillInboxesFill } from "react-icons/bs";
 import { PiPencilSimple, PiArchiveBold } from "react-icons/pi";
-import { IoChevronBack, IoChevronForward, IoFilterOutline } from "react-icons/io5";
+import { IoChevronBack, IoChevronForward, IoFilterOutline, IoClose } from "react-icons/io5";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchLeads, archiveLead } from "@/features/leads/leadsThunks";
 import { selectLeads, selectLeadsStatus, selectLeadsError, selectLeadsPage, selectLeadsTotalPages } from "@/features/leads/leadsSelectors";
@@ -170,9 +170,22 @@ function MoreFiltersPopover({
             role="dialog"
             aria-label="More filters"
             style={{ position: "fixed", left: pos.left, top: pos.top, width: 320 }}
-            className="z-50 flex flex-col gap-4 rounded border border-border bg-card p-4 text-card-foreground shadow-xl"
+            className="z-50 flex flex-col gap-2 rounded border border-border bg-card p-4 text-card-foreground shadow-xl"
           >
-            <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-foreground">More Filters</span>
+              <button
+                type="button"
+                onClick={close}
+                aria-label="Close"
+                title="Close"
+                className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <IoClose size={18} />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-1">
               <span className="text-sm font-medium text-foreground">Dates between</span>
               <div className="grid grid-cols-2 gap-2">
                 <DatePicker

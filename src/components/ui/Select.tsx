@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { HiOutlineChevronDown } from "react-icons/hi";
 import { IoSearchOutline } from "react-icons/io5";
 import { cn } from "@/lib/cn";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 
 export interface SelectOption {
   value: string;
@@ -186,7 +187,7 @@ export function Select({
           className,
         )}
       >
-        <span className="truncate">{selectedOption ? selectedOption.label : placeholder ?? ""}</span>
+        <HoverMarqueeText className="truncate">{selectedOption ? selectedOption.label : placeholder ?? ""}</HoverMarqueeText>
         <HiOutlineChevronDown
           size={16}
           className={cn("shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}

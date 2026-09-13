@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Spinner";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { cn } from "@/lib/cn";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -210,7 +211,7 @@ export function ItineraryManagementCard({
                     title="Click to select, double-click to rename"
                     className="flex min-w-0 flex-1 items-center gap-1.5"
                   >
-                    <span className="truncate text-xs font-medium text-foreground">{itinerary.name}</span>
+                    <HoverMarqueeText className="truncate text-xs font-medium text-foreground">{itinerary.name}</HoverMarqueeText>
                     {itinerary.status && (
                       <Badge tone={STATUS_TONE[itinerary.status] ?? "neutral"} className="shrink-0 text-[10px]">
                         {itinerary.status}

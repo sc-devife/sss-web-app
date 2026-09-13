@@ -16,6 +16,7 @@ import {
   PiUserCircleFill,
 } from "react-icons/pi";
 import { Badge } from "@/components/ui/Badge";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { Avatar } from "@/components/ui/Avatar";
 import { Caption } from "@/components/ui/Typography";
 import { Spinner } from "@/components/ui/Spinner";
@@ -56,7 +57,7 @@ function IconLine({ icon: Icon, children, className }: { icon: IconType; childre
   return (
     <span className={cn("inline-flex items-center gap-1.5 text-[11px] text-muted-foreground", className)}>
       <Icon className="h-3.5 w-3.5 shrink-0" />
-      <span className="truncate">{children}</span>
+      <HoverMarqueeText className="truncate">{children}</HoverMarqueeText>
     </span>
   );
 }
@@ -67,9 +68,9 @@ function InfoRow({ icon: Icon, label, value }: { icon: IconType; label: string; 
     <div className="flex min-w-0 flex-col gap-1 rounded-lg border border-border/60 bg-muted/40 px-2.5 py-2">
       <div className="flex min-w-0 items-center gap-1.5">
         <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        <span className="truncate text-[11px] text-muted-foreground">{label}</span>
+        <HoverMarqueeText className="truncate text-[11px] text-muted-foreground">{label}</HoverMarqueeText>
       </div>
-      <span className="truncate text-xs font-semibold text-foreground">{formatDisplayDate(value)}</span>
+      <HoverMarqueeText className="truncate text-xs font-semibold text-foreground">{formatDisplayDate(value)}</HoverMarqueeText>
     </div>
   );
 }

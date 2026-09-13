@@ -21,6 +21,7 @@ import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Heading, Body, Caption } from "@/components/ui/Typography";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { Spinner } from "@/components/ui/Spinner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
@@ -163,7 +164,7 @@ function ReadOnlyField({ label, value, icon: Icon }: { label: string; value: str
       <Caption className="font-medium text-foreground">{label}</Caption>
       <div className="flex h-10 items-center gap-2 rounded border border-border bg-muted/40 px-3 text-sm text-foreground">
         <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <span className="truncate">{value}</span>
+        <HoverMarqueeText className="truncate">{value}</HoverMarqueeText>
       </div>
     </div>
   );

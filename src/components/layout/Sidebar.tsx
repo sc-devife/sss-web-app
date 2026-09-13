@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { dashboardRoute, protectedRoutes, visibleGroupsForRoles, type RouteGroup } from "@/lib/nav-config";
 import { cn } from "@/lib/cn";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { FaChevronLeft, FaChevronRight, FaChevronDown, FaPowerOff } from "react-icons/fa";
 import { BsFillInboxesFill } from "react-icons/bs";
 import { clientApi } from "@/lib/axios/clientClient";
@@ -63,7 +64,7 @@ function NavLink({
       )}
     >
       <Icon className={cn("h-4 w-4 shrink-0", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-      {!collapsed && <span className="truncate font-medium">{title}</span>}
+      {!collapsed && <HoverMarqueeText className="truncate font-medium">{title}</HoverMarqueeText>}
     </Link>
   );
 }
@@ -139,8 +140,8 @@ function SidebarBrand({
         </div>
         {!collapsed && (
           <div className="min-w-0">
-            <h2 className="truncate text-lg font-bold">Travel CRM</h2>
-            <p className="truncate text-xs text-muted-foreground">Travel Management Platform</p>
+            <HoverMarqueeText as="h2" className="truncate text-lg font-bold">Travel CRM</HoverMarqueeText>
+            <HoverMarqueeText as="p" className="truncate text-xs text-muted-foreground">Travel Management Platform</HoverMarqueeText>
           </div>
         )}
       </div>

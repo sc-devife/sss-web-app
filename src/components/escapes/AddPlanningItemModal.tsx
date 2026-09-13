@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { TimePicker } from "@/components/ui/TimePicker";
 import { Caption } from "@/components/ui/Typography";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
+import { chunkPairs } from "@/lib/forms";
 import { cn } from "@/lib/cn";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useAppDispatch } from "@/store/hooks";
@@ -199,7 +201,7 @@ export function AddPlanningItemModal({
     }
   }
 
-  const modalTitle = step === "select" ? title : `${title} details`;
+  const modalTitle = step === "select" ? title : `${title} Details`;
 
   return (
     <Modal open={open} onClose={handleClose} title={modalTitle} className="rounded-2xl border-none shadow-2xl">
@@ -255,7 +257,7 @@ export function AddPlanningItemModal({
                         <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", badgeClass)}>
                           <OptionIcon className="h-4 w-4" />
                         </span>
-                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{option.label}</span>
+                        <HoverMarqueeText className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{option.label}</HoverMarqueeText>
                       </button>
                     );
                   })
@@ -290,7 +292,7 @@ export function AddPlanningItemModal({
             </span>
             <span className="min-w-0 flex-1">
               <Caption className="block">{selected?.referenceId ? "From library" : "Custom"}</Caption>
-              <span className="truncate text-sm font-semibold text-foreground">{selected?.name}</span>
+              <HoverMarqueeText className="truncate text-sm font-semibold text-foreground">{selected?.name}</HoverMarqueeText>
             </span>
             <span className="shrink-0 text-xs font-medium text-primary">Change</span>
           </button>
@@ -300,6 +302,8 @@ export function AddPlanningItemModal({
               value={transportForm}
               onChange={setTransportForm}
               defaultPax={defaultPax ?? { adults: 0, children: 0, infants: 0 }}
+              startTime={startTime}
+              onStartTimeChange={setStartTime}
             />
           )}
 
@@ -319,24 +323,36 @@ export function AddPlanningItemModal({
             />
           )}
 
-          {isActivity && (
+          {chunkPairs([
+            ...(isActivity
+              ? [
+                <TextInput
+                  key="price"
+                  label="Price (INR)"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                />,
+              ]
+              : []),
+            // Transport renders its own Start time paired with Price inside
+            // TransportDetailFields above, so it's left out of this generic
+            // block for that type only — otherwise it'd show twice.
+            ...(isTransport ? [] : [<TimePicker key="startTime" label="Start time" value={startTime} onChange={setStartTime} />]),
             <TextInput
-              label="Price (INR)"
-              type="number"
-              min={0}
-              step="0.01"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-            />
-          )}
-
-          <TimePicker label="Start time" value={startTime} onChange={setStartTime} />
-          <TextInput
-            label="Notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Add any internal notes or additional information..."
-          />
+              key="notes"
+              label="Notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add any internal notes or additional information..."
+            />,
+          ]).map((pair, i) => (
+            <div key={i} className="grid grid-cols-2 gap-3">
+              {pair}
+            </div>
+          ))}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground" htmlFor="planning-item-long-description">
               Description (optional)

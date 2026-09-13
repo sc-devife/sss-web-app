@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Tabs } from "@/components/ui/Tabs";
 import { Body, Caption } from "@/components/ui/Typography";
+import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ActivityFormModal, CATEGORY_OPTIONS } from "@/components/library/ActivityFormModal";
 import { GalleryImage } from "@/components/library/GalleryImage";
@@ -140,7 +141,7 @@ export function ActivityDetailPanel({
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5">
           <div className="min-w-0">
-            <h1 className="truncate text-2xl font-bold tracking-tight text-white md:text-3xl">{activity.name}</h1>
+            <HoverMarqueeText as="h1" className="truncate text-2xl font-bold tracking-tight text-white md:text-3xl">{activity.name}</HoverMarqueeText>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/90">
               {categoryLabel && <span>{categoryLabel}</span>}
               {activity.escapePoint && (

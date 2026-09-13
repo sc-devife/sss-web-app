@@ -33,6 +33,7 @@ import { formatInr } from "@/lib/currency";
 import { hotelStatusTone, HOTEL_BOOKING_STATUS_OPTIONS } from "@/lib/hotel-booking-status";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/cn";
+import { chunkPairs } from "@/lib/forms";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchItineraryItems,
@@ -588,7 +589,7 @@ export function ItineraryDayPlanner({
           className="flex h-11 min-w-[100px] shrink-0 items-center justify-center gap-1 rounded-full border border-dashed border-border/70 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
         >
           <PiPlusFill className="h-3 w-3" />
-          Add day
+          Add Day
         </button>
       </div>
 
@@ -673,7 +674,7 @@ export function ItineraryDayPlanner({
       <Modal
         open={!!modal}
         onClose={() => setModal(null)}
-        title={isHotelDropMode ? "Drop Hotel" : isActivityDropMode ? "Drop Activity" : "Edit planning item"}
+        title={isHotelDropMode ? "Drop Hotel" : isActivityDropMode ? "Drop Activity" : "Edit Planning Item"}
       >
         {modal && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -724,40 +725,64 @@ export function ItineraryDayPlanner({
             )}
             {!isDropMode && (
               <>
-                <TimePicker
-                  label="Start time"
-                  value={modal.startTime}
-                  onChange={(v) => setModal((m) => (m ? { ...m, startTime: v } : m))}
-                />
-                <Select
-                  label="Type"
-                  options={PLANNING_ITEM_TYPES}
-                  value={modal.itemType}
-                  onChange={(e) => handleTypeChange(e.target.value as PlanningItemType)}
-                />
-                {referenceOptions.length > 0 && (
+                {chunkPairs([
+                  // Transport renders its own Start time paired with Price
+                  // inside TransportDetailFields below, so it's left out of
+                  // this generic block for that type only — otherwise it'd
+                  // show twice.
+                  ...(modal.itemType === "transport"
+                    ? []
+                    : [
+                      <TimePicker
+                        key="startTime"
+                        label="Start time"
+                        value={modal.startTime}
+                        onChange={(v) => setModal((m) => (m ? { ...m, startTime: v } : m))}
+                      />,
+                    ]),
                   <Select
-                    label={modal.itemType === "activity" ? "Select from library" : "Select from library (optional)"}
-                    options={referenceOptions}
-                    value={modal.referenceId}
-                    onChange={(e) => handleReferenceChange(e.target.value)}
-                    placeholder="Not linked to a library item"
-                  />
-                )}
-                {modal.itemType !== "activity" && (
-                  <TextInput
-                    label="Title"
-                    value={modal.title}
-                    onChange={(e) => handleTitleChange(e.target.value)}
-                    placeholder="e.g. Airport Pickup"
-                    required={!modal.referenceId}
-                  />
-                )}
+                    key="type"
+                    label="Type"
+                    options={PLANNING_ITEM_TYPES}
+                    value={modal.itemType}
+                    onChange={(e) => handleTypeChange(e.target.value as PlanningItemType)}
+                  />,
+                  ...(referenceOptions.length > 0
+                    ? [
+                      <Select
+                        key="reference"
+                        label={modal.itemType === "activity" ? "Select from library" : "Select from library (optional)"}
+                        options={referenceOptions}
+                        value={modal.referenceId}
+                        onChange={(e) => handleReferenceChange(e.target.value)}
+                        placeholder="Not linked to a library item"
+                      />,
+                    ]
+                    : []),
+                  ...(modal.itemType !== "activity"
+                    ? [
+                      <TextInput
+                        key="title"
+                        label="Title"
+                        value={modal.title}
+                        onChange={(e) => handleTitleChange(e.target.value)}
+                        placeholder="e.g. Airport Pickup"
+                        required={!modal.referenceId}
+                      />,
+                    ]
+                    : []),
+                ]).map((pair, i) => (
+                  <div key={i} className="grid grid-cols-2 gap-3">
+                    {pair}
+                  </div>
+                ))}
                 {modal.itemType === "transport" && (
                   <TransportDetailFields
                     value={modal.transportForm}
                     onChange={(next) => setModal((m) => (m ? { ...m, transportForm: next } : m))}
                     defaultPax={defaultPax}
+                    startTime={modal.startTime}
+                    onStartTimeChange={(v) => setModal((m) => (m ? { ...m, startTime: v } : m))}
                   />
                 )}
               </>
@@ -779,22 +804,32 @@ export function ItineraryDayPlanner({
             )}
             {!isDropMode && (
               <>
-                {modal.itemType === "activity" && (
+                {chunkPairs([
+                  ...(modal.itemType === "activity"
+                    ? [
+                      <TextInput
+                        key="price"
+                        label="Price (INR)"
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={modal.price}
+                        onChange={(e) => setModal((m) => (m ? { ...m, price: e.target.value } : m))}
+                      />,
+                    ]
+                    : []),
                   <TextInput
-                    label="Price (INR)"
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={modal.price}
-                    onChange={(e) => setModal((m) => (m ? { ...m, price: e.target.value } : m))}
-                  />
-                )}
-                <TextInput
-                  label="Notes"
-                  value={modal.notes}
-                  onChange={(e) => setModal((m) => (m ? { ...m, notes: e.target.value } : m))}
-                  placeholder="e.g. Bengaluru → Netravati"
-                />
+                    key="notes"
+                    label="Notes"
+                    value={modal.notes}
+                    onChange={(e) => setModal((m) => (m ? { ...m, notes: e.target.value } : m))}
+                    placeholder="e.g. Bengaluru → Netravati"
+                  />,
+                ]).map((pair, i) => (
+                  <div key={i} className="grid grid-cols-2 gap-3">
+                    {pair}
+                  </div>
+                ))}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium text-foreground" htmlFor="edit-planning-item-long-description">
                     Description (optional)
