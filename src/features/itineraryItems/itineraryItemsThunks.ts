@@ -39,7 +39,7 @@ export const updateItineraryItem = createAsyncThunk<void, UpdateItineraryItemPay
   "itineraryItems/updateItineraryItem",
   async (payload, { rejectWithValue }) => {
     const {
-      uid, dayNumber, itemType, referenceId, title, startTime, notes, longDescription, price,
+      uid, dayNumber, itemType, referenceId, title, startTime, notes, longDescription, price, travelersCount,
       transportDetail, hotelDetail, status, droppingReason, cancellationCharge,
     } = payload;
     try {
@@ -52,6 +52,7 @@ export const updateItineraryItem = createAsyncThunk<void, UpdateItineraryItemPay
         notes,
         longDescription,
         price,
+        travelersCount,
         transportDetail,
         hotelDetail,
         status,

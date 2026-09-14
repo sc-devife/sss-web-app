@@ -15,7 +15,12 @@ export interface HotelInclusionFormState {
   service: string;
   startTime: string;
   durationMinutes: string;
-  totalPrice: string;
+  /** This one service's own price — contributes to the overall Total Price
+   * alongside Price×Nights×Rooms (see computeHotelTotal). Maps to the API's
+   * HotelInclusion.totalPrice field (named from the service's own point of
+   * view there; "price" reads clearer here, next to the hotel-level Price/
+   * Total Price fields it's one ingredient of). */
+  price: string;
   comments: string;
 }
 
@@ -41,8 +46,37 @@ export interface HotelDetailFormState {
   cancellationCharge: string;
 }
 
+// (Price × Nights × Rooms) + the sum of every service's own Price — the
+// escape-specific Total Price recalculates from this any time Price/Nights/
+// Rooms changes or a service is added/removed/re-priced (see
+// updateAndRecalcTotal/recalcTotalWithInclusions below), while staying
+// independently editable itself. Returns null (meaning "leave Total Price
+// as it is") until Price/Nights/Rooms are all present and valid, so a
+// mid-edit blank field never flashes the total to ₹0 or wipes a value the
+// user hasn't finished typing. Services are more forgiving: a blank/invalid
+// service Price just contributes ₹0 rather than blocking the whole total,
+// since they're optional and often added one at a time.
+export function computeHotelTotal(
+  price: string,
+  nights: string,
+  roomCount: string,
+  inclusions: HotelInclusionFormState[],
+): string | null {
+  if (!price.trim() || !nights.trim() || !roomCount.trim()) return null;
+  const p = Number(price);
+  const n = Number(nights);
+  const r = Number(roomCount);
+  if (!Number.isFinite(p) || !Number.isFinite(n) || !Number.isFinite(r) || p < 0 || n <= 0 || r <= 0) return null;
+  const servicesTotal = inclusions.reduce((sum, inc) => {
+    const sp = Number(inc.price);
+    return inc.price.trim() && Number.isFinite(sp) && sp > 0 ? sum + sp : sum;
+  }, 0);
+  // Rounded to paise, same precision every other INR amount in this form uses.
+  return String(Math.round((p * n * r + servicesTotal) * 100) / 100);
+}
+
 export function emptyInclusion(): HotelInclusionFormState {
-  return { service: "", startTime: "", durationMinutes: "", totalPrice: "", comments: "" };
+  return { service: "", startTime: "", durationMinutes: "", price: "", comments: "" };
 }
 
 export function emptyHotelDetailForm(): HotelDetailFormState {
@@ -85,7 +119,7 @@ export function fromHotelDetail(detail: HotelDetail | null): HotelDetailFormStat
       service: i.service ?? "",
       startTime: i.startTime ?? "",
       durationMinutes: i.durationMinutes != null ? String(i.durationMinutes) : "",
-      totalPrice: i.totalPrice != null ? String(i.totalPrice) : "",
+      price: i.totalPrice != null ? String(i.totalPrice) : "",
       comments: i.comments ?? "",
     })),
     status: detail.status || "Initialize",
@@ -118,12 +152,12 @@ export function toHotelDetailPayload(form: HotelDetailFormState): HotelDetail | 
   if (!hasAnyField) return undefined;
 
   const inclusions: HotelInclusion[] = form.inclusions
-    .filter((i) => i.service.trim() || i.startTime || i.durationMinutes || i.totalPrice || i.comments.trim())
+    .filter((i) => i.service.trim() || i.startTime || i.durationMinutes || i.price || i.comments.trim())
     .map((i) => ({
       service: i.service || null,
       startTime: i.startTime || null,
       durationMinutes: i.durationMinutes ? Number(i.durationMinutes) : null,
-      totalPrice: i.totalPrice ? Number(i.totalPrice) : null,
+      totalPrice: i.price ? Number(i.price) : null,
       comments: i.comments || null,
     }));
 
@@ -206,6 +240,27 @@ export function HotelDetailFields({
     onChange({ ...value, [key]: v });
   }
 
+  // Price/Nights/Rooms all feed the same Total Price formula — whichever of
+  // the three just changed, re-derive Total Price from the other two plus
+  // the new value (and the current services). Total Price itself stays a
+  // plain, independently-editable field (rendered by the caller, right next
+  // to Notes — see AddPlanningItemModal/ItineraryDayPlanner): this only
+  // ever writes to it as a side effect of Price/Nights/Rooms/services
+  // changing, never the reverse.
+  function updateAndRecalcTotal(patch: Partial<Pick<HotelDetailFormState, "price" | "nights" | "roomCount">>) {
+    const next = { ...value, ...patch };
+    const total = computeHotelTotal(next.price, next.nights, next.roomCount, next.inclusions);
+    onChange(total !== null ? { ...next, totalPrice: total } : next);
+  }
+
+  // Same recalculation, triggered from the services list instead of the
+  // hotel-level Price/Nights/Rooms fields — adding, removing, or re-pricing
+  // a service all funnel through this.
+  function recalcTotalWithInclusions(inclusions: HotelInclusionFormState[]) {
+    const total = computeHotelTotal(value.price, value.nights, value.roomCount, inclusions);
+    onChange(total !== null ? { ...value, inclusions, totalPrice: total } : { ...value, inclusions });
+  }
+
   async function handleAddMeal() {
     if (!hotelUid || !newMeal.code.trim() || !newMeal.name.trim()) return;
     setSavingMeal(true);
@@ -229,18 +284,15 @@ export function HotelDetailFields({
   }
 
   function updateInclusion(index: number, patch: Partial<HotelInclusionFormState>) {
-    onChange({
-      ...value,
-      inclusions: value.inclusions.map((inc, i) => (i === index ? { ...inc, ...patch } : inc)),
-    });
+    recalcTotalWithInclusions(value.inclusions.map((inc, i) => (i === index ? { ...inc, ...patch } : inc)));
   }
 
   function addInclusion() {
-    onChange({ ...value, inclusions: [...value.inclusions, emptyInclusion()] });
+    recalcTotalWithInclusions([...value.inclusions, emptyInclusion()]);
   }
 
   function removeInclusion(index: number) {
-    onChange({ ...value, inclusions: value.inclusions.filter((_, i) => i !== index) });
+    recalcTotalWithInclusions(value.inclusions.filter((_, i) => i !== index));
   }
 
   const mealPlanOptions = mealPlans.map((m) => ({ value: m.uid, label: `${m.code} — ${m.name}` }));
@@ -377,7 +429,7 @@ export function HotelDetailFields({
             min={1}
             max={maxNights}
             value={value.nights}
-            onChange={(e) => update("nights", e.target.value)}
+            onChange={(e) => updateAndRecalcTotal({ nights: e.target.value })}
             error={nightsError}
           />
           {/* A hotel stay covers multiple consecutive nights starting from
@@ -400,7 +452,7 @@ export function HotelDetailFields({
           type="number"
           min={0}
           value={value.roomCount}
-          onChange={(e) => update("roomCount", e.target.value)}
+          onChange={(e) => updateAndRecalcTotal({ roomCount: e.target.value })}
         />
         <TextInput
           label="AWEB"
@@ -428,30 +480,22 @@ export function HotelDetailFields({
         />
       </div>
 
-      <TextInput
-        label="Comp Child"
-        type="number"
-        min={0}
-        value={value.complimentaryChildCount}
-        onChange={(e) => update("complimentaryChildCount", e.target.value)}
-      />
-
       <div className="grid grid-cols-2 gap-3">
+        <TextInput
+          label="Comp Child"
+          type="number"
+          min={0}
+          value={value.complimentaryChildCount}
+          onChange={(e) => update("complimentaryChildCount", e.target.value)}
+        />
+
         <TextInput
           label="Price (INR)"
           type="number"
           min={0}
           step="0.01"
           value={value.price}
-          onChange={(e) => update("price", e.target.value)}
-        />
-        <TextInput
-          label="Total Price (INR)"
-          type="number"
-          min={0}
-          step="0.01"
-          value={value.totalPrice}
-          onChange={(e) => update("totalPrice", e.target.value)}
+          onChange={(e) => updateAndRecalcTotal({ price: e.target.value })}
         />
       </div>
 
@@ -504,12 +548,12 @@ export function HotelDetailFields({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <TextInput
-                    label="Total Price (INR)"
+                    label="Price (INR)"
                     type="number"
                     min={0}
                     step="0.01"
-                    value={inclusion.totalPrice}
-                    onChange={(e) => updateInclusion(i, { totalPrice: e.target.value })}
+                    value={inclusion.price}
+                    onChange={(e) => updateInclusion(i, { price: e.target.value })}
                   />
                   <TextInput
                     label="Comments"

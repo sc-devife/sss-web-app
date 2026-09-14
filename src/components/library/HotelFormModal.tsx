@@ -38,6 +38,7 @@ const emptyForm = {
   checkInTime: "",
   checkOutTime: "",
   childAgeForExtraBed: "",
+  basePrice: "",
   rateValidFrom: "",
   rateValidTo: "",
   address: "",
@@ -93,6 +94,7 @@ function snapshotFromHotel(hotel: Hotel | null): FormState {
     checkInTime: hotel.checkInTime ?? "",
     checkOutTime: hotel.checkOutTime ?? "",
     childAgeForExtraBed: hotel.childAgeForExtraBed ?? "",
+    basePrice: hotel.basePrice != null ? String(hotel.basePrice) : "",
     rateValidFrom: hotel.rateValidFrom ?? "",
     rateValidTo: hotel.rateValidTo ?? "",
     address: hotel.address ?? "",
@@ -290,6 +292,7 @@ export function HotelFormModal({
         checkInTime: form.checkInTime || null,
         checkOutTime: form.checkOutTime || null,
         childAgeForExtraBed: form.childAgeForExtraBed,
+        basePrice: form.basePrice ? Number(form.basePrice) : null,
         rateValidFrom: form.rateValidFrom || null,
         rateValidTo: form.rateValidTo || null,
         address: form.address,
@@ -523,12 +526,23 @@ export function HotelFormModal({
             />
           </div>
 
-          <TextInput
-            label="Child extra-bed age policy"
-            placeholder="e.g. 6-12yo"
-            value={form.childAgeForExtraBed}
-            onChange={(e) => update("childAgeForExtraBed", e.target.value)}
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <TextInput
+              label="Base Price (INR)"
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder="Starting rate shown in itinerary suggestions"
+              value={form.basePrice}
+              onChange={(e) => update("basePrice", e.target.value)}
+            />
+            <TextInput
+              label="Child extra-bed age policy"
+              placeholder="e.g. 6-12yo"
+              value={form.childAgeForExtraBed}
+              onChange={(e) => update("childAgeForExtraBed", e.target.value)}
+            />
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <DatePicker

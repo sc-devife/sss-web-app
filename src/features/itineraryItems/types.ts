@@ -12,6 +12,7 @@ export interface CreateItineraryItemPayload {
   notes?: string;
   longDescription?: string;
   price?: number;
+  travelersCount?: number;
   transportDetail?: TransportDetail;
   hotelDetail?: HotelDetail;
 }
@@ -27,6 +28,7 @@ export interface UpdateItineraryItemPayload {
   notes?: string;
   longDescription?: string;
   price?: number;
+  travelersCount?: number;
   transportDetail?: TransportDetail;
   hotelDetail?: HotelDetail;
   /** Item-level Initialize/Booked/Drop status — see lib/itinerary-items' ItineraryItem.status. */

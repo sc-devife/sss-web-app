@@ -72,6 +72,8 @@ interface ModalState {
   notes: string;
   longDescription: string;
   price: string;
+  /** Activity only — see ItineraryItem.travelersCount. */
+  travelersCount: string;
   transportForm: TransportDetailFormState;
   hotelForm: HotelDetailFormState;
   /** Item-level Initialize/Booked/Drop status — currently only used for Activity (Hotel keeps its own status on hotelForm). */
@@ -93,6 +95,7 @@ function editModalState(item: ItineraryItem): ModalState {
     notes: item.notes ?? "",
     longDescription: item.longDescription ?? "",
     price: item.price != null ? String(item.price) : "",
+    travelersCount: item.travelersCount != null ? String(item.travelersCount) : "",
     transportForm: fromTransportDetail(item.transportDetail),
     hotelForm: fromHotelDetail(item.hotelDetail),
     status: item.status || "Initialize",
@@ -152,6 +155,11 @@ function TimelineRow({
       .filter(Boolean)
       .join(" · ") || null
     : null;
+  const hotelServices =
+    item.hotelDetail?.inclusions
+      .filter((i) => i.service)
+      .map((i) => (i.totalPrice != null ? `${i.service} (${formatInr(i.totalPrice)})` : i.service))
+      .join(", ") || null;
   const totalPrice = getItemTotalPrice(item);
 
   return (
@@ -172,6 +180,9 @@ function TimelineRow({
         </div>
         {flightSummary && <Caption className="mt-0.5 block normal-case text-muted-foreground">{flightSummary}</Caption>}
         {hotelSummary && <Caption className="mt-0.5 block normal-case text-muted-foreground">{hotelSummary}</Caption>}
+        {hotelServices && (
+          <Caption className="mt-0.5 block normal-case text-muted-foreground">Services: {hotelServices}</Caption>
+        )}
         {item.notes && <Caption className="mt-0.5 block normal-case text-muted-foreground">{item.notes}</Caption>}
       </div>
       {totalPrice != null && (
@@ -271,7 +282,10 @@ export function ItineraryDayPlanner({
   const transportsForEscape = transports.filter((t) => t.escapePoint && escapePointUids.has(t.escapePoint.uid));
 
   // Real pax counts from the escape's travellers — used to pre-fill the
-  // flight pricing grid instead of starting it blank.
+  // flight pricing grid instead of starting it blank. Relies on each
+  // traveller's own `type` (Adult/Child/Infant), which agents don't always
+  // fill in at lead intake — so this can under-count and isn't used for
+  // Activity's simpler "No. of Travelers" default below.
   const defaultPax = (escape?.travellers ?? []).reduce(
     (acc, t) => {
       if (t.type === "ADULT") acc.adults += 1;
@@ -281,6 +295,12 @@ export function ItineraryDayPlanner({
     },
     { adults: 0, children: 0, infants: 0 },
   );
+
+  // Activity's "No. of Travelers" default is just how many travellers the
+  // escape actually has — unlike defaultPax above, this doesn't depend on
+  // each traveller's type being filled in, so it stays accurate even when
+  // that field was left blank at lead intake.
+  const escapeTravelersCount = (escape?.travellers ?? []).length;
 
   // RoomType is org-wide master data — the same uid always names the same
   // room type regardless of which hotel it came from — so a flat map built
@@ -416,6 +436,13 @@ export function ItineraryDayPlanner({
   const isActivityDropMode = !!modal && modal.itemType === "activity" && modal.status === "Drop";
   const isDropMode = isHotelDropMode || isActivityDropMode;
 
+  // Price is a per-traveller rate — this is the booking's actual total,
+  // shown read-only alongside it (see ItineraryItem.travelersCount).
+  const activityTotalPrice =
+    modal && modal.itemType === "activity" && modal.price.trim() && modal.travelersCount.trim()
+      ? Number(modal.price) * Number(modal.travelersCount)
+      : null;
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!modal) return;
@@ -454,6 +481,7 @@ export function ItineraryDayPlanner({
           notes: modal.notes.trim() || undefined,
           longDescription: modal.longDescription.trim() || undefined,
           price: isActivity && modal.price ? Number(modal.price) : undefined,
+          travelersCount: isActivity && modal.travelersCount ? Number(modal.travelersCount) : undefined,
           transportDetail:
             modal.itemType === "transport" ? toTransportDetailPayload(modal.transportForm) : undefined,
           hotelDetail: modal.itemType === "hotel" ? toHotelDetailPayload(modal.hotelForm) : undefined,
@@ -530,6 +558,8 @@ export function ItineraryDayPlanner({
         label: h.name,
         roomTypes: h.roomTypes ?? [],
         mealPlans: h.mealPlans ?? [],
+        stars: h.stars,
+        basePrice: h.basePrice,
       })),
     },
     activity: {
@@ -541,6 +571,7 @@ export function ItineraryDayPlanner({
       libraryOptions: activitiesForEscape.map((a) => ({
         uid: a.uid,
         label: a.name,
+        basePrice: a.basePrice,
         activityPrefill: { price: a.basePrice },
       })),
     },
@@ -567,15 +598,15 @@ export function ItineraryDayPlanner({
               type="button"
               onClick={() => setOpenDay(day)}
               className={cn(
-                "flex h-11 min-w-[100px] shrink-0 flex-col items-center justify-center rounded-t-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
+                "flex h-11 min-w-[100px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-t-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
                 isActive
                   ? "-mb-px border-primary border-b-card bg-card text-foreground shadow-sm"
                   : "rounded-b-lg border-border/60 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
               )}
             >
-              <span>Day {day}</span>
-              {date && <span className="text-[8px] font-normal text-muted-foreground">{formatDayDateWithWeekday(date)}</span>}
-              {dayTotal > 0 && <span className="text-[8px] font-semibold text-primary">{formatInr(dayTotal)}</span>}
+              <span className="leading-none">Day {day}</span>
+              {date && <span className="leading-none text-[8px] font-normal text-muted-foreground">{formatDayDateWithWeekday(date)}</span>}
+              {dayTotal > 0 && <span className="leading-none text-[10px] font-semibold text-primary">{formatInr(dayTotal)}</span>}
             </button>
           );
         })}
@@ -665,6 +696,7 @@ export function ItineraryDayPlanner({
           itemType={addingType}
           onCreated={loadItems}
           defaultPax={defaultPax}
+          defaultTravelersCount={escapeTravelersCount}
           onMealPlanCreated={handleMealPlanCreated}
           maxHotelNights={addingType === "hotel" ? maxHotelNightsForNewItem : undefined}
           {...quickAddConfig[addingType]}
@@ -816,20 +848,55 @@ export function ItineraryDayPlanner({
                         value={modal.price}
                         onChange={(e) => setModal((m) => (m ? { ...m, price: e.target.value } : m))}
                       />,
+                      <TextInput
+                        key="travelersCount"
+                        label="No. of Travelers"
+                        type="number"
+                        min={0}
+                        value={modal.travelersCount}
+                        onChange={(e) => setModal((m) => (m ? { ...m, travelersCount: e.target.value } : m))}
+                      />,
+                      <TextInput key="totalPrice" label="Total Price (INR)" type="number" value={activityTotalPrice ?? ""} disabled />,
                     ]
                     : []),
-                  <TextInput
-                    key="notes"
-                    label="Notes"
-                    value={modal.notes}
-                    onChange={(e) => setModal((m) => (m ? { ...m, notes: e.target.value } : m))}
-                    placeholder="e.g. Bengaluru → Netravati"
-                  />,
+                  // Hotel pairs Notes with Total Price (INR) in its own row
+                  // below instead, so it's left out of this generic block.
+                  ...(modal.itemType === "hotel"
+                    ? []
+                    : [
+                      <TextInput
+                        key="notes"
+                        label="Notes"
+                        value={modal.notes}
+                        onChange={(e) => setModal((m) => (m ? { ...m, notes: e.target.value } : m))}
+                        placeholder="e.g. Bengaluru → Netravati"
+                      />,
+                    ]),
                 ]).map((pair, i) => (
                   <div key={i} className="grid grid-cols-2 gap-3">
                     {pair}
                   </div>
                 ))}
+                {modal.itemType === "hotel" && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <TextInput
+                      label="Total Price (INR)"
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={modal.hotelForm.totalPrice}
+                      onChange={(e) =>
+                        setModal((m) => (m ? { ...m, hotelForm: { ...m.hotelForm, totalPrice: e.target.value } } : m))
+                      }
+                    />
+                    <TextInput
+                      label="Notes"
+                      value={modal.notes}
+                      onChange={(e) => setModal((m) => (m ? { ...m, notes: e.target.value } : m))}
+                      placeholder="e.g. Bengaluru → Netravati"
+                    />
+                  </div>
+                )}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium text-foreground" htmlFor="edit-planning-item-long-description">
                     Description (optional)

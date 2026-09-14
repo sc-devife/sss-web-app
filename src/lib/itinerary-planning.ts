@@ -98,7 +98,9 @@ export function getItemTotalPrice(item: ItineraryItem): number | null {
     return item.hotelDetail?.totalPrice ?? null;
   }
   if (item.itemType === "activity" || item.itemType === "sightseeing") {
-    return item.price;
+    if (item.price == null) return null;
+    const travelers = item.travelersCount && item.travelersCount > 0 ? item.travelersCount : 1;
+    return item.price * travelers;
   }
   if (item.itemType === "transport" || item.itemType === "pickup_drop") {
     const detail = item.transportDetail;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
-import { PiMagnifyingGlassBold, PiPencilSimpleFill, PiCheckBold } from "react-icons/pi";
+import { PiMagnifyingGlassBold, PiPencilSimpleFill, PiCheckBold, PiStarFill } from "react-icons/pi";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
@@ -9,6 +9,7 @@ import { TimePicker } from "@/components/ui/TimePicker";
 import { Caption } from "@/components/ui/Typography";
 import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { chunkPairs } from "@/lib/forms";
+import { formatInr } from "@/lib/currency";
 import { cn } from "@/lib/cn";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useAppDispatch } from "@/store/hooks";
@@ -27,6 +28,7 @@ import {
   emptyHotelDetailForm,
   toHotelDetailPayload,
   hotelNightsError,
+  computeHotelTotal,
   type HotelDetailFormState,
 } from "@/components/escapes/HotelDetailFields";
 
@@ -40,6 +42,17 @@ export interface PlanningLibraryOption {
   // list, used by HotelDetailFields.
   roomTypes?: { uid: string; name: string }[];
   mealPlans?: { uid: string; code: string; name: string }[];
+  // Only populated for hotel options — shown alongside the name in the
+  // suggestion dropdown (star rating), purely informational so the list is
+  // scannable without opening each hotel. Never prefills anything, unlike
+  // transportPrefill/activityPrefill below.
+  stars?: number | null;
+  // Populated for hotel and activity options — the library item's own
+  // starting/master price, shown alongside the name in the suggestion
+  // dropdown so the list is scannable without opening each item. Purely
+  // informational display data; activityPrefill below is what actually
+  // prefills the Price field once an activity is picked.
+  basePrice?: number | null;
   // Only populated for transport options — prefills the Mode/Vehicle
   // type/Price fields when a library Transport record is picked (still
   // fully editable from there).
@@ -66,6 +79,7 @@ export function AddPlanningItemModal({
   namePlaceholder,
   onCreated,
   defaultPax,
+  defaultTravelersCount,
   onMealPlanCreated,
   maxHotelNights,
 }: {
@@ -84,6 +98,12 @@ export function AddPlanningItemModal({
   // Real Adults/Children/Infants counts from the escape's travellers, used
   // to pre-fill the flight pricing grid instead of starting it blank.
   defaultPax?: { adults: number; children: number; infants: number };
+  // Total travellers on the escape (regardless of type) — the Activity
+  // form's default "No. of Travelers". Deliberately not derived from
+  // defaultPax above: that sum depends on each traveller's own type
+  // (Adult/Child/Infant) being filled in, which agents don't always do at
+  // lead intake, and would silently default to 0 when it isn't.
+  defaultTravelersCount?: number;
   // Bubbles a meal plan created via HotelDetailFields' "+ Add Meal" up to
   // the day planner, so the hotel's meal plan list stays current after this
   // modal closes (this modal's own selectedOption is updated locally too).
@@ -102,6 +122,11 @@ export function AddPlanningItemModal({
   const [notes, setNotes] = useState("");
   const [longDescription, setLongDescription] = useState("");
   const [price, setPrice] = useState("");
+  // Activity only — defaults to the escape's own traveller count (see
+  // defaultTravelersCount prop), independently editable from there.
+  const [travelersCount, setTravelersCount] = useState(() =>
+    defaultTravelersCount != null ? String(defaultTravelersCount) : "",
+  );
   const [transportForm, setTransportForm] = useState<TransportDetailFormState>(emptyTransportDetailForm());
   const [hotelForm, setHotelForm] = useState<HotelDetailFormState>(emptyHotelDetailForm());
   const [saving, setSaving] = useState(false);
@@ -109,6 +134,10 @@ export function AddPlanningItemModal({
   const isTransport = itemType === "transport";
   const isHotel = itemType === "hotel";
   const isActivity = itemType === "activity";
+  // Price is a per-traveller rate — this is the booking's actual total,
+  // shown read-only alongside it (see ItineraryItem.travelersCount).
+  const activityTotalPrice =
+    isActivity && price.trim() && travelersCount.trim() ? Number(price) * Number(travelersCount) : null;
 
   const Icon = PLANNING_ITEM_ICON[itemType];
   const badgeClass = PLANNING_ITEM_BADGE_CLASS[itemType];
@@ -128,6 +157,7 @@ export function AddPlanningItemModal({
     setNotes("");
     setLongDescription("");
     setPrice("");
+    setTravelersCount(defaultTravelersCount != null ? String(defaultTravelersCount) : "");
     setTransportForm(emptyTransportDetailForm());
     setHotelForm(emptyHotelDetailForm());
     setError(undefined);
@@ -152,6 +182,17 @@ export function AddPlanningItemModal({
     }
     if (option.activityPrefill?.price != null) {
       setPrice(String(option.activityPrefill.price));
+    }
+    // Prefills this NEW booking's Price from the Hotel entity's own
+    // basePrice — a one-time default, not a live link: from here on the
+    // value lives only on this itinerary item's hotelDetail (see
+    // HotelDetailFields), and editing it never writes back to the Hotel.
+    if (isHotel && option.basePrice != null) {
+      setHotelForm((f) => {
+        const price = String(option.basePrice);
+        const total = computeHotelTotal(price, f.nights, f.roomCount, f.inclusions);
+        return total !== null ? { ...f, price, totalPrice: total } : { ...f, price };
+      });
     }
     setStep("details");
   }
@@ -187,6 +228,7 @@ export function AddPlanningItemModal({
           notes: notes.trim() || undefined,
           longDescription: longDescription.trim() || undefined,
           price: isActivity && price ? Number(price) : undefined,
+          travelersCount: isActivity && travelersCount ? Number(travelersCount) : undefined,
           transportDetail: isTransport ? toTransportDetailPayload(transportForm) : undefined,
           hotelDetail: isHotel ? toHotelDetailPayload(hotelForm) : undefined,
         }),
@@ -252,12 +294,41 @@ export function AddPlanningItemModal({
                         key={option.uid}
                         type="button"
                         onClick={() => pickLibraryOption(option)}
-                        className="flex items-center gap-2.5 rounded-lg border border-border/60 bg-card px-3 py-2 text-left shadow-sm transition-all hover:-translate-y-px hover:border-primary/40 hover:shadow-md"
+                        className="flex items-center gap-2.5 rounded-lg border border-border/60 bg-card px-3 py-2 text-left shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
                       >
                         <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", badgeClass)}>
                           <OptionIcon className="h-4 w-4" />
                         </span>
-                        <HoverMarqueeText className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{option.label}</HoverMarqueeText>
+                        {isHotel ? (
+                          <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                            <span className="flex min-w-0 flex-col gap-0.5">
+                              <HoverMarqueeText className="min-w-0 truncate text-sm font-medium text-foreground">
+                                {option.label}
+                              </HoverMarqueeText>
+                              {!!option.stars && option.stars > 0 && (
+                                <span className="flex shrink-0 items-center gap-0.5 text-amber-500">
+                                  {Array.from({ length: option.stars }, (_, i) => (
+                                    <PiStarFill key={i} size={10} />
+                                  ))}
+                                </span>
+                              )}
+                            </span>
+                            {option.basePrice != null && (
+                              <span className="shrink-0 text-sm font-semibold text-primary">{formatInr(option.basePrice)}</span>
+                            )}
+                          </span>
+                        ) : isActivity ? (
+                          <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                            <HoverMarqueeText className="min-w-0 truncate text-sm font-medium text-foreground">
+                              {option.label}
+                            </HoverMarqueeText>
+                            {option.basePrice != null && (
+                              <span className="shrink-0 text-sm font-semibold text-primary">{formatInr(option.basePrice)}</span>
+                            )}
+                          </span>
+                        ) : (
+                          <HoverMarqueeText className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{option.label}</HoverMarqueeText>
+                        )}
                       </button>
                     );
                   })
@@ -335,24 +406,63 @@ export function AddPlanningItemModal({
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                 />,
+                <TextInput
+                  key="travelersCount"
+                  label="No. of Travelers"
+                  type="number"
+                  min={0}
+                  value={travelersCount}
+                  onChange={(e) => setTravelersCount(e.target.value)}
+                />,
+                <TextInput
+                  key="totalPrice"
+                  label="Total Price (INR)"
+                  type="number"
+                  value={activityTotalPrice ?? ""}
+                  disabled
+                />,
               ]
               : []),
             // Transport renders its own Start time paired with Price inside
             // TransportDetailFields above, so it's left out of this generic
             // block for that type only — otherwise it'd show twice.
             ...(isTransport ? [] : [<TimePicker key="startTime" label="Start time" value={startTime} onChange={setStartTime} />]),
-            <TextInput
-              key="notes"
-              label="Notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any internal notes or additional information..."
-            />,
+            // Hotel pairs Notes with Total Price (INR) in its own row below
+            // instead, so it's left out of this generic block for that type.
+            ...(isHotel
+              ? []
+              : [
+                <TextInput
+                  key="notes"
+                  label="Notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Add any internal notes or additional information..."
+                />,
+              ]),
           ]).map((pair, i) => (
             <div key={i} className="grid grid-cols-2 gap-3">
               {pair}
             </div>
           ))}
+          {isHotel && (
+            <div className="grid grid-cols-2 gap-3">
+              <TextInput
+                label="Total Price (INR)"
+                type="number"
+                min={0}
+                step="0.01"
+                value={hotelForm.totalPrice}
+                onChange={(e) => setHotelForm((f) => ({ ...f, totalPrice: e.target.value }))}
+              />
+              <TextInput
+                label="Notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add any internal notes or additional information..."
+              />
+            </div>
+          )}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground" htmlFor="planning-item-long-description">
               Description (optional)

@@ -79,6 +79,8 @@ export interface ItineraryItem {
   notes: string | null;
   longDescription: string | null;
   price: number | null;
+  /** Currently meaningful for Activity only — price is a per-traveller rate, multiplied by this to get the item's total. */
+  travelersCount: number | null;
   sortOrder: number;
   transportDetail: TransportDetail | null;
   hotelDetail: HotelDetail | null;

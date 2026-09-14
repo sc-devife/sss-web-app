@@ -4,6 +4,10 @@ export interface Hotel {
   uid: string;
   name: string;
   stars: number | null;
+  // Starting/indicative rate — shown in the itinerary's hotel suggestion
+  // dropdown alongside stars. Not what a specific stay is actually booked
+  // at (that's HotelDetail.price/totalPrice, entered per-itinerary-item).
+  basePrice: number | null;
   location: { uid: string; displayName: string } | null;
   escapePoint: { uid: string; name: string } | null;
   mealPlans: { uid: string; code: string; name: string }[] | null;
