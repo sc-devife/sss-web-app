@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import type { IconType } from "react-icons";
+import { toast } from "react-toastify";
 import { IoMailOutline, IoCallOutline } from "react-icons/io5";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import {
@@ -15,23 +16,32 @@ import {
   PiSuitcaseFill,
   PiUserCircleFill,
   PiHashFill,
+  PiWarningCircleFill,
 } from "react-icons/pi";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { Avatar } from "@/components/ui/Avatar";
-import { Caption } from "@/components/ui/Typography";
+import { Body, Caption } from "@/components/ui/Typography";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/cn";
 import { resolveFileUrl } from "@/lib/files";
-import { escapeStatusTone, escapeStatusIcon } from "@/lib/escape-status";
+import { escapeStatusTone, escapeStatusIcon, ESCAPE_STATUS_CANCELLED } from "@/lib/escape-status";
 import { formatDisplayDate, formatDisplayDateTime } from "@/lib/date";
 import type { Escape } from "@/lib/escapes";
 import type { EscapeAuditLogEntry } from "@/features/escapes/types";
 import { FaLocationArrow } from "react-icons/fa";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { advanceEscapeStatus, fetchEscapeById, fetchEscapeAuditLog } from "@/features/escapes/escapesThunks";
-import { selectAdvanceStatus, selectAdvanceError, selectCurrentEscapeStatus } from "@/features/escapes/escapesSelectors";
-import { resetAdvanceStatus } from "@/features/escapes/escapesSlice";
+import { advanceEscapeStatus, cancelEscape, fetchEscapeById, fetchEscapeAuditLog } from "@/features/escapes/escapesThunks";
+import {
+  selectAdvanceStatus,
+  selectAdvanceError,
+  selectCurrentEscapeStatus,
+  selectCancelStatus,
+  selectCancelError,
+} from "@/features/escapes/escapesSelectors";
+import { resetAdvanceStatus, resetCancelStatus } from "@/features/escapes/escapesSlice";
 
 // Sizing here is done via plain styled spans rather than the shared
 // Typography components (Heading/Body) in places that need a size the
@@ -138,6 +148,53 @@ export function EscapeSummaryCard({
   const advancing = advanceStatus === "loading" || (advanceStatus === "succeeded" && currentEscapeStatus === "loading");
   const nextStep = resolveNextStep(escape);
 
+  // Section P0-2 UI — the cancelEscape thunk/slice/proxy already existed
+  // (confirmed working via a direct API call in the audit) but nothing
+  // dispatched them. Wired here, next to the status badge, same place the
+  // forward "Mark as X" trigger already lives — reusing the slice's own
+  // cancelStatus/cancelError rather than local state, since that's exactly
+  // what it was built for.
+  const cancelStatus = useAppSelector(selectCancelStatus);
+  const cancelError = useAppSelector(selectCancelError);
+  const cancelling = cancelStatus === "loading" || (cancelStatus === "succeeded" && currentEscapeStatus === "loading");
+  const [showCancelForm, setShowCancelForm] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [reasonError, setReasonError] = useState<string | undefined>();
+  const isCancelled = escape.status === ESCAPE_STATUS_CANCELLED;
+
+  function closeCancelForm() {
+    if (cancelling) return;
+    setShowCancelForm(false);
+    setCancelReason("");
+    setReasonError(undefined);
+    dispatch(resetCancelStatus());
+  }
+
+  async function handleCancelEscape() {
+    if (!cancelReason.trim()) {
+      setReasonError("A cancellation reason is required");
+      return;
+    }
+    setReasonError(undefined);
+    dispatch(resetCancelStatus());
+    try {
+      await dispatch(cancelEscape({ escapeUid: escape.uid, reason: cancelReason.trim() })).unwrap();
+      await dispatch(fetchEscapeById(escape.uid));
+      // Same staleness fix handleAdvance already applies — the CANCELLED
+      // entry (and every HOTEL_DROPPED/ACTIVITY_DROPPED/TRANSPORT_DROPPED
+      // entry the backend cascade just wrote) wouldn't show up in History
+      // until a reload otherwise.
+      dispatch(fetchEscapeAuditLog(escape.uid));
+      setShowCancelForm(false);
+      setCancelReason("");
+      toast.success("Escape cancelled.");
+    } catch (err) {
+      // cancelError below already surfaces the failure inline; the toast
+      // makes sure it's noticed even if attention isn't on this card.
+      toast.error(typeof err === "string" ? err : "Failed to cancel escape");
+    }
+  }
+
   async function handleAdvance(targetStatus: string) {
     dispatch(resetAdvanceStatus());
     try {
@@ -233,6 +290,21 @@ export function EscapeSummaryCard({
                 </button>
               )
             )}
+            {!isCancelled && (
+              cancelling ? (
+                <span aria-label="Cancelling escape" title="Cancelling…" className="inline-flex items-center">
+                  <Spinner size="sm" />
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowCancelForm(true)}
+                  className="text-xs font-medium text-danger hover:underline"
+                >
+                  Cancel Escape
+                </button>
+              )
+            )}
           </div>
           {escape.tripCode && <IconLine icon={PiHashFill}>{escape.tripCode}</IconLine>}
           {advanceError && <p className="text-xs text-danger">{advanceError}</p>}
@@ -308,6 +380,52 @@ export function EscapeSummaryCard({
         </Section>
 
       </div>
+
+      <Modal open={showCancelForm} onClose={closeCancelForm} title="Cancel this Escape?">
+        <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-danger/10 text-danger">
+            <PiWarningCircleFill size={28} aria-hidden="true" />
+          </div>
+          <Body>
+            This will mark the Escape as <strong>Cancelled</strong>. Any Hotel, Activity or Transport booking
+            still Initialize/Booked will be automatically Dropped — nothing is deleted, and this can be reviewed
+            in History afterward.
+          </Body>
+          <div className="w-full text-left">
+            <label htmlFor="escape-cancel-reason" className="text-sm font-medium text-foreground">
+              Reason for cancelling this Escape
+            </label>
+            <textarea
+              id="escape-cancel-reason"
+              value={cancelReason}
+              onChange={(e) => {
+                setCancelReason(e.target.value);
+                if (reasonError) setReasonError(undefined);
+              }}
+              rows={2}
+              disabled={cancelling}
+              className="mt-1 w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+            />
+          </div>
+          {(reasonError || cancelError) && <p className="text-sm text-danger">{reasonError ?? cancelError}</p>}
+          <div className="flex w-full gap-3 border-t pt-5">
+            <Button type="button" disabled={cancelling} onClick={closeCancelForm} className="w-full">
+              Keep Escape
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              disabled={cancelling}
+              loading={cancelling}
+              loadingText="Cancelling…"
+              onClick={handleCancelEscape}
+              className="w-full"
+            >
+              Cancel Escape
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

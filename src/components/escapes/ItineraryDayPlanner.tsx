@@ -31,6 +31,7 @@ import {
 import { transportModeIcon } from "@/lib/transport-modes";
 import { formatInr } from "@/lib/currency";
 import { hotelStatusTone, HOTEL_BOOKING_STATUS_OPTIONS } from "@/lib/hotel-booking-status";
+import { ESCAPE_STATUS_CANCELLED } from "@/lib/escape-status";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/cn";
 import { chunkPairs } from "@/lib/forms";
@@ -131,6 +132,7 @@ function TimelineRow({
   onDelete,
   deleting,
   roomTypesByUid,
+  readOnly,
 }: {
   item: ItineraryItem;
   // True only for the single card currently being dragged — gets an
@@ -147,6 +149,10 @@ function TimelineRow({
   onDelete: () => void;
   deleting: boolean;
   roomTypesByUid: Record<string, string>;
+  // Cancelled-Escape lock (P0-2) — hides Edit/Delete instead of disabling
+  // drag too, since reordering a read-only itinerary is harmless (no data
+  // change) and not worth its own separate gate.
+  readOnly?: boolean;
 }) {
   const isTransportItem = item.itemType === "transport" || item.itemType === "pickup_drop";
   const Icon = isTransportItem ? transportModeIcon(item.transportDetail?.modeCode) : PLANNING_ITEM_ICON[item.itemType];
@@ -209,33 +215,35 @@ function TimelineRow({
       {totalPrice != null && (
         <div className="shrink-0 pt-0.5 text-sm font-semibold text-foreground">{formatInr(totalPrice)}</div>
       )}
-      <div className="flex shrink-0 items-center gap-0.5">
-        <button
-          type="button"
-          onClick={onEdit}
-          className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-          aria-label="Edit"
-          title="Edit"
-        >
-          <RiEdit2Line size={14} />
-        </button>
-        {deleting ? (
-          <span aria-label="Removing" title="Removing…" className="flex items-center justify-center p-1">
-            <Spinner size="sm" />
-          </span>
-        ) : (
+      {!readOnly && (
+        <div className="flex shrink-0 items-center gap-0.5">
           <button
             type="button"
-            onClick={onDelete}
-            disabled={deleting}
-            className="rounded-full p-1 text-muted-foreground hover:bg-danger/10 hover:text-danger disabled:opacity-50"
-            aria-label="Remove"
-            title="Remove"
+            onClick={onEdit}
+            className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label="Edit"
+            title="Edit"
           >
-            <IoTrashOutline size={14} />
+            <RiEdit2Line size={14} />
           </button>
-        )}
-      </div>
+          {deleting ? (
+            <span aria-label="Removing" title="Removing…" className="flex items-center justify-center p-1">
+              <Spinner size="sm" />
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={deleting}
+              className="rounded-full p-1 text-muted-foreground hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+              aria-label="Remove"
+              title="Remove"
+            >
+              <IoTrashOutline size={14} />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -261,6 +269,12 @@ export function ItineraryDayPlanner({
   const items = useAppSelector((s) => selectItineraryItems(s, itineraryUid));
   const itemsStatus = useAppSelector((s) => selectItineraryItemsStatus(s, itineraryUid));
   const escape = useAppSelector(selectCurrentEscape);
+  // A Cancelled Escape's bookings are already Dropped by the backend
+  // cascade (EscapeLifecycleServiceImpl.cancel()) — this just stops the UI
+  // from continuing to invite new edits/adds on top of that. Deliberately
+  // minimal: hides Add/Edit/Delete rather than redesigning the panel: a
+  // fuller locked-state treatment is a documented follow-up, not P0.
+  const isCancelled = escape?.status === ESCAPE_STATUS_CANCELLED;
 
   // Local, mutable copy of the (server-fetched) hotels prop — needed so
   // HotelDetailFields' "+ Add Meal" can append the new meal plan to the
@@ -334,6 +348,23 @@ export function ItineraryDayPlanner({
   function loadItems() {
     dispatch(fetchItineraryItems(itineraryUid));
   }
+
+  // Cancelling an Escape drops its bookings via a backend cascade (not a
+  // per-item edit this component's own actions would trigger), so this is
+  // the one case where the item list this component already loaded can go
+  // stale without any local action causing it — refetch once when the
+  // status flips to Cancelled so hotel/activity Drop badges reflect it
+  // without requiring a manual page reload.
+  const refetchedForCancelRef = useRef(false);
+  useEffect(() => {
+    if (isCancelled && !refetchedForCancelRef.current) {
+      refetchedForCancelRef.current = true;
+      dispatch(fetchItineraryItems(itineraryUid));
+    }
+    if (!isCancelled) {
+      refetchedForCancelRef.current = false;
+    }
+  }, [isCancelled, dispatch, itineraryUid]);
 
   const maxItemDay = items.length ? Math.max(...items.map((i) => i.dayNumber)) : 0;
   const dayCount = Math.max(numberOfDays ?? 1, maxItemDay, 1);
@@ -916,6 +947,11 @@ export function ItineraryDayPlanner({
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
+      {isCancelled && (
+        <div className="mb-2 shrink-0 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+          This Escape is Cancelled. Its bookings have been dropped and this itinerary is read-only.
+        </div>
+      )}
       {reorderingDays && (
         <div className="absolute inset-0 z-30 flex items-center justify-center gap-2 rounded-lg bg-card/80 backdrop-blur-[1px]">
           <Spinner size="sm" />
@@ -961,17 +997,19 @@ export function ItineraryDayPlanner({
           <div className="h-11 w-0.5 shrink-0 self-stretch rounded-full bg-primary" />
         )}
 
-        <button
-          type="button"
-          onClick={() => {
-            setAddDayError(undefined);
-            setConfirmingAddDay(true);
-          }}
-          className="flex h-11 min-w-[100px] shrink-0 items-center justify-center gap-1 rounded-full border border-dashed border-border/70 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
-        >
-          <PiPlusFill className="h-3 w-3" />
-          Add Day
-        </button>
+        {!isCancelled && (
+          <button
+            type="button"
+            onClick={() => {
+              setAddDayError(undefined);
+              setConfirmingAddDay(true);
+            }}
+            className="flex h-11 min-w-[100px] shrink-0 items-center justify-center gap-1 rounded-full border border-dashed border-border/70 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+          >
+            <PiPlusFill className="h-3 w-3" />
+            Add Day
+          </button>
+        )}
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-lg border border-border bg-card p-2 shadow-sm">
@@ -984,7 +1022,8 @@ export function ItineraryDayPlanner({
         >
           {activeDayItems.length === 0 ? (
             <>
-              <Body muted>No items planned for this day yet.</Body>
+              <Body muted>{isCancelled ? "No items were planned for this day." : "No items planned for this day yet."}</Body>
+              {!isCancelled && (
               <div className="flex flex-wrap items-center justify-center gap-1.5">
                 {QUICK_ADD_BUTTONS.map(({ itemType, label }) => {
                   const ButtonIcon = PLANNING_ITEM_ICON[itemType];
@@ -1001,6 +1040,7 @@ export function ItineraryDayPlanner({
                   );
                 })}
               </div>
+              )}
             </>
           ) : (
             (dragItems ?? activeDayItems).map((item) => (
@@ -1016,11 +1056,12 @@ export function ItineraryDayPlanner({
                 onDelete={() => handleDeleteItem(item.uid)}
                 deleting={deletingUid === item.uid}
                 roomTypesByUid={roomTypesByUid}
+                readOnly={isCancelled}
               />
             ))
           )}
         </div>
-        {activeDayItems.length > 0 && (
+        {activeDayItems.length > 0 && !isCancelled && (
           <div className="flex flex-wrap items-center gap-1.5 self-start">
             {QUICK_ADD_BUTTONS.map(({ itemType, label }) => {
               const ButtonIcon = PLANNING_ITEM_ICON[itemType];
