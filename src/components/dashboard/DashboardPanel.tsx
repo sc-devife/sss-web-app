@@ -200,7 +200,7 @@ export function DashboardPanel() {
           {/* Row 2: Revenue & Payments | Lead Funnel */}
           <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
             <ChartCard title="Revenue & Payments" isEmpty={metrics.paymentBreakdown.every((p) => p.count === 0)} emptyMessage="No payment milestones yet.">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <div className="flex-1">
                   <DonutChart
                     data={metrics.paymentBreakdown
@@ -211,7 +211,7 @@ export function DashboardPanel() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 sm:w-48 sm:shrink-0">
                   <div>
-                    <Caption>Total Revenue</Caption>
+                    <Caption>Revenue</Caption>
                     <Body className="font-semibold">{formatInr(metrics.totalRevenueInr)}</Body>
                   </div>
                   <div>
