@@ -7,6 +7,7 @@ import type {
   CreateItineraryContentItemPayload,
   UpdateItineraryContentItemPayload,
   DeleteItineraryContentItemPayload,
+  ReorderItineraryContentItemsPayload,
 } from "@/features/itineraryContentItems/types";
 
 export const fetchItineraryContentItems = createAsyncThunk<
@@ -65,6 +66,17 @@ export const deleteItineraryContentItem = createAsyncThunk<void, DeleteItinerary
       await clientApi.delete(`/itinerary-content-items/${uid}`);
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to remove"));
+    }
+  },
+);
+
+export const reorderItineraryContentItems = createAsyncThunk<void, ReorderItineraryContentItemsPayload, { rejectValue: string }>(
+  "itineraryContentItems/reorderItineraryContentItems",
+  async ({ itineraryUid, orderedItemUids }, { rejectWithValue }) => {
+    try {
+      await clientApi.post("/itinerary-content-items/reorder", { itineraryUid, orderedItemUids });
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to reorder items"));
     }
   },
 );

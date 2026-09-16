@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { IoTrashOutline } from "react-icons/io5";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { DatePicker } from "@/components/ui/DatePicker";
@@ -11,6 +12,7 @@ import { MultiSelectSearch } from "@/components/ui/MultiSelectSearch";
 import { Modal } from "@/components/ui/Modal";
 import { FileUpload } from "@/components/ui/FileUpload";
 import { Alert } from "@/components/ui/Alert";
+import { Caption } from "@/components/ui/Typography";
 import type { Hotel } from "@/lib/hotels";
 import type { LibraryLocation } from "@/lib/locations";
 import type { EscapePoint } from "@/lib/escape-points";
@@ -27,13 +29,18 @@ import type { ReferenceOption } from "@/lib/reference-data-client";
 import { useAppDispatch } from "@/store/hooks";
 import { createHotel, updateHotel, fetchHotels } from "@/features/hotels/hotelsThunks";
 
+// One repeatable "Room Types" row: a room type selection paired with this
+// hotel's own price/night for it — kept as a string in form state (same
+// convention as basePrice) and coerced to a number only on submit.
+type RoomTypePricingRow = { roomTypeId: string; price: string };
+
 const emptyForm = {
   name: "",
   stars: "",
   escapePointId: "",
   locationId: "",
   mealPlanIds: [] as string[],
-  roomTypeIds: [] as string[],
+  roomTypePricing: [] as RoomTypePricingRow[],
   serviceIds: [] as string[],
   checkInTime: "",
   checkOutTime: "",
@@ -89,7 +96,10 @@ function snapshotFromHotel(hotel: Hotel | null): FormState {
     escapePointId: hotel.escapePoint?.uid ?? "",
     locationId: hotel.location?.uid ?? "",
     mealPlanIds: hotel.mealPlans?.map((m) => m.uid) ?? [],
-    roomTypeIds: hotel.roomTypes?.map((r) => r.uid) ?? [],
+    roomTypePricing: hotel.roomTypes?.map((r) => ({
+      roomTypeId: r.roomTypeId,
+      price: r.price != null ? String(r.price) : "",
+    })) ?? [],
     serviceIds: hotel.services?.map((s) => s.uid) ?? [],
     checkInTime: hotel.checkInTime ?? "",
     checkOutTime: hotel.checkOutTime ?? "",
@@ -168,12 +178,31 @@ export function HotelFormModal({
   // may also have its own hotel-scoped services (created via "+ Add
   // Services" below) that only it should ever see — refetch scoped to this
   // hotel's uid so the picker offers global + this hotel's own, matching
-  // exactly what its "+ Add Services" flow is allowed to add.
+  // exactly what its "+ Add Services" flow is allowed to add. While adding a
+  // brand-new hotel (no uid yet), a service created here has nothing to
+  // scope to and is saved as global master data instead — same as Meal
+  // Plans/Room Types/Amenities below.
   const [serviceOptions, setServiceOptions] = useState<Service[]>(services);
   const [addingService, setAddingService] = useState(false);
-  const [newService, setNewService] = useState({ name: "", description: "" });
+  const [newService, setNewService] = useState({ name: "", description: "", price: "" });
   const [savingService, setSavingService] = useState(false);
   const [serviceError, setServiceError] = useState<string | undefined>();
+
+  // Meal Plans and Room Types are always global master data (no per-hotel
+  // scoping concept exists for either — unlike Service, neither entity has
+  // a hotel FK), so "+ Add Meals"/"+ Add Room types" work identically in
+  // both Add Hotel and Edit Hotel, mirroring Amenities' pattern below.
+  const [mealPlanOptions, setMealPlanOptions] = useState<MealPlan[]>(mealPlans);
+  const [addingMealPlan, setAddingMealPlan] = useState(false);
+  const [newMealPlan, setNewMealPlan] = useState({ code: "", name: "", description: "" });
+  const [savingMealPlan, setSavingMealPlan] = useState(false);
+  const [mealPlanError, setMealPlanError] = useState<string | undefined>();
+
+  const [roomTypeOptions, setRoomTypeOptions] = useState<RoomType[]>(roomTypes);
+  const [addingRoomType, setAddingRoomType] = useState(false);
+  const [newRoomType, setNewRoomType] = useState({ name: "", description: "" });
+  const [savingRoomType, setSavingRoomType] = useState(false);
+  const [roomTypeError, setRoomTypeError] = useState<string | undefined>();
 
   // Amenities are always global (unlike Services, a newly-added one is
   // immediately reusable by every hotel) — seeded from the page-level prop,
@@ -190,7 +219,7 @@ export function HotelFormModal({
         ? {
           ...snapshot,
           mealPlanIds: [...snapshot.mealPlanIds],
-          roomTypeIds: [...snapshot.roomTypeIds],
+          roomTypePricing: snapshot.roomTypePricing.map((r) => ({ ...r })),
           serviceIds: [...snapshot.serviceIds],
           images: [...snapshot.images],
           amenities: [...snapshot.amenities],
@@ -203,8 +232,16 @@ export function HotelFormModal({
     setFormError(undefined);
     setServiceOptions(services);
     setAddingService(false);
-    setNewService({ name: "", description: "" });
+    setNewService({ name: "", description: "", price: "" });
     setServiceError(undefined);
+    setMealPlanOptions(mealPlans);
+    setAddingMealPlan(false);
+    setNewMealPlan({ code: "", name: "", description: "" });
+    setMealPlanError(undefined);
+    setRoomTypeOptions(roomTypes);
+    setAddingRoomType(false);
+    setNewRoomType({ name: "", description: "" });
+    setRoomTypeError(undefined);
     setAmenityOptions(amenities);
     if (hotel) {
       clientApi
@@ -227,19 +264,30 @@ export function HotelFormModal({
   }
 
   async function handleAddService() {
-    if (!hotel || !newService.name.trim()) return;
+    if (!newService.name.trim()) return;
     setSavingService(true);
     setServiceError(undefined);
     try {
       const created = await clientApi
-        .post<Service>("/library/services", { name: newService.name, description: newService.description, hotelId: hotel.uid })
+        .post<Service>("/library/services", {
+          name: newService.name,
+          description: newService.description,
+          price: newService.price ? Number(newService.price) : null,
+          ...(hotel ? { hotelId: hotel.uid } : {}),
+        })
         .then((res) => res.data);
-      await clientApi.put(`/library/hotels/${hotel.uid}`, {
-        serviceIds: [...form.serviceIds, created.uid],
-      });
+      // While editing an existing hotel, also select the new (hotel-scoped)
+      // service on it immediately — a brand-new hotel has no uid yet to PUT
+      // against, so the global service created above is simply left
+      // selectable via serviceIds below, same as any other option.
+      if (hotel) {
+        await clientApi.put(`/library/hotels/${hotel.uid}`, {
+          serviceIds: [...form.serviceIds, created.uid],
+        });
+      }
       setServiceOptions((opts) => [...opts, created]);
       update("serviceIds", [...form.serviceIds, created.uid]);
-      setNewService({ name: "", description: "" });
+      setNewService({ name: "", description: "", price: "" });
       setAddingService(false);
     } catch (err) {
       setServiceError(extractErrorMessage(err, "Failed to add service"));
@@ -248,8 +296,67 @@ export function HotelFormModal({
     }
   }
 
+  async function handleAddMealPlan() {
+    if (!newMealPlan.code.trim() || !newMealPlan.name.trim()) return;
+    setSavingMealPlan(true);
+    setMealPlanError(undefined);
+    try {
+      const created = await clientApi
+        .post<MealPlan>("/library/meal-plans", {
+          code: newMealPlan.code,
+          name: newMealPlan.name,
+          description: newMealPlan.description,
+        })
+        .then((res) => res.data);
+      setMealPlanOptions((opts) => [...opts, created]);
+      update("mealPlanIds", [...form.mealPlanIds, created.uid]);
+      setNewMealPlan({ code: "", name: "", description: "" });
+      setAddingMealPlan(false);
+    } catch (err) {
+      setMealPlanError(extractErrorMessage(err, "Failed to add meal plan"));
+    } finally {
+      setSavingMealPlan(false);
+    }
+  }
+
+  async function handleAddRoomType() {
+    if (!newRoomType.name.trim()) return;
+    setSavingRoomType(true);
+    setRoomTypeError(undefined);
+    try {
+      const created = await clientApi
+        .post<RoomType>("/library/room-types", { name: newRoomType.name, description: newRoomType.description })
+        .then((res) => res.data);
+      setRoomTypeOptions((opts) => [...opts, created]);
+      // Immediately add it as a new priced row, same "select it right away"
+      // UX the old MultiSelectSearch-based flow had.
+      update("roomTypePricing", [...form.roomTypePricing, { roomTypeId: created.uid, price: "" }]);
+      setNewRoomType({ name: "", description: "" });
+      setAddingRoomType(false);
+    } catch (err) {
+      setRoomTypeError(extractErrorMessage(err, "Failed to add room type"));
+    } finally {
+      setSavingRoomType(false);
+    }
+  }
+
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function addRoomTypeRow() {
+    setForm((f) => ({ ...f, roomTypePricing: [...f.roomTypePricing, { roomTypeId: "", price: "" }] }));
+  }
+
+  function updateRoomTypeRow(index: number, patch: Partial<RoomTypePricingRow>) {
+    setForm((f) => ({
+      ...f,
+      roomTypePricing: f.roomTypePricing.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+    }));
+  }
+
+  function removeRoomTypeRow(index: number) {
+    setForm((f) => ({ ...f, roomTypePricing: f.roomTypePricing.filter((_, i) => i !== index) }));
   }
 
   const isDirty = useIsDirty(original, form);
@@ -287,7 +394,12 @@ export function HotelFormModal({
         locationId,
         escapePointId: form.escapePointId || null,
         mealPlanIds: form.mealPlanIds,
-        roomTypeIds: form.roomTypeIds,
+        // Drop any row still awaiting a room-type selection (an empty
+        // roomTypeId would fail UUID parsing server-side) — every kept row
+        // sends its price as a number, or null if left blank.
+        roomTypePricing: form.roomTypePricing
+          .filter((r) => r.roomTypeId)
+          .map((r) => ({ roomTypeId: r.roomTypeId, price: r.price ? Number(r.price) : null })),
         serviceIds: form.serviceIds,
         checkInTime: form.checkInTime || null,
         checkOutTime: form.checkOutTime || null,
@@ -435,34 +547,191 @@ export function HotelFormModal({
             </div>
           )}
 
-          <MultiSelectSearch
-            label="Meal plans"
-            placeholder="Search meal plans…"
-            options={mealPlans.map((m) => ({ value: m.uid, label: `${m.code} — ${m.name}` }))}
-            value={form.mealPlanIds}
-            onChange={(v) => update("mealPlanIds", v)}
-          />
+          <div className="flex flex-col gap-1.5">
+            <MultiSelectSearch
+              label="Meal plans"
+              placeholder="Search meal plans…"
+              options={mealPlanOptions.map((m) => ({ value: m.uid, label: `${m.code} — ${m.name}` }))}
+              value={form.mealPlanIds}
+              onChange={(v) => update("mealPlanIds", v)}
+            />
+            {!addingMealPlan ? (
+              <button
+                type="button"
+                onClick={() => setAddingMealPlan(true)}
+                className="self-start text-sm text-primary hover:underline"
+              >
+                + Add Meals
+              </button>
+            ) : (
+              <div className="flex flex-col gap-3 rounded border border-border p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">New meal plan</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddingMealPlan(false);
+                      setMealPlanError(undefined);
+                    }}
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <TextInput
+                    label="Code"
+                    placeholder="e.g. CP"
+                    value={newMealPlan.code}
+                    onChange={(e) => setNewMealPlan((m) => ({ ...m, code: e.target.value }))}
+                    required
+                  />
+                  <TextInput
+                    label="Name"
+                    placeholder="e.g. Continental Plan"
+                    value={newMealPlan.name}
+                    onChange={(e) => setNewMealPlan((m) => ({ ...m, name: e.target.value }))}
+                    required
+                  />
+                </div>
+                <TextInput
+                  label="Description"
+                  value={newMealPlan.description}
+                  onChange={(e) => setNewMealPlan((m) => ({ ...m, description: e.target.value }))}
+                />
+                {mealPlanError && <p className="text-sm text-danger">{mealPlanError}</p>}
+                <Button
+                  type="button"
+                  size="sm"
+                  className="self-start"
+                  disabled={savingMealPlan || !newMealPlan.code.trim() || !newMealPlan.name.trim()}
+                  loading={savingMealPlan}
+                  loadingText="Saving…"
+                  onClick={handleAddMealPlan}
+                >
+                  Add meal plan
+                </Button>
+              </div>
+            )}
+          </div>
 
-          <MultiSelectSearch
-            label="Room types"
-            placeholder="Search room types…"
-            options={roomTypes.map((r) => ({ value: r.uid, label: r.name }))}
-            value={form.roomTypeIds}
-            onChange={(v) => update("roomTypeIds", v)}
-          />
+          <div className="flex flex-col gap-2">
+            <Caption>Room Types</Caption>
 
-          <MultiSelectSearch
-            label="Services"
-            placeholder="Search services…"
-            options={serviceOptions.map((s) => ({ value: s.uid, label: s.name }))}
-            value={form.serviceIds}
-            onChange={(v) => update("serviceIds", v)}
-          />
+            {form.roomTypePricing.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {form.roomTypePricing.map((row, index) => {
+                  // A room type already picked in another row can't be
+                  // picked again here — but stays in THIS row's own list so
+                  // its label keeps rendering once selected.
+                  const takenElsewhere = new Set(
+                    form.roomTypePricing.filter((_, i) => i !== index).map((r) => r.roomTypeId),
+                  );
+                  const rowOptions = roomTypeOptions.filter(
+                    (rt) => rt.uid === row.roomTypeId || !takenElsewhere.has(rt.uid),
+                  );
+                  return (
+                    <div key={index} className="flex items-end gap-2 rounded-lg border border-border bg-muted/20 p-2.5">
+                      <div className="flex-1">
+                        <Select
+                          label="Room Type"
+                          options={rowOptions.map((rt) => ({ value: rt.uid, label: rt.name }))}
+                          value={row.roomTypeId}
+                          onChange={(e) => updateRoomTypeRow(index, { roomTypeId: e.target.value })}
+                          placeholder="Select a room type"
+                          searchable
+                        />
+                      </div>
+                      <div className="w-36 shrink-0">
+                        <TextInput
+                          label="Price / Night"
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          placeholder="e.g. 8000"
+                          value={row.price}
+                          onChange={(e) => updateRoomTypeRow(index, { price: e.target.value })}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeRoomTypeRow(index)}
+                        className="mb-2 shrink-0 rounded-full p-2 text-muted-foreground hover:bg-danger/10 hover:text-danger"
+                        aria-label="Remove room type"
+                        title="Remove room type"
+                      >
+                        <IoTrashOutline size={15} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
-          {/* Only available once the hotel exists — a hotel-specific service
-              needs a real hotel uid to scope itself to (see handleAddService). */}
-          {hotel && (
-            !addingService ? (
+            <button type="button" onClick={addRoomTypeRow} className="self-start text-sm text-primary hover:underline">
+              + Add Room Type
+            </button>
+
+            {!addingRoomType ? (
+              <button
+                type="button"
+                onClick={() => setAddingRoomType(true)}
+                className="self-start text-sm text-primary hover:underline"
+              >
+                + Create a new room type
+              </button>
+            ) : (
+              <div className="flex flex-col gap-3 rounded border border-border p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">New room type</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddingRoomType(false);
+                      setRoomTypeError(undefined);
+                    }}
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <TextInput
+                  label="Name"
+                  placeholder="e.g. Deluxe Room"
+                  value={newRoomType.name}
+                  onChange={(e) => setNewRoomType((r) => ({ ...r, name: e.target.value }))}
+                  required
+                />
+                <TextInput
+                  label="Description"
+                  value={newRoomType.description}
+                  onChange={(e) => setNewRoomType((r) => ({ ...r, description: e.target.value }))}
+                />
+                {roomTypeError && <p className="text-sm text-danger">{roomTypeError}</p>}
+                <Button
+                  type="button"
+                  size="sm"
+                  className="self-start"
+                  disabled={savingRoomType || !newRoomType.name.trim()}
+                  loading={savingRoomType}
+                  loadingText="Saving…"
+                  onClick={handleAddRoomType}
+                >
+                  Add room type
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <MultiSelectSearch
+              label="Services"
+              placeholder="Search services…"
+              options={serviceOptions.map((s) => ({ value: s.uid, label: s.name }))}
+              value={form.serviceIds}
+              onChange={(v) => update("serviceIds", v)}
+            />
+            {!addingService ? (
               <button
                 type="button"
                 onClick={() => setAddingService(true)}
@@ -473,7 +742,9 @@ export function HotelFormModal({
             ) : (
               <div className="flex flex-col gap-3 rounded border border-border p-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">New service for this hotel</span>
+                  <span className="text-sm font-medium text-foreground">
+                    {hotel ? "New service for this hotel" : "New service"}
+                  </span>
                   <button
                     type="button"
                     onClick={() => {
@@ -497,6 +768,14 @@ export function HotelFormModal({
                   value={newService.description}
                   onChange={(e) => setNewService((s) => ({ ...s, description: e.target.value }))}
                 />
+                <TextInput
+                  label="Price (INR)"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={newService.price}
+                  onChange={(e) => setNewService((s) => ({ ...s, price: e.target.value }))}
+                />
                 {serviceError && <p className="text-sm text-danger">{serviceError}</p>}
                 <Button
                   type="button"
@@ -510,8 +789,8 @@ export function HotelFormModal({
                   Add service
                 </Button>
               </div>
-            )
-          )}
+            )}
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <TimePicker

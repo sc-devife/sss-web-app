@@ -10,6 +10,7 @@ import { Body, Caption } from "@/components/ui/Typography";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { AppUser } from "@/lib/users";
 import type { EscapePoint } from "@/lib/escape-points";
+import { LANGUAGE_OPTIONS } from "@/lib/languages";
 import { Alert } from "@/components/ui/Alert";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { deepEqual } from "@/lib/forms";
@@ -23,6 +24,8 @@ interface RowState {
   specialistEscapePoints: string[];
   maxConcurrentAssignments: string;
   eligibleForPriorityLeads: boolean;
+  eligibleForLargeGroups: boolean;
+  languages: string[];
   acceptingLeads: boolean;
 }
 
@@ -32,6 +35,8 @@ function toRowState(user: AppUser): RowState {
     specialistEscapePoints: (user.specialistEscapePoints ?? []).map(String),
     maxConcurrentAssignments: user.maxConcurrentAssignments != null ? String(user.maxConcurrentAssignments) : "",
     eligibleForPriorityLeads: !!user.eligibleForPriorityLeads,
+    eligibleForLargeGroups: !!user.eligibleForLargeGroups,
+    languages: user.languages ?? [],
     acceptingLeads: user.acceptingLeads !== false,
   };
 }
@@ -121,6 +126,8 @@ export function AgentAssignmentSettingsPanel({ escapePoints }: { escapePoints: E
             specialistEscapePoints: row.isSpecialist ? row.specialistEscapePoints.map(Number) : [],
             maxConcurrentAssignments: row.maxConcurrentAssignments ? Number(row.maxConcurrentAssignments) : null,
             eligibleForPriorityLeads: row.eligibleForPriorityLeads,
+            eligibleForLargeGroups: row.eligibleForLargeGroups,
+            languages: row.languages,
             acceptingLeads: row.acceptingLeads,
           },
         }),
@@ -217,6 +224,15 @@ export function AgentAssignmentSettingsPanel({ escapePoints }: { escapePoints: E
                   />
                   Accepting leads
                 </label>
+                <label className="flex items-center gap-2 text-sm text-foreground">
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5 accent-primary"
+                    checked={row.eligibleForLargeGroups}
+                    onChange={(e) => update(user.uid, { eligibleForLargeGroups: e.target.checked })}
+                  />
+                  More than 5 Travelers
+                </label>
               </div>
 
               <TextInput
@@ -227,6 +243,17 @@ export function AgentAssignmentSettingsPanel({ escapePoints }: { escapePoints: E
                 onChange={(e) => update(user.uid, { maxConcurrentAssignments: e.target.value })}
                 error={errs.maxConcurrentAssignments}
                 placeholder="No cap"
+                className="max-w-xs"
+              />
+
+              <MultiSelectSearch
+                label="Languages"
+                helperText="Select one or more — used to prefer agents who speak the lead's languages"
+                placeholder="Search languages…"
+                options={LANGUAGE_OPTIONS}
+                value={row.languages}
+                onChange={(next) => update(user.uid, { languages: next })}
+                disabled={rowIsSaving}
                 className="max-w-xs"
               />
 

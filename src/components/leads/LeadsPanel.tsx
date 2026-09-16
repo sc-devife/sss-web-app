@@ -497,6 +497,11 @@ export function LeadsPanel({
       ),
     },
     {
+      key: "assignedTo",
+      header: "Assigned to",
+      render: (l) => l.assignedToUserName ?? "Unassigned",
+    },
+    {
       key: "source",
       header: "Source",
       render: (l) => (l.sourceType === "AGENCY" ? "Agency" : l.sourceChannel ?? "—"),

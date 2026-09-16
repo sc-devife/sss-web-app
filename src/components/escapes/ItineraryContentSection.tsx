@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
@@ -19,6 +19,7 @@ import {
   createItineraryContentItem,
   updateItineraryContentItem,
   deleteItineraryContentItem,
+  reorderItineraryContentItems,
 } from "@/features/itineraryContentItems/itineraryContentItemsThunks";
 import {
   selectItineraryContentItems,
@@ -43,17 +44,66 @@ const TYPES: { value: InclusionExclusionType; label: string }[] = [
   { value: "EXCLUSION", label: "Exclusions" },
 ];
 
+// This list has no dedicated scrollable panel of its own (unlike the
+// itinerary day list) — it just flows in the page, which may or may not sit
+// inside a bounded, independently-scrolling ancestor depending on viewport
+// width (see the lg:-only scroll container elsewhere on this page). Walking
+// up for the nearest actually-scrollable element, falling back to the
+// window itself, lets auto-scroll work correctly in both cases without
+// requiring this component to know which one applies.
+type ScrollTarget = HTMLElement | Window;
+
+function findScrollableAncestor(el: HTMLElement | null): ScrollTarget {
+  let node = el?.parentElement ?? null;
+  while (node) {
+    const style = getComputedStyle(node);
+    if ((style.overflowY === "auto" || style.overflowY === "scroll") && node.scrollHeight > node.clientHeight) {
+      return node;
+    }
+    node = node.parentElement;
+  }
+  return window;
+}
+
+function scrollTargetRect(target: ScrollTarget): { top: number; bottom: number } {
+  if (target === window) return { top: 0, bottom: window.innerHeight };
+  const rect = (target as HTMLElement).getBoundingClientRect();
+  return { top: rect.top, bottom: rect.bottom };
+}
+
+function scrollTargetTop(target: ScrollTarget): number {
+  return target === window ? window.scrollY : (target as HTMLElement).scrollTop;
+}
+
+function scrollTargetMaxTop(target: ScrollTarget): number {
+  if (target === window) return document.documentElement.scrollHeight - window.innerHeight;
+  const el = target as HTMLElement;
+  return el.scrollHeight - el.clientHeight;
+}
+
+function setScrollTargetTop(target: ScrollTarget, value: number) {
+  if (target === window) window.scrollTo({ top: value });
+  else (target as HTMLElement).scrollTop = value;
+}
+
 function TypeBlock({
   itineraryUid,
   type,
   label,
   items,
+  allItems,
   onChanged,
 }: {
   itineraryUid: string;
   type: InclusionExclusionType;
   label: string;
   items: ItineraryContentItem[];
+  // Every content item on this itinerary, all types combined and already
+  // ordered by (type, sortOrder) — needed only at drop time, to rebuild the
+  // full reorder payload with just this type's slice rearranged (sortOrder
+  // is one sequence shared across Terms/Inclusions/Exclusions; see
+  // ItineraryContentItemHelper.reorder).
+  allItems: ItineraryContentItem[];
   onChanged: () => void;
 }) {
   const dispatch = useAppDispatch();
@@ -71,6 +121,167 @@ function TypeBlock({
   const [busy, setBusy] = useState(false);
   const [removingUid, setRemovingUid] = useState<string | null>(null);
   const [error, setError] = useState<string | undefined>();
+
+  // --- Drag-and-drop reordering (within this type's own list only) ---
+  // Same live-reorder-while-dragging approach as ItineraryDayPlanner's
+  // itinerary items: dragItems is a local copy of `items` that reflows in
+  // real time as the pointer crosses other rows — that reflow doubles as
+  // the drop-position indicator — while the dragged row itself just rides
+  // along with an elevated style at wherever it currently sits.
+  const [dragItems, setDragItems] = useState<ItineraryContentItem[] | null>(null);
+  const [draggingUid, setDraggingUid] = useState<string | null>(null);
+  const dragItemsRef = useRef<ItineraryContentItem[] | null>(null);
+  const draggingActiveRef = useRef(false);
+  const draggingUidRef = useRef<string | null>(null);
+  const pointerYRef = useRef(0);
+  const dragRafRef = useRef<number | null>(null);
+  const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const scrollTargetRef = useRef<ScrollTarget>(null as unknown as ScrollTarget);
+  const reorderingRef = useRef(false);
+
+  function registerRowRef(uid: string, el: HTMLDivElement | null) {
+    if (el) rowRefs.current.set(uid, el);
+    else rowRefs.current.delete(uid);
+  }
+
+  function updateDropTargetFromPointer(pointerY: number, draggedUid: string) {
+    const list = dragItemsRef.current;
+    if (!list) return;
+    const draggedIdx = list.findIndex((it) => it.uid === draggedUid);
+    if (draggedIdx === -1) return;
+    let targetIdx = list.length;
+    for (let i = 0; i < list.length; i++) {
+      const el = rowRefs.current.get(list[i].uid);
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      if (pointerY < rect.top + rect.height / 2) {
+        targetIdx = i;
+        break;
+      }
+    }
+    if (targetIdx === draggedIdx || targetIdx === draggedIdx + 1) return;
+    const next = list.slice();
+    const [moved] = next.splice(draggedIdx, 1);
+    const insertAt = targetIdx > draggedIdx ? targetIdx - 1 : targetIdx;
+    next.splice(insertAt, 0, moved);
+    dragItemsRef.current = next;
+    setDragItems(next);
+  }
+
+  // Runs once per frame for the whole drag: auto-scrolls whichever
+  // ancestor actually scrolls (see findScrollableAncestor) when the
+  // pointer nears its top/bottom edge, and keeps the drop position current
+  // even while the pointer itself is held still and only the list is
+  // scrolling under it.
+  function dragFrame(draggedUid: string) {
+    if (!draggingActiveRef.current) {
+      dragRafRef.current = null;
+      return;
+    }
+    const target = scrollTargetRef.current;
+    const pointerY = pointerYRef.current;
+    if (target) {
+      const rect = scrollTargetRect(target);
+      const threshold = 56;
+      let direction = 0;
+      let intensity = 0;
+      if (pointerY < rect.top + threshold) {
+        direction = -1;
+        intensity = (rect.top + threshold - pointerY) / threshold;
+      } else if (pointerY > rect.bottom - threshold) {
+        direction = 1;
+        intensity = (pointerY - (rect.bottom - threshold)) / threshold;
+      }
+      if (direction !== 0) {
+        const speed = 4 + Math.min(intensity, 1) * 14;
+        const maxTop = scrollTargetMaxTop(target);
+        const nextTop = Math.max(0, Math.min(maxTop, scrollTargetTop(target) + direction * speed));
+        setScrollTargetTop(target, nextTop);
+      }
+    }
+    updateDropTargetFromPointer(pointerY, draggedUid);
+    dragRafRef.current = requestAnimationFrame(() => dragFrame(draggedUid));
+  }
+
+  function handleRowPointerDown(e: ReactPointerEvent<HTMLDivElement>, item: ItineraryContentItem) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    // Let Edit/Remove, form controls, and links behave normally instead of
+    // starting a drag — and never drag a row that's actively being edited.
+    const target = e.target as HTMLElement;
+    if (target.closest("button, input, textarea, select, a, [contenteditable='true']")) return;
+    if (editingUid === item.uid) return;
+    if (draggingActiveRef.current || reorderingRef.current) return;
+
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const initial = items.slice();
+    dragItemsRef.current = initial;
+    setDragItems(initial);
+    setDraggingUid(item.uid);
+    draggingUidRef.current = item.uid;
+    draggingActiveRef.current = true;
+    pointerYRef.current = e.clientY;
+    scrollTargetRef.current = findScrollableAncestor(e.currentTarget);
+    document.body.style.cursor = "grabbing";
+    dragRafRef.current = requestAnimationFrame(() => dragFrame(item.uid));
+  }
+
+  function handleRowPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
+    if (!draggingActiveRef.current) return;
+    pointerYRef.current = e.clientY;
+    if (draggingUidRef.current) {
+      updateDropTargetFromPointer(e.clientY, draggingUidRef.current);
+    }
+  }
+
+  async function handleRowPointerEnd(e: ReactPointerEvent<HTMLDivElement>) {
+    if (!draggingActiveRef.current) return;
+    draggingActiveRef.current = false;
+    if (dragRafRef.current != null) {
+      cancelAnimationFrame(dragRafRef.current);
+      dragRafRef.current = null;
+    }
+    document.body.style.cursor = "";
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    setDraggingUid(null);
+    draggingUidRef.current = null;
+
+    const finalOrder = dragItemsRef.current;
+    dragItemsRef.current = null;
+    if (!finalOrder) {
+      setDragItems(null);
+      return;
+    }
+
+    const changed = finalOrder.length !== items.length || finalOrder.some((it, i) => it.uid !== items[i]?.uid);
+    if (!changed) {
+      setDragItems(null);
+      return;
+    }
+
+    // sort_order is one sequence spanning every type on this itinerary
+    // (see ItineraryContentItemHelper.reorder), so the payload has to be
+    // the full cross-type list with just this type's slice replaced by
+    // its new order — Inclusions/Exclusions (or Terms, from the other
+    // block) keep exactly the order they already had.
+    let typeIdx = 0;
+    const orderedItemUids = allItems.map((it) => (it.type === type ? finalOrder[typeIdx++].uid : it.uid));
+
+    setBusy(true);
+    reorderingRef.current = true;
+    try {
+      await dispatch(reorderItineraryContentItems({ itineraryUid, orderedItemUids }));
+      // Awaited so dragItems isn't cleared — falling back to the
+      // redux-backed `items` — until that order actually matches what the
+      // drag just settled on, avoiding a flash back to the pre-drag order.
+      await dispatch(fetchItineraryContentItems(itineraryUid));
+    } finally {
+      reorderingRef.current = false;
+      setBusy(false);
+      setDragItems(null);
+    }
+  }
 
   function openLibraryPicker() {
     setShowLibraryPicker(true);
@@ -152,8 +363,20 @@ function TypeBlock({
       <Caption>{label}</Caption>
 
       {items.length === 0 && <Body muted>None added yet.</Body>}
-      {items.map((item) => (
-        <div key={item.uid} className="flex flex-col gap-2 rounded border border-border p-2 text-sm">
+      {(dragItems ?? items).map((item) => (
+        <div
+          key={item.uid}
+          ref={(el) => registerRowRef(item.uid, el)}
+          onPointerDown={(e) => handleRowPointerDown(e, item)}
+          onPointerMove={handleRowPointerMove}
+          onPointerUp={handleRowPointerEnd}
+          onPointerCancel={handleRowPointerEnd}
+          style={{ touchAction: "none" }}
+          className={cn(
+            "flex cursor-grab select-none flex-col gap-2 rounded border border-border p-2 text-sm transition-shadow",
+            draggingUid === item.uid && "relative z-20 cursor-grabbing border-primary/50 shadow-lg ring-2 ring-primary/40",
+          )}
+        >
           <div className="flex items-center justify-between">
             <Body className="font-medium">{item.name}</Body>
             <div className="flex gap-2">
@@ -275,6 +498,7 @@ export function ItineraryContentSection({
           type={t.value}
           label={t.label}
           items={items.filter((i) => i.type === t.value)}
+          allItems={items}
           onChanged={load}
         />
       ))}

@@ -7,6 +7,7 @@ import type {
   UpdateItineraryItemPayload,
   DeleteItineraryItemPayload,
   ReorderItineraryItemsPayload,
+  ReorderItineraryDaysPayload,
 } from "@/features/itineraryItems/types";
 
 // Fetch is keyed by itineraryUid in the slice — unlike most modules, more
@@ -83,6 +84,17 @@ export const reorderItineraryItems = createAsyncThunk<void, ReorderItineraryItem
       await clientApi.post("/itinerary-items/reorder", { itineraryUid, orderedItemUids });
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to reorder items"));
+    }
+  },
+);
+
+export const reorderItineraryDays = createAsyncThunk<void, ReorderItineraryDaysPayload, { rejectValue: string }>(
+  "itineraryItems/reorderItineraryDays",
+  async ({ itineraryUid, fromDayNumber, toDayNumber }, { rejectWithValue }) => {
+    try {
+      await clientApi.post("/itinerary-items/reorder-days", { itineraryUid, fromDayNumber, toDayNumber });
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to reorder days"));
     }
   },
 );

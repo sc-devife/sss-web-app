@@ -187,6 +187,7 @@ export function LeadDetailPanel({
         <StatCard label="Budget" value={lead.budget != null ? `₹${lead.budget}` : "—"} />
         <StatCard label="Origin City" value={lead.originCity || "—"} />
         <StatCard label="Travel Type" value={lead.travelType || "—"} />
+        <StatCard label="Assigned To" value={lead.assignedToUserName ?? "Unassigned"} />
         <StatCard label="Follow-up Due" value={formatDisplayDate(lead.followUpDueDate) ?? "—"} />
       </div>
 

@@ -32,11 +32,11 @@ export function AutoAssignTogglePanel({ organization }: { organization: Organiza
   return (
     <div className="flex items-center justify-between gap-4 rounded-lg bg-muted/40 p-4">
       <div>
-        <Body className="font-medium">Auto-assign new escapes</Body>
+        <Body className="font-medium">Auto-assignment</Body>
         <Caption>
           {organization.settings?.auto_assign_enabled
-            ? "When a lead is converted to an escape, it's automatically assigned using the rules below. Leads themselves are never individually assigned — any eligible user can work any lead."
-            : "Converted escapes land unassigned for a Lead Assigner to handle manually."}
+            ? "New leads are automatically assigned using the rules below as soon as they come in. If a lead converts to an escape, the same agent carries over rather than being reassigned."
+            : "New leads and converted escapes land unassigned for a Lead Assigner to handle manually."}
         </Caption>
         {error && <p className="text-sm text-danger">{error}</p>}
       </div>

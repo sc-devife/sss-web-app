@@ -12,6 +12,7 @@ import { countryCodeField, runValidators } from "@/lib/validators";
 import { todayIsoDate } from "@/lib/date";
 import type { Lead } from "@/lib/leads";
 import type { EscapePoint } from "@/lib/escape-points";
+import { LANGUAGE_OPTIONS } from "@/lib/languages";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { createLead, updateLead } from "@/features/leads/leadsThunks";
 import { resetCreateStatus } from "@/features/leads/leadsSlice";
@@ -40,6 +41,7 @@ const emptyForm = {
   budget: "",
   originCity: "",
   travelType: "",
+  languages: [] as string[],
   isPriority: false,
   notes: "",
   sourceType: "DIRECT" as "DIRECT" | "AGENCY",
@@ -103,6 +105,7 @@ export function LeadFormModal({
         budget: editing.budget != null ? String(editing.budget) : "",
         originCity: editing.originCity ?? "",
         travelType: editing.travelType ?? "",
+        languages: editing.languages ?? [],
         isPriority: editing.isPriority ?? false,
         notes: editing.notes ?? "",
         sourceType: editing.sourceType ?? "DIRECT",
@@ -161,6 +164,7 @@ export function LeadFormModal({
       budget: form.budget ? Number(form.budget) : null,
       originCity: form.originCity || null,
       travelType: form.travelType || null,
+      languages: form.languages,
       isPriority: form.isPriority,
       notes: form.notes || null,
       sourceType: form.sourceType,
@@ -196,7 +200,7 @@ export function LeadFormModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={editing ? "Edit lead" : "Add lead"}>
+    <Modal open={open} onClose={onClose} title={editing ? "Edit Lead" : "Add Lead"}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <TextInput label="Name" value={form.name} onChange={(e) => update("name", e.target.value)} required />
         <div className="grid grid-cols-2 gap-4">
@@ -255,6 +259,15 @@ export function LeadFormModal({
             placeholder="Not specified"
           />
         </div>
+
+        <MultiSelectSearch
+          label="Languages"
+          helperText="Select one or more"
+          placeholder="Search languages…"
+          options={LANGUAGE_OPTIONS}
+          value={form.languages}
+          onChange={(next) => update("languages", next)}
+        />
 
         <div className="flex flex-col gap-3 rounded border border-border p-3">
           <div className="flex flex-col gap-1.5">

@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import type { IconType } from "react-icons";
 import { IoAdd, IoClose, IoSearchOutline } from "react-icons/io5";
 import { cn } from "@/lib/cn";
 import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
@@ -9,6 +10,10 @@ import type { SelectOption } from "@/components/ui/Select";
 
 interface MultiSelectSearchProps {
   label: string;
+  /** Rendered immediately before the label text — kept a separate prop
+   * rather than widening `label` to ReactNode, since `label` also backs the
+   * listbox's plain-string aria-label. */
+  icon?: IconType;
   /** Small muted line under the label, e.g. "Optional, select one or more". */
   helperText?: string;
   options: SelectOption[];
@@ -38,6 +43,7 @@ interface MultiSelectSearchProps {
 // closed-button value.
 export function MultiSelectSearch({
   label,
+  icon: Icon,
   helperText,
   options,
   value,
@@ -107,6 +113,19 @@ export function MultiSelectSearch({
     setActiveIndex(-1);
     setCreateError(undefined);
   }, [search]);
+
+  // `required` can't just sit on the visible input's `required` attribute —
+  // that input's value is the search/filter text, not the selection, so a
+  // valid pick made without typing (or left after the dropdown closes,
+  // which always clears the filter text) would show as unfilled even
+  // though `value` is non-empty, permanently blocking submission. Tying an
+  // imperative custom validity to the real selection state instead makes
+  // native form validation agree with what the field actually shows.
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    input.setCustomValidity(required && value.length === 0 ? "Please select at least one option" : "");
+  }, [required, value]);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -178,7 +197,10 @@ export function MultiSelectSearch({
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       <div>
-        <span className="text-sm font-medium text-foreground">{label}</span>
+        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
+          {Icon && <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
+          {label}
+        </span>
         {required && <span className="ml-1 text-danger">*</span>}
         {helperText && <span className="ml-1.5 text-xs text-muted-foreground">{helperText}</span>}
       </div>
@@ -197,7 +219,6 @@ export function MultiSelectSearch({
           placeholder={placeholder}
           aria-haspopup="listbox"
           aria-expanded={open}
-          required={required}
           className={cn(
             "h-9 w-full rounded border bg-background pl-7 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors",
             "focus:ring-2",

@@ -6,6 +6,7 @@ import {
   createItineraryContentItem,
   updateItineraryContentItem,
   deleteItineraryContentItem,
+  reorderItineraryContentItems,
 } from "@/features/itineraryContentItems/itineraryContentItemsThunks";
 
 type RequestStatus = "idle" | "loading" | "succeeded" | "failed";
@@ -20,6 +21,9 @@ interface ItineraryContentItemsState {
 
   deleteStatus: RequestStatus;
   deleteError: string | null;
+
+  reorderStatus: RequestStatus;
+  reorderError: string | null;
 }
 
 const initialState: ItineraryContentItemsState = {
@@ -30,6 +34,8 @@ const initialState: ItineraryContentItemsState = {
   saveError: null,
   deleteStatus: "idle",
   deleteError: null,
+  reorderStatus: "idle",
+  reorderError: null,
 };
 
 const itineraryContentItemsSlice = createSlice({
@@ -102,6 +108,18 @@ const itineraryContentItemsSlice = createSlice({
       .addCase(deleteItineraryContentItem.rejected, (state, action) => {
         state.deleteStatus = "failed";
         state.deleteError = action.payload ?? "Failed to remove";
+      })
+
+      .addCase(reorderItineraryContentItems.pending, (state) => {
+        state.reorderStatus = "loading";
+        state.reorderError = null;
+      })
+      .addCase(reorderItineraryContentItems.fulfilled, (state) => {
+        state.reorderStatus = "succeeded";
+      })
+      .addCase(reorderItineraryContentItems.rejected, (state, action) => {
+        state.reorderStatus = "failed";
+        state.reorderError = action.payload ?? "Failed to reorder items";
       });
   },
 });

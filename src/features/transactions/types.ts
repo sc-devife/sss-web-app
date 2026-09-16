@@ -1,3 +1,3 @@
-import type { IncomingTransaction } from "@/lib/transactions";
+import type { IncomingTransaction, OutgoingTransaction } from "@/lib/transactions";
 
-export type { IncomingTransaction };
+export type { IncomingTransaction, OutgoingTransaction };

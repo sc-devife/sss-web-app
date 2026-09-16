@@ -22,6 +22,8 @@ export interface AppUser {
   specialistEscapePoints: number[] | null;
   maxConcurrentAssignments: number | null;
   eligibleForPriorityLeads: boolean | null;
+  eligibleForLargeGroups: boolean | null;
+  languages: string[] | null;
   acceptingLeads: boolean | null;
   blocked: boolean | null;
   lastActiveAt: string | null;

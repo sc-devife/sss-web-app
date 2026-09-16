@@ -6,7 +6,13 @@ import { SESSION_COOKIE } from "@/lib/session";
 // security boundary is the backend, which verifies the JWT signature and
 // session on every request regardless). This is a UX guard, not the
 // authorization check.
-const PUBLIC_PATHS = ["/", "/login", "/forgot-password", "/reset-password", "/signup"];
+//
+// This app is the CRM product only (app.demo.com) — no marketing/landing
+// or demo-booking pages live here anymore (that's the separate demo.com
+// site), so "/" and "/book-demo" are deliberately not in this list: "/"
+// now just redirects an authenticated visitor to /dashboard (see
+// src/app/page.tsx) and "/book-demo" no longer exists as a route at all.
+const PUBLIC_PATHS = ["/login", "/forgot-password", "/reset-password", "/signup"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

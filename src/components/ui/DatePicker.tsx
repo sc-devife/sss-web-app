@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import type { IconType } from "react-icons";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 import { cn } from "@/lib/cn";
 
@@ -66,6 +67,8 @@ function buildMonthGrid(year: number, month: number): { date: Date; inMonth: boo
 
 export interface DatePickerProps {
   label?: string;
+  /** Rendered immediately before the label text. */
+  icon?: IconType;
   /** "YYYY-MM-DD", or "" for no selection — same shape every existing date field already used. */
   value: string;
   onChange: (value: string) => void;
@@ -79,6 +82,12 @@ export interface DatePickerProps {
   /** Applies to the trigger element itself, matching TextInput/Select's className convention. */
   className?: string;
   id?: string;
+  /** Renders the calendar grid directly in the page flow instead of behind
+   * a click-to-open trigger/popover — for a booking-style flow where the
+   * date picker is the primary, always-visible interaction rather than one
+   * field among many. No trigger button, no portal, no outside-click/Escape
+   * handling (there's no popover to dismiss). */
+  inline?: boolean;
 }
 
 // Custom calendar popover replacing the native `<input type="date">` —
@@ -88,6 +97,7 @@ export interface DatePickerProps {
 // `className` lands on the trigger, not a wrapper div.
 export function DatePicker({
   label,
+  icon: Icon,
   value,
   onChange,
   placeholder = "Select date",
@@ -98,6 +108,7 @@ export function DatePicker({
   max,
   className,
   id,
+  inline,
 }: DatePickerProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
@@ -125,7 +136,7 @@ export function DatePicker({
   }
 
   useEffect(() => {
-    if (!open) return;
+    if (inline || !open) return;
 
     function positionPanel() {
       const trigger = triggerRef.current;
@@ -150,10 +161,10 @@ export function DatePicker({
       window.removeEventListener("resize", positionPanel);
       window.removeEventListener("scroll", positionPanel, true);
     };
-  }, [open, viewDate]);
+  }, [open, viewDate, inline]);
 
   useEffect(() => {
-    if (!open) return;
+    if (inline || !open) return;
 
     function handlePointerDown(e: MouseEvent) {
       const target = e.target as Node;
@@ -178,7 +189,7 @@ export function DatePicker({
       document.removeEventListener("keydown", handleKey, true);
       window.removeEventListener("resize", handleViewportChange);
     };
-  }, [open]);
+  }, [open, inline]);
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
@@ -193,10 +204,90 @@ export function DatePicker({
     return false;
   }
 
+  const calendarBody = (
+    <>
+      <div className="flex items-center justify-between pb-3">
+        <button
+          type="button"
+          aria-label="Previous month"
+          onClick={() => setViewDate(new Date(year, month - 1, 1))}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <IoChevronBack size={16} />
+        </button>
+        <span className="text-sm font-semibold text-foreground">
+          {MONTH_LABELS[month]} {year}
+        </span>
+        <button
+          type="button"
+          aria-label="Next month"
+          onClick={() => setViewDate(new Date(year, month + 1, 1))}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <IoChevronForward size={16} />
+        </button>
+      </div>
+
+      <div className="border-t border-border pt-3">
+        <div className="grid grid-cols-7 text-center text-xs font-medium text-muted-foreground">
+          {WEEKDAY_LABELS.map((d) => (
+            <span key={d}>{d}</span>
+          ))}
+        </div>
+        <div className="mt-1 grid grid-cols-7 gap-y-1 text-center text-sm">
+          {grid.map(({ date, inMonth }, i) => {
+            const dayDisabled = isDayDisabled(date);
+            const selected = isSameDay(date, selectedDate);
+            return (
+              <button
+                key={i}
+                type="button"
+                disabled={dayDisabled}
+                onClick={() => selectDay(date)}
+                className={cn(
+                  "mx-auto flex h-9 w-9 items-center justify-center rounded-full transition-colors",
+                  !inMonth && "text-muted-foreground/40",
+                  inMonth && !selected && !dayDisabled && "text-foreground hover:bg-muted",
+                  selected && "bg-primary text-primary-foreground",
+                  dayDisabled && "cursor-not-allowed opacity-40",
+                )}
+              >
+                {date.getDate()}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
+
+  if (inline) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        {label && (
+          <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+            {Icon && <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
+            {label}
+            {required && <span className="text-danger"> *</span>}
+          </span>
+        )}
+        <div
+          role="group"
+          aria-label="Choose a date"
+          className={cn("w-full max-w-[300px] rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-sm", className)}
+        >
+          {calendarBody}
+        </div>
+        {error && <span className="text-xs text-danger">{error}</span>}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={inputId} className="text-sm font-medium text-foreground">
+        <label htmlFor={inputId} className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+          {Icon && <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
           {label}
           {required && <span className="text-danger"> *</span>}
         </label>
@@ -232,58 +323,7 @@ export function DatePicker({
           style={{ position: "fixed", left: pos.left, top: pos.top, visibility: pos.ready ? "visible" : "hidden" }}
           className="z-50 w-[300px] rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-xl"
         >
-          <div className="flex items-center justify-between pb-3">
-            <button
-              type="button"
-              aria-label="Previous month"
-              onClick={() => setViewDate(new Date(year, month - 1, 1))}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <IoChevronBack size={16} />
-            </button>
-            <span className="text-sm font-semibold text-foreground">
-              {MONTH_LABELS[month]} {year}
-            </span>
-            <button
-              type="button"
-              aria-label="Next month"
-              onClick={() => setViewDate(new Date(year, month + 1, 1))}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <IoChevronForward size={16} />
-            </button>
-          </div>
-
-          <div className="border-t border-border pt-3">
-            <div className="grid grid-cols-7 text-center text-xs font-medium text-muted-foreground">
-              {WEEKDAY_LABELS.map((d) => (
-                <span key={d}>{d}</span>
-              ))}
-            </div>
-            <div className="mt-1 grid grid-cols-7 gap-y-1 text-center text-sm">
-              {grid.map(({ date, inMonth }, i) => {
-                const dayDisabled = isDayDisabled(date);
-                const selected = isSameDay(date, selectedDate);
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    disabled={dayDisabled}
-                    onClick={() => selectDay(date)}
-                    className={cn(
-                      "mx-auto flex h-9 w-9 items-center justify-center rounded-full transition-colors",
-                      !inMonth && "text-muted-foreground/40",
-                      inMonth && !selected && !dayDisabled && "text-foreground hover:bg-muted",
-                      selected && "bg-primary text-primary-foreground",
-                      dayDisabled && "cursor-not-allowed opacity-40",
-                    )}
-                  >
-                    {date.getDate()}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          {calendarBody}
         </div>,
         document.body,
       )}

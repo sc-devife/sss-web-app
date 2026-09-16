@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
-import { IoChevronUpOutline, IoChevronDownOutline, IoTrashOutline } from "react-icons/io5";
+import { useEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { IoTrashOutline } from "react-icons/io5";
 import { PiPlusFill } from "react-icons/pi";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
@@ -40,6 +40,7 @@ import {
   updateItineraryItem,
   deleteItineraryItem,
   reorderItineraryItems,
+  reorderItineraryDays,
 } from "@/features/itineraryItems/itineraryItemsThunks";
 import { selectItineraryItems, selectItineraryItemsStatus } from "@/features/itineraryItems/itineraryItemsSelectors";
 import { fetchEscapeById, updateEscapeDuration } from "@/features/escapes/escapesThunks";
@@ -121,18 +122,27 @@ const QUICK_ADD_BUTTONS: { itemType: QuickAddType; label: string }[] = [
 
 function TimelineRow({
   item,
-  isFirst,
-  isLast,
-  onMove,
+  isDragging,
+  registerRef,
+  onDragPointerDown,
+  onDragPointerMove,
+  onDragPointerEnd,
   onEdit,
   onDelete,
   deleting,
   roomTypesByUid,
 }: {
   item: ItineraryItem;
-  isFirst: boolean;
-  isLast: boolean;
-  onMove: (direction: -1 | 1) => void;
+  // True only for the single card currently being dragged — gets an
+  // elevated/highlighted style while everything else stays normal.
+  isDragging: boolean;
+  // Registers this row's DOM node under its item uid so the drag
+  // orchestration in the parent (ItineraryDayPlanner) can hit-test pointer
+  // position against every row's live rect, including across auto-scroll.
+  registerRef: (el: HTMLDivElement | null) => void;
+  onDragPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void;
+  onDragPointerMove: (e: ReactPointerEvent<HTMLDivElement>) => void;
+  onDragPointerEnd: (e: ReactPointerEvent<HTMLDivElement>) => void;
   onEdit: () => void;
   onDelete: () => void;
   deleting: boolean;
@@ -163,7 +173,18 @@ function TimelineRow({
   const totalPrice = getItemTotalPrice(item);
 
   return (
-    <div className="flex min-w-[420px] items-start gap-3 rounded-lg border border-border p-3">
+    <div
+      ref={registerRef}
+      onPointerDown={onDragPointerDown}
+      onPointerMove={onDragPointerMove}
+      onPointerUp={onDragPointerEnd}
+      onPointerCancel={onDragPointerEnd}
+      style={{ touchAction: "none" }}
+      className={cn(
+        "flex min-w-[420px] cursor-grab select-none items-start gap-3 rounded-lg border border-border bg-card p-3 transition-shadow",
+        isDragging && "relative z-20 cursor-grabbing border-primary/50 shadow-lg ring-2 ring-primary/40",
+      )}
+    >
       <div className="w-12 shrink-0 pt-0.5 text-xs font-medium text-muted-foreground">{time ?? "—"}</div>
       <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", PLANNING_ITEM_BADGE_CLASS[item.itemType])}>
         <Icon className="h-4 w-4" />
@@ -189,26 +210,6 @@ function TimelineRow({
         <div className="shrink-0 pt-0.5 text-sm font-semibold text-foreground">{formatInr(totalPrice)}</div>
       )}
       <div className="flex shrink-0 items-center gap-0.5">
-        <button
-          type="button"
-          onClick={() => onMove(-1)}
-          disabled={isFirst}
-          className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
-          aria-label="Move up"
-          title="Move up"
-        >
-          <IoChevronUpOutline size={14} />
-        </button>
-        <button
-          type="button"
-          onClick={() => onMove(1)}
-          disabled={isLast}
-          className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
-          aria-label="Move down"
-          title="Move down"
-        >
-          <IoChevronDownOutline size={14} />
-        </button>
         <button
           type="button"
           onClick={onEdit}
@@ -308,7 +309,7 @@ export function ItineraryDayPlanner({
   // summary line without knowing which specific hotel it references.
   const roomTypesByUid = hotelsForEscape.reduce<Record<string, string>>((acc, h) => {
     (h.roomTypes ?? []).forEach((rt) => {
-      acc[rt.uid] = rt.name;
+      acc[rt.roomTypeId] = rt.name;
     });
     return acc;
   }, {});
@@ -341,6 +342,176 @@ export function ItineraryDayPlanner({
   // new hotel item (create flow) nothing of its own is excluded yet.
   const maxHotelNightsForNewItem = availableHotelNights(items, numberOfDays);
 
+  // --- Day-tab drag-and-drop (moves an entire day's items to a different
+  // day POSITION) ---
+  // Unlike the itinerary-item drag above, tabs don't live-reorder while
+  // dragging — doing that would mean faking each position's item totals
+  // mid-drag, since the actual dayNumber reassignment only happens on
+  // drop. Instead tabs stay in their normal positions, the dragged tab
+  // gets an elevated style, and a thin bar between tabs tracks where it
+  // would land — same RAF-driven auto-scroll approach, just along the
+  // horizontal axis this strip actually scrolls on. Entirely separate
+  // state from the item drag above, so the two never interact.
+  const [draggingDay, setDraggingDay] = useState<number | null>(null);
+  const [dayDropIndex, setDayDropIndex] = useState<number | null>(null);
+  const draggingDayActiveRef = useRef(false);
+  const draggingDayRef = useRef<number | null>(null);
+  const dayDropIndexRef = useRef<number | null>(null);
+  const dayPointerXRef = useRef(0);
+  const dayDragRafRef = useRef<number | null>(null);
+  const dayTabRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
+  const dayTabsContainerRef = useRef<HTMLDivElement | null>(null);
+  const reorderingDaysRef = useRef(false);
+  // State twin of reorderingDaysRef — the ref alone doesn't trigger a
+  // re-render, so the loading overlay below needs this to actually show
+  // while the reorder-days POST + item refetch are in flight (see the
+  // timing note in handleDayPointerEnd).
+  const [reorderingDays, setReorderingDays] = useState(false);
+  // Set for exactly one click right after a real day move commits, so the
+  // browser's own click (synthesized on the tab that captured the pointer,
+  // which is the OLD day number — now different content) can't clobber the
+  // setOpenDay already applied for the new position.
+  const suppressNextDayClickRef = useRef(false);
+
+  function registerDayTabRef(day: number, el: HTMLButtonElement | null) {
+    if (el) dayTabRefs.current.set(day, el);
+    else dayTabRefs.current.delete(day);
+  }
+
+  // 0-based insertion slot in [0, dayCount] — "insert before this many
+  // existing tabs" — computed from each tab's own (unchanged) rect, same
+  // midpoint-crossing test the item drag uses.
+  function computeDayDropIndex(pointerX: number): number {
+    for (let day = 1; day <= dayCount; day++) {
+      const el = dayTabRefs.current.get(day);
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      if (pointerX < rect.left + rect.width / 2) return day - 1;
+    }
+    return dayCount;
+  }
+
+  function dayDragFrame() {
+    if (!draggingDayActiveRef.current) {
+      dayDragRafRef.current = null;
+      return;
+    }
+    const container = dayTabsContainerRef.current;
+    const pointerX = dayPointerXRef.current;
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      const threshold = 48;
+      let direction = 0;
+      let intensity = 0;
+      if (pointerX < rect.left + threshold) {
+        direction = -1;
+        intensity = (rect.left + threshold - pointerX) / threshold;
+      } else if (pointerX > rect.right - threshold) {
+        direction = 1;
+        intensity = (pointerX - (rect.right - threshold)) / threshold;
+      }
+      if (direction !== 0) {
+        const speed = 4 + Math.min(intensity, 1) * 14;
+        const maxLeft = container.scrollWidth - container.clientWidth;
+        container.scrollLeft = Math.max(0, Math.min(maxLeft, container.scrollLeft + direction * speed));
+      }
+    }
+    const newIndex = computeDayDropIndex(pointerX);
+    if (newIndex !== dayDropIndexRef.current) {
+      dayDropIndexRef.current = newIndex;
+      setDayDropIndex(newIndex);
+    }
+    dayDragRafRef.current = requestAnimationFrame(dayDragFrame);
+  }
+
+  function handleDayPointerDown(e: ReactPointerEvent<HTMLButtonElement>, day: number) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (draggingDayActiveRef.current || reorderingDaysRef.current) return;
+
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDraggingDay(day);
+    draggingDayRef.current = day;
+    draggingDayActiveRef.current = true;
+    dayPointerXRef.current = e.clientX;
+    const initialIndex = day - 1;
+    dayDropIndexRef.current = initialIndex;
+    setDayDropIndex(initialIndex);
+    document.body.style.cursor = "grabbing";
+    dayDragRafRef.current = requestAnimationFrame(dayDragFrame);
+  }
+
+  function handleDayPointerMove(e: ReactPointerEvent<HTMLButtonElement>) {
+    if (!draggingDayActiveRef.current) return;
+    dayPointerXRef.current = e.clientX;
+    const newIndex = computeDayDropIndex(e.clientX);
+    if (newIndex !== dayDropIndexRef.current) {
+      dayDropIndexRef.current = newIndex;
+      setDayDropIndex(newIndex);
+    }
+  }
+
+  async function handleDayPointerEnd(e: ReactPointerEvent<HTMLButtonElement>) {
+    if (!draggingDayActiveRef.current) return;
+    draggingDayActiveRef.current = false;
+    if (dayDragRafRef.current != null) {
+      cancelAnimationFrame(dayDragRafRef.current);
+      dayDragRafRef.current = null;
+    }
+    document.body.style.cursor = "";
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+
+    const fromDay = draggingDayRef.current;
+    const targetIndex = dayDropIndexRef.current;
+    setDraggingDay(null);
+    setDayDropIndex(null);
+    draggingDayRef.current = null;
+    dayDropIndexRef.current = null;
+    if (fromDay == null || targetIndex == null) return;
+
+    const fromIndex = fromDay - 1;
+    if (targetIndex === fromIndex || targetIndex === fromIndex + 1) return; // dropped back where it started
+    const toIndex = targetIndex > fromIndex ? targetIndex - 1 : targetIndex;
+    const toDay = toIndex + 1;
+    // Only guards a click the browser synthesizes immediately after this
+    // drag's pointerup (some browsers fire one on the capturing element
+    // even after real movement) — auto-clears shortly after so it can
+    // never linger and swallow a later, unrelated click.
+    suppressNextDayClickRef.current = true;
+    setTimeout(() => {
+      suppressNextDayClickRef.current = false;
+    }, 400);
+
+    reorderingDaysRef.current = true;
+    setReorderingDays(true);
+    try {
+      await dispatch(reorderItineraryDays({ itineraryUid, fromDayNumber: fromDay, toDayNumber: toDay }));
+      await dispatch(fetchItineraryItems(itineraryUid));
+    } finally {
+      reorderingDaysRef.current = false;
+      setReorderingDays(false);
+    }
+
+    // Keep showing whatever the user was actually looking at — follow it
+    // to its new position with the exact same shift the backend just
+    // applied to every item's dayNumber.
+    setOpenDay((current) => {
+      if (current === fromDay) return toDay;
+      if (fromDay < toDay && current > fromDay && current <= toDay) return current - 1;
+      if (fromDay > toDay && current >= toDay && current < fromDay) return current + 1;
+      return current;
+    });
+  }
+
+  function handleDayTabClick(day: number) {
+    if (suppressNextDayClickRef.current) {
+      suppressNextDayClickRef.current = false;
+      return;
+    }
+    setOpenDay(day);
+  }
+
   async function handleConfirmAddDay() {
     if (!escape?.lead) return;
     setAddingDay(true);
@@ -370,19 +541,175 @@ export function ItineraryDayPlanner({
     return acc;
   }, {});
 
-  async function handleMove(item: ItineraryItem, direction: -1 | 1) {
-    const sameDay = items.filter((i) => i.dayNumber === item.dayNumber).sort((a, b) => a.sortOrder - b.sortOrder);
-    const index = sameDay.findIndex((i) => i.uid === item.uid);
-    const swapWith = sameDay[index + direction];
-    if (!swapWith) return;
+  const activeDayItems = (itemsByDay[openDay] ?? []).slice().sort((a, b) => a.sortOrder - b.sortOrder);
 
-    const orderedItemUids = items
-      .slice()
-      .sort((a, b) => a.dayNumber - b.dayNumber || a.sortOrder - b.sortOrder)
-      .map((i) => (i.uid === item.uid ? swapWith.uid : i.uid === swapWith.uid ? item.uid : i.uid));
+  // --- Drag-and-drop reordering (within the currently open day only) ---
+  // dragItems is a local, live-reordered copy of activeDayItems, rendered
+  // only while a drag is in progress: the dragged card's position in the
+  // array updates in real time as the pointer crosses other cards, so the
+  // reflow itself is the "drop position" indicator, and the dragged card's
+  // elevated styling just rides along wherever it currently sits — no
+  // separate floating clone or indicator line needed. Falls back to
+  // activeDayItems (the redux-backed order) whenever no drag is active.
+  const [dragItems, setDragItems] = useState<ItineraryItem[] | null>(null);
+  const [draggingUid, setDraggingUid] = useState<string | null>(null);
+  const dragItemsRef = useRef<ItineraryItem[] | null>(null);
+  const draggingActiveRef = useRef(false);
+  const draggingUidRef = useRef<string | null>(null);
+  const pointerYRef = useRef(0);
+  const dragRafRef = useRef<number | null>(null);
+  const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const dayListRef = useRef<HTMLDivElement | null>(null);
+  const reorderingRef = useRef(false);
 
-    await dispatch(reorderItineraryItems({ itineraryUid, orderedItemUids }));
-    loadItems();
+  function registerRowRef(uid: string, el: HTMLDivElement | null) {
+    if (el) rowRefs.current.set(uid, el);
+    else rowRefs.current.delete(uid);
+  }
+
+  // Re-derives the drop index from the pointer's current Y against every
+  // row's live rect and, if it's crossed into a neighbor's half, reorders
+  // dragItems to match. Called every animation frame (not just on
+  // pointermove) — see dragFrame — so it keeps tracking correctly even
+  // while auto-scroll alone is moving rows under a pointer that isn't
+  // itself moving.
+  function updateDropTargetFromPointer(pointerY: number, draggedUid: string) {
+    const list = dragItemsRef.current;
+    if (!list) return;
+    const draggedIdx = list.findIndex((it) => it.uid === draggedUid);
+    if (draggedIdx === -1) return;
+    let targetIdx = list.length;
+    for (let i = 0; i < list.length; i++) {
+      const el = rowRefs.current.get(list[i].uid);
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      if (pointerY < rect.top + rect.height / 2) {
+        targetIdx = i;
+        break;
+      }
+    }
+    if (targetIdx === draggedIdx || targetIdx === draggedIdx + 1) return;
+    const next = list.slice();
+    const [moved] = next.splice(draggedIdx, 1);
+    const insertAt = targetIdx > draggedIdx ? targetIdx - 1 : targetIdx;
+    next.splice(insertAt, 0, moved);
+    dragItemsRef.current = next;
+    setDragItems(next);
+  }
+
+  // Runs once per frame for the whole duration of a drag: auto-scrolls the
+  // day list when the pointer is near its top/bottom edge — speed ramps up
+  // the closer it gets, and stops the moment the pointer moves away from
+  // the edge — and keeps the drop position current the whole time.
+  function dragFrame(draggedUid: string) {
+    if (!draggingActiveRef.current) {
+      dragRafRef.current = null;
+      return;
+    }
+    const container = dayListRef.current;
+    const pointerY = pointerYRef.current;
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      const threshold = 56;
+      let direction = 0;
+      let intensity = 0;
+      if (pointerY < rect.top + threshold) {
+        direction = -1;
+        intensity = (rect.top + threshold - pointerY) / threshold;
+      } else if (pointerY > rect.bottom - threshold) {
+        direction = 1;
+        intensity = (pointerY - (rect.bottom - threshold)) / threshold;
+      }
+      if (direction !== 0) {
+        const speed = 4 + Math.min(intensity, 1) * 14;
+        const maxScrollTop = container.scrollHeight - container.clientHeight;
+        container.scrollTop = Math.max(0, Math.min(maxScrollTop, container.scrollTop + direction * speed));
+      }
+    }
+    updateDropTargetFromPointer(pointerY, draggedUid);
+    dragRafRef.current = requestAnimationFrame(() => dragFrame(draggedUid));
+  }
+
+  function handleRowPointerDown(e: ReactPointerEvent<HTMLDivElement>, item: ItineraryItem) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    // Let Edit/Delete's own onClick handle the press instead of starting a drag.
+    if ((e.target as HTMLElement).closest("button")) return;
+    if (draggingActiveRef.current || reorderingRef.current) return;
+
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const initial = activeDayItems.slice();
+    dragItemsRef.current = initial;
+    setDragItems(initial);
+    setDraggingUid(item.uid);
+    draggingUidRef.current = item.uid;
+    draggingActiveRef.current = true;
+    pointerYRef.current = e.clientY;
+    document.body.style.cursor = "grabbing";
+    dragRafRef.current = requestAnimationFrame(() => dragFrame(item.uid));
+  }
+
+  function handleRowPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
+    if (!draggingActiveRef.current) return;
+    pointerYRef.current = e.clientY;
+    // Also update synchronously from the move event itself, rather than
+    // relying solely on the next animation frame (see dragFrame) — keeps
+    // the reorder feeling immediate and correct even if a browser/test
+    // driver delivers pointerdown/move/up back-to-back without yielding
+    // for a paint in between.
+    if (draggingUidRef.current) {
+      updateDropTargetFromPointer(e.clientY, draggingUidRef.current);
+    }
+  }
+
+  async function handleRowPointerEnd(e: ReactPointerEvent<HTMLDivElement>) {
+    if (!draggingActiveRef.current) return;
+    draggingActiveRef.current = false;
+    if (dragRafRef.current != null) {
+      cancelAnimationFrame(dragRafRef.current);
+      dragRafRef.current = null;
+    }
+    document.body.style.cursor = "";
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    setDraggingUid(null);
+    draggingUidRef.current = null;
+
+    const finalOrder = dragItemsRef.current;
+    dragItemsRef.current = null;
+    if (!finalOrder) {
+      setDragItems(null);
+      return;
+    }
+
+    const changed =
+      finalOrder.length !== activeDayItems.length || finalOrder.some((it, i) => it.uid !== activeDayItems[i]?.uid);
+    if (!changed) {
+      setDragItems(null);
+      return;
+    }
+
+    // Global sortOrder spans the whole itinerary (see the backend reorder
+    // endpoint), so the payload has to be the full cross-day list with just
+    // this day's slice replaced by its new order — same technique the old
+    // Move Up/Down buttons used, just generalized to an arbitrary index
+    // move instead of a single adjacent swap.
+    const sortedAll = items.slice().sort((a, b) => a.dayNumber - b.dayNumber || a.sortOrder - b.sortOrder);
+    let dayIdx = 0;
+    const orderedItemUids = sortedAll.map((it) => (it.dayNumber === openDay ? finalOrder[dayIdx++].uid : it.uid));
+
+    reorderingRef.current = true;
+    try {
+      await dispatch(reorderItineraryItems({ itineraryUid, orderedItemUids }));
+      // Awaited (unlike loadItems() elsewhere) so dragItems isn't cleared
+      // — falling back to the redux-backed order — until that order
+      // actually matches what the drag just settled on; otherwise the list
+      // would flash back to the pre-drag order for a moment.
+      await dispatch(fetchItineraryItems(itineraryUid));
+    } finally {
+      reorderingRef.current = false;
+      setDragItems(null);
+    }
   }
 
   async function handleDeleteItem(uid: string) {
@@ -522,8 +849,6 @@ export function ItineraryDayPlanner({
     );
   }
 
-  const activeDayItems = (itemsByDay[openDay] ?? []).slice().sort((a, b) => a.sortOrder - b.sortOrder);
-
   const quickAddConfig: Record<
     QuickAddType,
     {
@@ -556,7 +881,11 @@ export function ItineraryDayPlanner({
       libraryOptions: hotelsForEscape.map((h) => ({
         uid: h.uid,
         label: h.name,
-        roomTypes: h.roomTypes ?? [],
+        // PlanningLibraryOption/HotelDetailFields key room types by `uid`
+        // (remapped from roomTypeId) and now also carry this hotel's own
+        // price/night for each one — used both for the suggestion list's
+        // "from ₹X" display and to prefill Price once a room type is picked.
+        roomTypes: (h.roomTypes ?? []).map((rt) => ({ uid: rt.roomTypeId, name: rt.name, price: rt.price })),
         mealPlans: h.mealPlans ?? [],
         stars: h.stars,
         basePrice: h.basePrice,
@@ -586,30 +915,51 @@ export function ItineraryDayPlanner({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="relative z-10 flex shrink-0 items-center gap-1.5 overflow-x-auto">
-        {Array.from({ length: dayCount }, (_, i) => i + 1).map((day) => {
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      {reorderingDays && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center gap-2 rounded-lg bg-card/80 backdrop-blur-[1px]">
+          <Spinner size="sm" />
+          <Body muted>Reordering days…</Body>
+        </div>
+      )}
+      <div ref={dayTabsContainerRef} className="relative z-10 flex shrink-0 items-center gap-1.5 overflow-x-auto">
+        {Array.from({ length: dayCount }, (_, i) => i + 1).flatMap((day, i) => {
           const isActive = openDay === day;
           const date = dayNumberToDate(escapeStartDate, day);
           const dayTotal = (itemsByDay[day] ?? []).reduce((sum, item) => sum + (getItemTotalPrice(item) ?? 0), 0);
-          return (
+          const nodes = [];
+          if (draggingDay != null && dayDropIndex === i) {
+            nodes.push(<div key={`day-drop-${i}`} className="h-11 w-0.5 shrink-0 self-stretch rounded-full bg-primary" />);
+          }
+          nodes.push(
             <button
               key={day}
+              ref={(el) => registerDayTabRef(day, el)}
               type="button"
-              onClick={() => setOpenDay(day)}
+              onClick={() => handleDayTabClick(day)}
+              onPointerDown={(e) => handleDayPointerDown(e, day)}
+              onPointerMove={handleDayPointerMove}
+              onPointerUp={handleDayPointerEnd}
+              onPointerCancel={handleDayPointerEnd}
+              style={{ touchAction: "none" }}
               className={cn(
-                "flex h-11 min-w-[100px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-t-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
+                "flex h-11 min-w-[100px] shrink-0 cursor-grab flex-col items-center justify-center gap-0.5 rounded-t-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
                 isActive
                   ? "-mb-px border-primary border-b-card bg-card text-foreground shadow-sm"
                   : "rounded-b-lg border-border/60 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                draggingDay === day && "relative z-20 cursor-grabbing border-primary/50 shadow-lg ring-2 ring-primary/40",
               )}
             >
               <span className="leading-none">Day {day}</span>
               {date && <span className="leading-none text-[8px] font-normal text-muted-foreground">{formatDayDateWithWeekday(date)}</span>}
               {dayTotal > 0 && <span className="leading-none text-[10px] font-semibold text-primary">{formatInr(dayTotal)}</span>}
-            </button>
+            </button>,
           );
+          return nodes;
         })}
+        {draggingDay != null && dayDropIndex === dayCount && (
+          <div className="h-11 w-0.5 shrink-0 self-stretch rounded-full bg-primary" />
+        )}
 
         <button
           type="button"
@@ -626,6 +976,7 @@ export function ItineraryDayPlanner({
 
       <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-lg border border-border bg-card p-2 shadow-sm">
         <div
+          ref={dayListRef}
           className={cn(
             "show-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto",
             activeDayItems.length === 0 && "items-center justify-center text-center",
@@ -652,13 +1003,15 @@ export function ItineraryDayPlanner({
               </div>
             </>
           ) : (
-            activeDayItems.map((item, i) => (
+            (dragItems ?? activeDayItems).map((item) => (
               <TimelineRow
                 key={item.uid}
                 item={item}
-                isFirst={i === 0}
-                isLast={i === activeDayItems.length - 1}
-                onMove={(direction) => handleMove(item, direction)}
+                isDragging={draggingUid === item.uid}
+                registerRef={(el) => registerRowRef(item.uid, el)}
+                onDragPointerDown={(e) => handleRowPointerDown(e, item)}
+                onDragPointerMove={handleRowPointerMove}
+                onDragPointerEnd={handleRowPointerEnd}
                 onEdit={() => setModal(editModalState(item))}
                 onDelete={() => handleDeleteItem(item.uid)}
                 deleting={deletingUid === item.uid}
@@ -824,7 +1177,11 @@ export function ItineraryDayPlanner({
                 value={modal.hotelForm}
                 onChange={(next) => setModal((m) => (m ? { ...m, hotelForm: next } : m))}
                 mealPlans={hotelsForEscape.find((h) => h.uid === modal.referenceId)?.mealPlans ?? []}
-                roomTypes={hotelsForEscape.find((h) => h.uid === modal.referenceId)?.roomTypes ?? []}
+                roomTypes={(hotelsForEscape.find((h) => h.uid === modal.referenceId)?.roomTypes ?? []).map((rt) => ({
+                  uid: rt.roomTypeId,
+                  name: rt.name,
+                  price: rt.price,
+                }))}
                 hotelName={hotelsForEscape.find((h) => h.uid === modal.referenceId)?.name ?? modal.title}
                 hotelUid={modal.referenceId || null}
                 maxNights={maxHotelNightsForEdit}

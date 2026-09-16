@@ -26,3 +26,8 @@ export interface DeleteItineraryContentItemPayload {
   uid: string;
   itineraryUid: string;
 }
+
+export interface ReorderItineraryContentItemsPayload {
+  itineraryUid: string;
+  orderedItemUids: string[];
+}

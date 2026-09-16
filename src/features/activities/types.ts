@@ -12,6 +12,13 @@ export interface ActivityPayload {
   basePrice: number | null;
   status: string;
   notes?: string;
+  accountHolderName?: string;
+  bankName?: string;
+  branchName?: string;
+  accountType?: string;
+  accountNumber?: string;
+  ifsc?: string;
+  upiId?: string;
 }
 
 export interface UpdateActivityPayload {

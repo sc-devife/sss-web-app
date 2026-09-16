@@ -5,6 +5,7 @@ export type { Service };
 export interface ServicePayload {
   name: string;
   description: string;
+  price: number | null;
 }
 
 export interface UpdateServicePayload {

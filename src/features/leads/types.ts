@@ -39,6 +39,7 @@ export interface CreateLeadPayload {
   budget: number | null;
   originCity: string | null;
   travelType: string | null;
+  languages: string[];
   isPriority: boolean;
   notes: string | null;
   sourceType: LeadSourceType;

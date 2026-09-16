@@ -28,7 +28,6 @@ import {
   emptyHotelDetailForm,
   toHotelDetailPayload,
   hotelNightsError,
-  computeHotelTotal,
   type HotelDetailFormState,
 } from "@/components/escapes/HotelDetailFields";
 
@@ -39,19 +38,23 @@ export interface PlanningLibraryOption {
   label: string;
   // Only populated for hotel options — the hotel's own meal plans/room
   // types, scoped to what that hotel actually offers rather than a global
-  // list, used by HotelDetailFields.
-  roomTypes?: { uid: string; name: string }[];
+  // list, used by HotelDetailFields. Each room type carries this hotel's own
+  // price/night for it (see HotelRoomType) — the lowest of these is shown
+  // in the suggestion list, and picking one in step 2 prefills Price from it
+  // (see HotelDetailFields.handleRoomTypeChange).
+  roomTypes?: { uid: string; name: string; price: number | null }[];
   mealPlans?: { uid: string; code: string; name: string }[];
   // Only populated for hotel options — shown alongside the name in the
   // suggestion dropdown (star rating), purely informational so the list is
   // scannable without opening each hotel. Never prefills anything, unlike
   // transportPrefill/activityPrefill below.
   stars?: number | null;
-  // Populated for hotel and activity options — the library item's own
+  // Populated for activity options only — the library Activity's own
   // starting/master price, shown alongside the name in the suggestion
-  // dropdown so the list is scannable without opening each item. Purely
-  // informational display data; activityPrefill below is what actually
-  // prefills the Price field once an activity is picked.
+  // dropdown and what actually prefills the Price field once picked (see
+  // activityPrefill below). Hotels used to share this same field before
+  // per-room-type pricing existed; they now price purely from `roomTypes`
+  // above instead (see the isHotel branch in the option list render).
   basePrice?: number | null;
   // Only populated for transport options — prefills the Mode/Vehicle
   // type/Price fields when a library Transport record is picked (still
@@ -60,6 +63,17 @@ export interface PlanningLibraryOption {
   // Only populated for activity options — prefills the Price field from the
   // library Activity's own basePrice when picked (still fully editable).
   activityPrefill?: { price: number | null };
+}
+
+// The suggestion list's per-hotel price display — the lowest of this
+// hotel's own room-type prices (or null if none of its room types have a
+// price set yet), shown as "from ₹X" since a hotel with multiple room
+// types has no single price of its own anymore.
+function lowestRoomTypePrice(option: PlanningLibraryOption): number | null {
+  const prices = (option.roomTypes ?? [])
+    .map((r) => r.price)
+    .filter((p): p is number => p != null);
+  return prices.length > 0 ? Math.min(...prices) : null;
 }
 
 // Generalized version of the day planner's "+"-triggered create flow, driven
@@ -183,17 +197,11 @@ export function AddPlanningItemModal({
     if (option.activityPrefill?.price != null) {
       setPrice(String(option.activityPrefill.price));
     }
-    // Prefills this NEW booking's Price from the Hotel entity's own
-    // basePrice — a one-time default, not a live link: from here on the
-    // value lives only on this itinerary item's hotelDetail (see
-    // HotelDetailFields), and editing it never writes back to the Hotel.
-    if (isHotel && option.basePrice != null) {
-      setHotelForm((f) => {
-        const price = String(option.basePrice);
-        const total = computeHotelTotal(price, f.nights, f.roomCount, f.inclusions);
-        return total !== null ? { ...f, price, totalPrice: total } : { ...f, price };
-      });
-    }
+    // Hotel Price is no longer prefilled here from a flat Hotel.basePrice —
+    // now that a hotel prices per Room Type, there's nothing to prefill
+    // from until a specific Room Type is picked inside HotelDetailFields
+    // (see its handleRoomTypeChange), which prefills Price from that room
+    // type's own price instead.
     setStep("details");
   }
 
@@ -313,8 +321,10 @@ export function AddPlanningItemModal({
                                 </span>
                               )}
                             </span>
-                            {option.basePrice != null && (
-                              <span className="shrink-0 text-sm font-semibold text-primary">{formatInr(option.basePrice)}</span>
+                            {lowestRoomTypePrice(option) != null && (
+                              <span className="shrink-0 text-sm font-semibold text-primary">
+                                from {formatInr(lowestRoomTypePrice(option))}
+                              </span>
                             )}
                           </span>
                         ) : isActivity ? (

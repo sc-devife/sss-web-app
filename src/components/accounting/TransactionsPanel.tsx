@@ -4,34 +4,23 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
-import { ComingSoon } from "@/components/ui/ComingSoon";
 import { Body } from "@/components/ui/Typography";
-import { formatDisplayDateTime } from "@/lib/date";
+import { formatDisplayDate, formatDisplayDateTime } from "@/lib/date";
 import { formatAuditActor } from "@/lib/audit";
-import type { IncomingTransaction } from "@/lib/transactions";
+import { formatInr } from "@/lib/currency";
+import { paymentMethodLabel } from "@/lib/payment-methods";
+import type { IncomingTransaction, OutgoingTransaction } from "@/lib/transactions";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchIncomingTransactions } from "@/features/transactions/transactionsThunks";
+import { fetchIncomingTransactions, fetchOutgoingTransactions } from "@/features/transactions/transactionsThunks";
 import {
   selectIncomingTransactions,
   selectIncomingTransactionsStatus,
   selectIncomingTransactionsError,
+  selectOutgoingTransactions,
+  selectOutgoingTransactionsStatus,
+  selectOutgoingTransactionsError,
 } from "@/features/transactions/transactionsSelectors";
 import { PiArrowDownLeftBold, PiArrowUpRightBold } from "react-icons/pi";
-
-// Matches DealPanel.tsx's PAYMENT_METHOD_OPTIONS values — kept as its own
-// small map here rather than a shared import, since this is a display-only
-// lookup and the two components don't otherwise share code.
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  upi: "UPI",
-  neft: "NEFT",
-  rtgs: "RTGS",
-  imps: "IMPS",
-  bank_transfer: "Bank Transfer",
-  card: "Card",
-  cash: "Cash",
-  cheque: "Cheque",
-  other: "Other",
-};
 
 const STATUS_TONES: Record<string, "success" | "warning" | "neutral"> = {
   paid: "success",
@@ -77,7 +66,7 @@ function IncomingTransactionsTable() {
     {
       key: "paymentMethod",
       header: "Method",
-      render: (t) => (t.paymentMethod ? PAYMENT_METHOD_LABELS[t.paymentMethod] ?? t.paymentMethod : "—"),
+      render: (t) => (t.paymentMethod ? paymentMethodLabel(t.paymentMethod) : "—"),
       filterValue: (t) => t.paymentMethod ?? "",
     },
     {
@@ -117,6 +106,95 @@ function IncomingTransactionsTable() {
       searchPlaceholder="Search by customer, amount, reference…"
       emptyMessage="No incoming payments recorded yet."
       onRowClick={(t) => router.push(`/escapes/${t.escapeUid}`)}
+      loading={status !== "succeeded" && transactions.length === 0}
+    />
+  );
+}
+
+// Backed by HotelPayment (see HotelDetailPanel's own Payments tab, where
+// these are recorded) — the same data, just rolled up across every hotel in
+// the org instead of scoped to one hotel's page.
+function OutgoingTransactionsTable() {
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const transactions = useAppSelector(selectOutgoingTransactions);
+  const status = useAppSelector(selectOutgoingTransactionsStatus);
+  const error = useAppSelector(selectOutgoingTransactionsError);
+
+  useEffect(() => {
+    dispatch(fetchOutgoingTransactions());
+  }, [dispatch]);
+
+  const columns: DataTableColumn<OutgoingTransaction>[] = [
+    {
+      key: "vendorName",
+      header: "To",
+      render: (t) => (
+        <div className="flex flex-col">
+          <span className="font-medium text-foreground">{t.vendorName}</span>
+          <span className="text-xs text-muted-foreground">{t.vendorType}</span>
+        </div>
+      ),
+      filterValue: (t) => `${t.vendorName} ${t.vendorType}`,
+    },
+    {
+      key: "tripCode",
+      header: "Escape ID",
+      render: (t) => t.tripCode ?? "—",
+      filterValue: (t) => t.tripCode ?? "",
+    },
+    {
+      key: "transactionId",
+      header: "Transaction ID",
+      render: (t) => t.transactionId ?? "—",
+      filterValue: (t) => t.transactionId ?? "",
+    },
+    {
+      key: "paymentMethod",
+      header: "Method",
+      render: (t) => paymentMethodLabel(t.paymentMethod),
+      filterValue: (t) => t.paymentMethod,
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      render: (t) => formatInr(t.amount),
+      sortValue: (t) => t.amount,
+    },
+    {
+      key: "paidBy",
+      header: "Paid By",
+      render: (t) => t.paidBy ?? "—",
+      filterValue: (t) => t.paidBy ?? "",
+    },
+    {
+      key: "paymentDate",
+      header: "Payment Date",
+      render: (t) => formatDisplayDate(t.paymentDate) ?? "—",
+      sortValue: (t) => t.paymentDate,
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (t) => <Badge tone={t.status === "Paid" ? "success" : "neutral"}>{t.status}</Badge>,
+      sortValue: (t) => t.status,
+    },
+  ];
+
+  if (status === "failed") {
+    return <Body className="text-danger">{error}</Body>;
+  }
+
+  return (
+    <DataTable
+      columns={columns}
+      rows={transactions}
+      rowKey={(t) => t.paymentUid}
+      searchPlaceholder="Search by hotel, escape ID, amount…"
+      emptyMessage="No outgoing payments recorded yet."
+      onRowClick={(t) =>
+        router.push(t.vendorType === "Hotel" ? `/library/hotels/${t.vendorUid}` : `/library/activities/${t.vendorUid}`)
+      }
       loading={status !== "succeeded" && transactions.length === 0}
     />
   );
@@ -166,15 +244,7 @@ export function TransactionsPanel() {
       </div>
 
       {/* Content */}
-      {activeTab === "incoming" ? (
-        <IncomingTransactionsTable />
-      ) : (
-        <ComingSoon
-          title="Outgoing Transactions"
-          section="Accounting"
-          icon={PiArrowUpRightBold}
-        />
-      )}
+      {activeTab === "incoming" ? <IncomingTransactionsTable /> : <OutgoingTransactionsTable />}
     </div>
   );
 }

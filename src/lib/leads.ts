@@ -29,8 +29,7 @@ export interface Lead {
   budget: number | null;
   status: string;
   // DIRECT | AGENCY — sourceChannel only applies when DIRECT, agencyDetails
-  // only when AGENCY. Leads are never individually assigned — assignment
-  // lives on Escape once converted (see lib/escapes.ts).
+  // only when AGENCY.
   sourceType: LeadSourceType | null;
   sourceChannel: string | null;
   sourceRefId: string | null;
@@ -39,6 +38,14 @@ export interface Lead {
   isPriority: boolean | null;
   originCity: string | null;
   travelType: string | null;
+  languages: string[] | null;
+  // Routed at intake by the auto-assignment engine (or set via manual
+  // (re)assignment) — carried over to the Escape as-is if/when this lead
+  // converts, rather than the engine picking someone fresh at that point.
+  // assignedToUserName is resolved server-side, not stored.
+  assignedToUserId: number | null;
+  assignedToUserName: string | null;
+  assignmentReason: string | null;
   followUpDueDate: string | null;
   notes: string | null;
   createdAt: string | null;

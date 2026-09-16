@@ -11,7 +11,7 @@ import type { Activity } from "@/lib/activities";
 import type { EscapePoint } from "@/lib/escape-points";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
-import { positiveNumber, required, runValidators } from "@/lib/validators";
+import { emailField, positiveNumber, required, runValidators } from "@/lib/validators";
 import { useAppDispatch } from "@/store/hooks";
 import { createActivity, updateActivity, fetchActivities } from "@/features/activities/activitiesThunks";
 
@@ -30,6 +30,7 @@ const emptyForm = {
   images: [] as string[],
   basePrice: "",
   status: "active",
+  email: "",
 };
 
 type FormState = typeof emptyForm;
@@ -42,6 +43,8 @@ function validate(v: FormState): Record<string, string> {
   if (durationErr) errors.durationMinutes = durationErr;
   const priceErr = runValidators(v.basePrice, [positiveNumber("Base price must be a positive number")]);
   if (priceErr) errors.basePrice = priceErr;
+  const emailErr = runValidators(v.email, [emailField()]);
+  if (emailErr) errors.email = emailErr;
   return errors;
 }
 
@@ -56,6 +59,7 @@ function snapshotFromActivity(activity: Activity | null): FormState {
     images: activity.images ?? [],
     basePrice: activity.basePrice != null ? String(activity.basePrice) : "",
     status: activity.status ?? "active",
+    email: activity.email ?? "",
   };
 }
 
@@ -119,6 +123,7 @@ export function ActivityFormModal({
         images: form.images,
         basePrice: form.basePrice ? Number(form.basePrice) : null,
         status: form.status,
+        email: form.email || null,
       };
       if (activity) {
         await dispatch(updateActivity({ uid: activity.uid, payload })).unwrap();
@@ -229,6 +234,18 @@ export function ActivityFormModal({
               onChange={(e) => update("status", e.target.value)}
             />
           </div>
+
+          <TextInput
+            label="Email"
+            type="email"
+            placeholder="e.g. bookings@activityvendor.com"
+            value={form.email}
+            onChange={(e) => {
+              update("email", e.target.value);
+              setErrors((p) => ({ ...p, email: "" }));
+            }}
+            error={errors.email}
+          />
         </fieldset>
 
         {formError && (

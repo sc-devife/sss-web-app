@@ -4,6 +4,7 @@ export interface Service {
   uid: string;
   name: string;
   description: string | null;
+  price: number | null;
   isActive: boolean;
   // Null for global master-data services; set to a hotel's uid when the
   // service was created via that hotel's own "+ Add Services".

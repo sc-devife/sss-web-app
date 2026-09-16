@@ -14,6 +14,7 @@ import {
   PiMapPinLineFill,
   PiSuitcaseFill,
   PiUserCircleFill,
+  PiHashFill,
 } from "react-icons/pi";
 import { Badge } from "@/components/ui/Badge";
 import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
@@ -233,6 +234,7 @@ export function EscapeSummaryCard({
               )
             )}
           </div>
+          {escape.tripCode && <IconLine icon={PiHashFill}>{escape.tripCode}</IconLine>}
           {advanceError && <p className="text-xs text-danger">{advanceError}</p>}
           {escape.escapePoints.length > 0 ? (
             <div className="flex flex-col gap-2 border-t border-border pt-2">

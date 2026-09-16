@@ -6,6 +6,7 @@ import {
   updateItineraryItem,
   deleteItineraryItem,
   reorderItineraryItems,
+  reorderItineraryDays,
 } from "@/features/itineraryItems/itineraryItemsThunks";
 
 type RequestStatus = "idle" | "loading" | "succeeded" | "failed";
@@ -26,6 +27,9 @@ interface ItineraryItemsState {
 
   reorderStatus: RequestStatus;
   reorderError: string | null;
+
+  reorderDaysStatus: RequestStatus;
+  reorderDaysError: string | null;
 }
 
 const initialState: ItineraryItemsState = {
@@ -40,6 +44,8 @@ const initialState: ItineraryItemsState = {
   deleteError: null,
   reorderStatus: "idle",
   reorderError: null,
+  reorderDaysStatus: "idle",
+  reorderDaysError: null,
 };
 
 const itineraryItemsSlice = createSlice({
@@ -112,6 +118,18 @@ const itineraryItemsSlice = createSlice({
       .addCase(reorderItineraryItems.rejected, (state, action) => {
         state.reorderStatus = "failed";
         state.reorderError = action.payload ?? "Failed to reorder items";
+      })
+
+      .addCase(reorderItineraryDays.pending, (state) => {
+        state.reorderDaysStatus = "loading";
+        state.reorderDaysError = null;
+      })
+      .addCase(reorderItineraryDays.fulfilled, (state) => {
+        state.reorderDaysStatus = "succeeded";
+      })
+      .addCase(reorderItineraryDays.rejected, (state, action) => {
+        state.reorderDaysStatus = "failed";
+        state.reorderDaysError = action.payload ?? "Failed to reorder days";
       });
   },
 });

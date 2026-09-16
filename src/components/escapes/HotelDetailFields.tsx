@@ -212,7 +212,11 @@ export function HotelDetailFields({
   value: HotelDetailFormState;
   onChange: (next: HotelDetailFormState) => void;
   mealPlans: { uid: string; code: string; name: string }[];
-  roomTypes: { uid: string; name: string }[];
+  // price is this HOTEL's own price/night for that room type (see
+  // HotelRoomType) — picking a room type below prefills the Price field
+  // from it, same "one-time default, still editable" precedent as the
+  // library-option prefills in AddPlanningItemModal.
+  roomTypes: { uid: string; name: string; price: number | null }[];
   hotelName: string;
   // Only set once a library hotel is actually picked — "+ Add Meal" needs a
   // real hotel to link the new meal plan to, so it's hidden for custom
@@ -251,6 +255,22 @@ export function HotelDetailFields({
     const next = { ...value, ...patch };
     const total = computeHotelTotal(next.price, next.nights, next.roomCount, next.inclusions);
     onChange(total !== null ? { ...next, totalPrice: total } : next);
+  }
+
+  // Picking a Room Type prefills Price from that hotel's own price/night for
+  // it (still freely editable afterwards, same as any other prefill in this
+  // flow) — the room-type-scoped replacement for the old flat
+  // Hotel.basePrice prefill this used to rely on.
+  function handleRoomTypeChange(roomTypeId: string) {
+    const picked = roomTypes.find((r) => r.uid === roomTypeId);
+    if (picked && picked.price != null) {
+      const price = String(picked.price);
+      const next = { ...value, roomTypeId, price };
+      const total = computeHotelTotal(price, next.nights, next.roomCount, next.inclusions);
+      onChange(total !== null ? { ...next, totalPrice: total } : next);
+    } else {
+      update("roomTypeId", roomTypeId);
+    }
   }
 
   // Same recalculation, triggered from the services list instead of the
@@ -359,7 +379,7 @@ export function HotelDetailFields({
           label="Room Type"
           options={roomTypeOptions}
           value={value.roomTypeId}
-          onChange={(e) => update("roomTypeId", e.target.value)}
+          onChange={(e) => handleRoomTypeChange(e.target.value)}
           placeholder={roomTypeOptions.length ? "Select" : "Not applicable"}
           disabled={!roomTypeOptions.length}
         />

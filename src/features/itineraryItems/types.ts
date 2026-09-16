@@ -46,3 +46,14 @@ export interface ReorderItineraryItemsPayload {
   itineraryUid: string;
   orderedItemUids: string[];
 }
+
+// Moves an entire day's items to a different day position — see
+// ItineraryItemHelper.reorderDays. The date shown for each position never
+// moves (it's always derived from escape.startDate + dayNumber); only which
+// items occupy fromDayNumber/toDayNumber and everything strictly between
+// them shifts.
+export interface ReorderItineraryDaysPayload {
+  itineraryUid: string;
+  fromDayNumber: number;
+  toDayNumber: number;
+}

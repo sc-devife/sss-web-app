@@ -27,6 +27,8 @@ export interface AgentAssignmentSettings {
   specialistEscapePoints: number[];
   maxConcurrentAssignments: number | null;
   eligibleForPriorityLeads: boolean;
+  eligibleForLargeGroups: boolean;
+  languages: string[];
   acceptingLeads: boolean;
 }
 

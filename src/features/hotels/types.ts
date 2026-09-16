@@ -8,7 +8,7 @@ export interface HotelPayload {
   locationId: string;
   escapePointId: string | null;
   mealPlanIds: string[];
-  roomTypeIds: string[];
+  roomTypePricing: { roomTypeId: string; price: number | null }[];
   serviceIds: string[];
   checkInTime: string | null;
   checkOutTime: string | null;
@@ -22,6 +22,16 @@ export interface HotelPayload {
   amenities: string[];
   status: string;
   notes: string;
+  // Optional: only the Hotel Detail page's Account tab ever sends these
+  // (via a Partial<HotelPayload> update) — the Add/Edit Hotel form's own
+  // create/update payload never touches them.
+  accountHolderName?: string;
+  bankName?: string;
+  branchName?: string;
+  accountType?: string;
+  accountNumber?: string;
+  ifsc?: string;
+  upiId?: string;
 }
 
 export interface UpdateHotelPayload {
