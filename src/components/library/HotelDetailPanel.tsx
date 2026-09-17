@@ -27,6 +27,7 @@ import { HotelFormModal } from "@/components/library/HotelFormModal";
 import { HotelPaymentModal } from "@/components/library/HotelPaymentModal";
 import { HotelBookingEmailModal } from "@/components/library/HotelBookingEmailModal";
 import { CancellationEmailModal } from "@/components/library/CancellationEmailModal";
+import { CancelBookingModal } from "@/components/library/CancelBookingModal";
 import { GalleryImage } from "@/components/library/GalleryImage";
 import { resolveFileUrl } from "@/lib/files";
 import { formatDisplayDate, formatDisplayTime } from "@/lib/date";
@@ -219,6 +220,7 @@ export function HotelDetailPanel({
   const [markingBookedUid, setMarkingBookedUid] = useState<string | null>(null);
   const [emailModalItineraryItemUid, setEmailModalItineraryItemUid] = useState<string | null>(null);
   const [cancellationEmailItineraryItemUid, setCancellationEmailItineraryItemUid] = useState<string | null>(null);
+  const [cancelBookingUid, setCancelBookingUid] = useState<string | null>(null);
   const [payments, setPayments] = useState<HotelPayment[] | null>(null);
   const [paymentsLoading, setPaymentsLoading] = useState(true);
   const [addPaymentOpen, setAddPaymentOpen] = useState(false);
@@ -245,13 +247,18 @@ export function HotelDetailPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hotel.accountHolderName, hotel.bankName, hotel.accountNumber, hotel.ifsc, hotel.upiId]);
 
-  useEffect(() => {
+  function loadBookings() {
     setBookingsLoading(true);
-    clientApi
+    return clientApi
       .get<HotelBooking[]>(`/library/hotels/${hotel.uid}/bookings`)
       .then((res) => setBookings(res.data))
       .catch(() => setBookings([]))
       .finally(() => setBookingsLoading(false));
+  }
+
+  useEffect(() => {
+    loadBookings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hotel.uid]);
 
   useEffect(() => {
@@ -396,7 +403,28 @@ export function HotelDetailPanel({
       toast.error("Hotel email not available.");
       return;
     }
-    setCancellationEmailItineraryItemUid(itineraryItemUid);
+    setCancelBookingUid(itineraryItemUid);
+  }
+
+  // Booked -> Drop, reusing the exact same generic item-update path the
+  // Escape Planning tab's own "Drop Hotel" edit uses (only status/
+  // droppingReason/cancellationCharge are written — see
+  // ItineraryItemHelper.saveHotelDetail's Drop-mode branch) — no separate
+  // cancel endpoint, no duplicated business rule. Once dropped, chains
+  // straight into the cancellation-email preview for the same booking.
+  async function handleConfirmCancelBooking(reason: string, cancellationCharge: number | undefined) {
+    if (!cancelBookingUid) return;
+    const uid = cancelBookingUid;
+    try {
+      await clientApi.put(`/itinerary-items/${uid}`, {
+        hotelDetail: { status: "Drop", droppingReason: reason, cancellationCharge },
+      });
+    } catch (err) {
+      throw new Error(extractErrorMessage(err, "Failed to cancel booking"));
+    }
+    await loadBookings();
+    setCancelBookingUid(null);
+    setCancellationEmailItineraryItemUid(uid);
   }
 
   async function handleMakePriority(url: string) {
@@ -718,7 +746,7 @@ export function HotelDetailPanel({
                                   <TbMailForward size={14} />
                                   Send Booking Email
                                 </Button>
-                                {b.bookingStatus === "Drop" && (
+                                {b.bookingStatus === "Booked" && (
                                   <Button
                                     variant="secondary"
                                     size="sm"
@@ -874,6 +902,16 @@ export function HotelDetailPanel({
           setEmailModalItineraryItemUid(null);
           toast.success("Hotel booking email sent successfully.");
         }}
+      />
+
+      <CancelBookingModal
+        open={!!cancelBookingUid}
+        itemLabel={`${current.name}${(() => {
+          const b = bookings?.find((x) => x.itineraryItemUid === cancelBookingUid);
+          return b?.tripCode ? ` (${b.tripCode})` : "";
+        })()}`}
+        onClose={() => setCancelBookingUid(null)}
+        onConfirm={handleConfirmCancelBooking}
       />
 
       {cancellationEmailItineraryItemUid && (
