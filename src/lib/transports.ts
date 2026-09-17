@@ -23,3 +23,11 @@ export interface Transport {
 export async function getTransports(): Promise<Transport[]> {
   return backendJson<Transport[]>("/api/v1/transports");
 }
+
+// Every vehicle linked to one Service Provider — backs that provider's
+// Detail page "Vehicles" section. Only Multi Vehicle Owner transports ever
+// set provider (see TransportPanel), so a Single Vehicle Owner's own
+// vehicles never show up here.
+export async function getTransportsByProvider(providerUid: string): Promise<Transport[]> {
+  return backendJson<Transport[]>(`/api/v1/transports?providerId=${providerUid}`);
+}

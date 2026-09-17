@@ -11,8 +11,11 @@ import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
 import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { ServiceProviderFormModal, SERVICE_PROVIDER_TYPE_OPTIONS } from "@/components/library/ServiceProviderFormModal";
+import { MODE_OPTIONS, VEHICLE_TYPE_OPTIONS, transportModeIcon } from "@/lib/transport-modes";
+import { formatInr } from "@/lib/currency";
 import type { ServiceProvider } from "@/lib/service-providers";
 import type { EscapePoint } from "@/lib/escape-points";
+import type { Transport } from "@/lib/transports";
 
 function BackToServiceProviders() {
   return (
@@ -45,9 +48,11 @@ const QUANTITY_LABELS: Record<string, string> = {
 export function ServiceProviderDetailPanel({
   provider,
   escapePoints,
+  vehicles,
 }: {
   provider: ServiceProvider;
   escapePoints: EscapePoint[];
+  vehicles: Transport[];
 }) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
@@ -118,6 +123,49 @@ export function ServiceProviderDetailPanel({
           </div>
         </div>
       </div>
+
+      {provider.typeCode === "transport" && (
+        <div className="rounded-xl border border-border bg-muted/20 p-4">
+          <Caption>Vehicles ({vehicles.length})</Caption>
+          {vehicles.length === 0 ? (
+            <div className="mt-3 flex items-center justify-center rounded border border-border bg-background py-8">
+              <Body muted>No vehicles linked to this provider yet — add one from the Transport page.</Body>
+            </div>
+          ) : (
+            <div className="mt-3 flex flex-col gap-2">
+              {vehicles.map((v) => {
+                const Icon = transportModeIcon(v.modeCode);
+                const modeLabel = MODE_OPTIONS.find((m) => m.value === v.modeCode)?.label ?? v.modeCode;
+                const vehicleTypeLabel = VEHICLE_TYPE_OPTIONS[v.modeCode]?.find((t) => t.value === v.vehicleTypeCode)?.label
+                  ?? v.vehicleTypeCode;
+                return (
+                  <div key={v.uid} className="flex items-start gap-3 rounded border border-border bg-background px-3 py-2 text-sm">
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-medium text-foreground">
+                          {modeLabel}
+                          {vehicleTypeLabel ? ` — ${vehicleTypeLabel}` : ""}
+                        </span>
+                        {v.vehicleNumber && <Badge tone="neutral">{v.vehicleNumber}</Badge>}
+                        <Badge tone={v.status === "archived" ? "danger" : "success"}>{v.status ?? "active"}</Badge>
+                      </div>
+                      <Caption className="mt-0.5 block normal-case text-muted-foreground">
+                        Provider: {v.provider?.name ?? provider.name}
+                        {v.capacity != null && ` · Capacity: ${v.capacity}`}
+                        {v.escapePoint && ` · ${v.escapePoint.name}`}
+                      </Caption>
+                    </div>
+                    {v.basePrice != null && <span className="shrink-0 font-semibold text-foreground">{formatInr(v.basePrice)}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <ServiceProviderFormModal
         open={editOpen}
