@@ -62,6 +62,9 @@ import {
   type HotelDetailFormState,
 } from "@/components/escapes/HotelDetailFields";
 import { RiEdit2Line } from "react-icons/ri";
+import { TbMailForward } from "react-icons/tb";
+import { toast } from "react-toastify";
+import { CancellationEmailModal } from "@/components/library/CancellationEmailModal";
 
 interface ModalState {
   open: boolean;
@@ -132,6 +135,7 @@ function TimelineRow({
   onEdit,
   onDelete,
   onChangeHotel,
+  onSendCancellationEmail,
   deleting,
   roomTypesByUid,
   readOnly,
@@ -154,6 +158,11 @@ function TimelineRow({
   // Hotel only — opens the Change/Replace Hotel flow. Undefined for every
   // other item type (see the render call site).
   onChangeHotel?: () => void;
+  // Transport only (P3) — Hotel/Activity's own cancellation email is
+  // triggered from their library Detail page instead (mirroring their
+  // existing Booking Request email location); Transport has no such page,
+  // so it's triggered here, on the Dropped row itself. Undefined otherwise.
+  onSendCancellationEmail?: () => void;
   deleting: boolean;
   roomTypesByUid: Record<string, string>;
   // Cancelled-Escape lock (P0-2) — hides Edit/Delete instead of disabling
@@ -253,6 +262,17 @@ function TimelineRow({
               title="Change Hotel"
             >
               <PiArrowsLeftRightBold size={14} />
+            </button>
+          )}
+          {onSendCancellationEmail && (
+            <button
+              type="button"
+              onClick={onSendCancellationEmail}
+              className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label="Send Cancellation Email"
+              title="Send Cancellation Email"
+            >
+              <TbMailForward size={14} />
             </button>
           )}
           {deleting ? (
@@ -371,6 +391,7 @@ export function ItineraryDayPlanner({
 
   const [deletingUid, setDeletingUid] = useState<string | null>(null);
   const [confirmDeleteItem, setConfirmDeleteItem] = useState<ItineraryItem | null>(null);
+  const [cancellationEmailItem, setCancellationEmailItem] = useState<ItineraryItem | null>(null);
   const [deleteError, setDeleteError] = useState<string | undefined>();
   const [changeHotelItem, setChangeHotelItem] = useState<ItineraryItem | null>(null);
   const [modal, setModal] = useState<ModalState | null>(null);
@@ -1114,6 +1135,13 @@ export function ItineraryDayPlanner({
                     ? () => setChangeHotelItem(item)
                     : undefined
                 }
+                onSendCancellationEmail={
+                  (item.itemType === "transport" || item.itemType === "pickup_drop") &&
+                  item.status === "Drop" &&
+                  item.referenceId
+                    ? () => setCancellationEmailItem(item)
+                    : undefined
+                }
                 deleting={deletingUid === item.uid}
                 roomTypesByUid={roomTypesByUid}
                 readOnly={isCancelled}
@@ -1173,6 +1201,19 @@ export function ItineraryDayPlanner({
           replaceOldItemUid={changeHotelItem.uid}
           {...quickAddConfig.hotel}
           title="Change Hotel"
+        />
+      )}
+
+      {cancellationEmailItem && (
+        <CancellationEmailModal
+          open
+          previewUrl={`/itinerary-items/${cancellationEmailItem.uid}/cancellation-email-preview`}
+          sendUrl={`/itinerary-items/${cancellationEmailItem.uid}/send-cancellation-email`}
+          onClose={() => setCancellationEmailItem(null)}
+          onSent={() => {
+            setCancellationEmailItem(null);
+            toast.success("Cancellation email sent successfully.");
+          }}
         />
       )}
 

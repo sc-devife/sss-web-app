@@ -25,6 +25,7 @@ import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ActivityFormModal, CATEGORY_OPTIONS } from "@/components/library/ActivityFormModal";
 import { ActivityPaymentModal } from "@/components/library/ActivityPaymentModal";
 import { ActivityBookingEmailModal } from "@/components/library/ActivityBookingEmailModal";
+import { CancellationEmailModal } from "@/components/library/CancellationEmailModal";
 import { GalleryImage } from "@/components/library/GalleryImage";
 import { resolveFileUrl } from "@/lib/files";
 import { formatDisplayDate, formatDisplayTime } from "@/lib/date";
@@ -137,6 +138,7 @@ export function ActivityDetailPanel({
   const [bookingSearch, setBookingSearch] = useState("");
   const [markingBookedUid, setMarkingBookedUid] = useState<string | null>(null);
   const [emailModalItineraryItemUid, setEmailModalItineraryItemUid] = useState<string | null>(null);
+  const [cancellationEmailItineraryItemUid, setCancellationEmailItineraryItemUid] = useState<string | null>(null);
   const [payments, setPayments] = useState<ActivityPayment[] | null>(null);
   const [paymentsLoading, setPaymentsLoading] = useState(true);
   const [addPaymentOpen, setAddPaymentOpen] = useState(false);
@@ -287,6 +289,14 @@ export function ActivityDetailPanel({
     } finally {
       setMarkingBookedUid(null);
     }
+  }
+
+  function handleSendCancellationEmail(itineraryItemUid: string) {
+    if (!activity.email) {
+      toast.error("Activity email not available.");
+      return;
+    }
+    setCancellationEmailItineraryItemUid(itineraryItemUid);
   }
 
   function handleSendBookingEmail(itineraryItemUid: string) {
@@ -510,6 +520,16 @@ export function ActivityDetailPanel({
                                   <TbMailForward size={14} />
                                   Send Booking Email
                                 </Button>
+                                {b.bookingStatus === "Drop" && (
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => handleSendCancellationEmail(b.itineraryItemUid)}
+                                  >
+                                    <TbMailForward size={14} />
+                                    Send Cancellation Email
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           );
@@ -645,6 +665,19 @@ export function ActivityDetailPanel({
           toast.success("Activity booking email sent successfully.");
         }}
       />
+
+      {cancellationEmailItineraryItemUid && (
+        <CancellationEmailModal
+          open
+          previewUrl={`/library/activities/${activity.uid}/bookings/${cancellationEmailItineraryItemUid}/cancellation-email-preview`}
+          sendUrl={`/library/activities/${activity.uid}/bookings/${cancellationEmailItineraryItemUid}/send-cancellation-email`}
+          onClose={() => setCancellationEmailItineraryItemUid(null)}
+          onSent={() => {
+            setCancellationEmailItineraryItemUid(null);
+            toast.success("Cancellation email sent successfully.");
+          }}
+        />
+      )}
     </Card>
   );
 }
