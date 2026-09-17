@@ -106,6 +106,7 @@ export function TransportPanel({
   const [deletingUid, setDeletingUid] = useState<string | null>(null);
   const [escapePointFilter, setEscapePointFilter] = useState("");
   const [modeFilter, setModeFilter] = useState("");
+  const [providerFilter, setProviderFilter] = useState("");
 
   useEffect(() => {
     dispatch(fetchTransports());
@@ -116,15 +117,25 @@ export function TransportPanel({
     [escapePoints],
   );
 
+  // All Service Providers in the org, not just transport-typed ones — the
+  // filter itself doesn't assume a vehicle can only ever belong to a
+  // transport-typed provider, even though that's true for every provider
+  // actually selectable from the Add/Edit form below.
+  const providerFilterOptions = useMemo(
+    () => [{ value: "", label: "Provider" }, ...providers.map((p) => ({ value: p.uid, label: p.name }))],
+    [providers],
+  );
+
   // Stays client-side, same as DataTable's own search/pagination — the full
   // list is already fetched up front, no backend change needed.
   const visibleTransports = useMemo(() => {
     return transports.filter((t) => {
       if (escapePointFilter && t.escapePoint?.uid !== escapePointFilter) return false;
       if (modeFilter && t.modeCode !== modeFilter) return false;
+      if (providerFilter && t.provider?.uid !== providerFilter) return false;
       return true;
     });
-  }, [transports, escapePointFilter, modeFilter]);
+  }, [transports, escapePointFilter, modeFilter, providerFilter]);
 
   const vehicleTypeOptions = VEHICLE_TYPE_OPTIONS[form.modeCode] ?? [];
 
@@ -446,6 +457,16 @@ export function TransportPanel({
                 searchPlaceholder="Search Escape Point…"
               />
               <ToolbarSelect label="Mode" options={MODE_FILTER_OPTIONS} value={modeFilter} onChange={setModeFilter} placeholder="Default" />
+              <ToolbarSelect
+                label="Provider"
+                options={providerFilterOptions}
+                value={providerFilter}
+                onChange={setProviderFilter}
+                placeholder="Provider"
+                hideLabel
+                searchable
+                searchPlaceholder="Search Provider…"
+              />
             </div>
           }
         />
