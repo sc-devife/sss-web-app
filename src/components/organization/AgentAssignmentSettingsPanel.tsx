@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { MultiSelectSearch } from "@/components/ui/MultiSelectSearch";
-import { Badge } from "@/components/ui/Badge";
+import { Switch } from "@/components/ui/Switch";
 import { Body, Caption } from "@/components/ui/Typography";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { AppUser } from "@/lib/users";
@@ -105,6 +105,14 @@ export function AgentAssignmentSettingsPanel({ escapePoints }: { escapePoints: E
     setRowErrors((r) => ({ ...r, [uid]: {} }));
   }
 
+  // Discards in-progress edits, restoring the values last loaded from (or
+  // saved to) the backend — no API call, same as clicking away without
+  // saving would conceptually mean.
+  function handleCancel(uid: string) {
+    setRows((r) => ({ ...r, [uid]: originalRows[uid] }));
+    setRowErrors((r) => ({ ...r, [uid]: {} }));
+  }
+
   async function handleSave(uid: string) {
     const row = rows[uid];
     if (deepEqual(originalRows[uid], row)) return;
@@ -190,9 +198,14 @@ export function AgentAssignmentSettingsPanel({ escapePoints }: { escapePoints: E
             <div className="flex items-center justify-between gap-3">
               <div>
                 <Body className="font-medium">{user.name}</Body>
-                <Caption>{user.email}</Caption>
+                <Caption className="lowercase">{user.email.toLowerCase()}</Caption>
               </div>
-              {!row.acceptingLeads && <Badge tone="neutral">Not accepting leads</Badge>}
+              <Switch
+                checked={row.acceptingLeads}
+                onChange={(next) => update(user.uid, { acceptingLeads: next })}
+                disabled={rowIsSaving}
+                ariaLabel={`${user.name}: accepting leads`}
+              />
             </div>
 
             <fieldset disabled={rowIsSaving} className="flex flex-col gap-4 border-t border-border pt-4">
@@ -219,15 +232,6 @@ export function AgentAssignmentSettingsPanel({ escapePoints }: { escapePoints: E
                   <input
                     type="checkbox"
                     className="h-3.5 w-3.5 accent-primary"
-                    checked={row.acceptingLeads}
-                    onChange={(e) => update(user.uid, { acceptingLeads: e.target.checked })}
-                  />
-                  Accepting leads
-                </label>
-                <label className="flex items-center gap-2 text-sm text-foreground">
-                  <input
-                    type="checkbox"
-                    className="h-3.5 w-3.5 accent-primary"
                     checked={row.eligibleForLargeGroups}
                     onChange={(e) => update(user.uid, { eligibleForLargeGroups: e.target.checked })}
                   />
@@ -246,36 +250,38 @@ export function AgentAssignmentSettingsPanel({ escapePoints }: { escapePoints: E
                 className="max-w-xs"
               />
 
-              <MultiSelectSearch
-                label="Languages"
-                helperText="Select one or more — used to prefer agents who speak the lead's languages"
-                placeholder="Search languages…"
-                options={LANGUAGE_OPTIONS}
-                value={row.languages}
-                onChange={(next) => update(user.uid, { languages: next })}
-                disabled={rowIsSaving}
-                className="max-w-xs"
-              />
+              <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:gap-6">
+                <MultiSelectSearch
+                  label="Languages"
+                  helperText="Select one or more — used to prefer agents who speak the lead's languages"
+                  placeholder="Search languages…"
+                  options={LANGUAGE_OPTIONS}
+                  value={row.languages}
+                  onChange={(next) => update(user.uid, { languages: next })}
+                  disabled={rowIsSaving}
+                  className="sm:flex-1"
+                />
 
-              {/* Tied to "Escape Point specialist" above — left border reads as
-                  a child of that checkbox rather than an unrelated field. */}
-              {row.isSpecialist && (
-                <div className="border-l-2 border-border pl-4">
-                  <MultiSelectSearch
-                    label="Specialist escape points"
-                    helperText="Select one or more"
-                    placeholder="Search escape points…"
-                    options={escapePoints.map((d) => ({ value: String(d.seqp), label: d.name }))}
-                    value={row.specialistEscapePoints}
-                    onChange={(next) => update(user.uid, { specialistEscapePoints: next })}
-                    error={errs.specialistEscapePoints}
-                    disabled={rowIsSaving}
-                  />
-                </div>
-              )}
+                {/* Tied to "Escape Point specialist" above — left border reads
+                    as a child of that checkbox rather than an unrelated field. */}
+                {row.isSpecialist && (
+                  <div className="border-l-2 border-border pl-4 sm:flex-1">
+                    <MultiSelectSearch
+                      label="Specialist escape points"
+                      helperText="Select one or more"
+                      placeholder="Search escape points…"
+                      options={escapePoints.map((d) => ({ value: String(d.seqp), label: d.name }))}
+                      value={row.specialistEscapePoints}
+                      onChange={(next) => update(user.uid, { specialistEscapePoints: next })}
+                      error={errs.specialistEscapePoints}
+                      disabled={rowIsSaving}
+                    />
+                  </div>
+                )}
+              </div>
             </fieldset>
 
-            <div>
+            <div className="flex items-center gap-2">
               <Button
                 size="sm"
                 disabled={rowIsSaving || !rowDirty}
@@ -284,6 +290,14 @@ export function AgentAssignmentSettingsPanel({ escapePoints }: { escapePoints: E
                 onClick={() => handleSave(user.uid)}
               >
                 Save
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={rowIsSaving || !rowDirty}
+                onClick={() => handleCancel(user.uid)}
+              >
+                Cancel
               </Button>
             </div>
           </Card>

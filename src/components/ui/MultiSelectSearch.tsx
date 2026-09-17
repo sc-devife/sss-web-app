@@ -196,13 +196,13 @@ export function MultiSelectSearch({
 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <div>
+      <div className="flex items-baseline justify-between gap-3">
         <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
           {Icon && <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
           {label}
+          {required && <span className="ml-1 text-danger">*</span>}
         </span>
-        {required && <span className="ml-1 text-danger">*</span>}
-        {helperText && <span className="ml-1.5 text-xs text-muted-foreground">{helperText}</span>}
+        {helperText && <span className="text-right text-xs text-muted-foreground">{helperText}</span>}
       </div>
 
       <div className="relative">
