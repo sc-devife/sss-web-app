@@ -102,7 +102,19 @@ export function ServiceProviderDetailPanel({
           </div>
         </div>
         <StatCard label="Type" value={typeLabel} />
-        <StatCard label={quantityLabel} value={provider.quantity != null ? String(provider.quantity) : "—"} />
+        <StatCard
+          label={quantityLabel}
+          // Transport-type providers now have ground truth (the Vehicles
+          // section below) — show the actual linked count instead of the
+          // manually-entered quantity, which is easy to leave stale/blank.
+          value={
+            provider.typeCode === "transport"
+              ? String(vehicles.length)
+              : provider.quantity != null
+                ? String(provider.quantity)
+                : "—"
+          }
+        />
         <StatCard label="Country" value={provider.countryLabel || "—"} />
       </div>
 
