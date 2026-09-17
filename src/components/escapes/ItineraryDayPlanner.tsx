@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { IoTrashOutline } from "react-icons/io5";
-import { PiPlusFill } from "react-icons/pi";
+import { PiPlusFill, PiArrowsLeftRightBold } from "react-icons/pi";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { TimePicker } from "@/components/ui/TimePicker";
@@ -78,7 +78,7 @@ interface ModalState {
   travelersCount: string;
   transportForm: TransportDetailFormState;
   hotelForm: HotelDetailFormState;
-  /** Item-level Initialize/Booked/Drop status — currently only used for Activity (Hotel keeps its own status on hotelForm). */
+  /** Item-level Initialize/Booked/Drop status — used for Activity and Transport (Hotel keeps its own status on hotelForm). */
   status: string;
   droppingReason: string;
   cancellationCharge: string;
@@ -130,9 +130,12 @@ function TimelineRow({
   onDragPointerEnd,
   onEdit,
   onDelete,
+  onChangeHotel,
   deleting,
   roomTypesByUid,
   readOnly,
+  replacesLabel,
+  replacedByLabel,
 }: {
   item: ItineraryItem;
   // True only for the single card currently being dragged — gets an
@@ -147,12 +150,20 @@ function TimelineRow({
   onDragPointerEnd: (e: ReactPointerEvent<HTMLDivElement>) => void;
   onEdit: () => void;
   onDelete: () => void;
+  // Hotel only — opens the Change/Replace Hotel flow. Undefined for every
+  // other item type (see the render call site).
+  onChangeHotel?: () => void;
   deleting: boolean;
   roomTypesByUid: Record<string, string>;
   // Cancelled-Escape lock (P0-2) — hides Edit/Delete instead of disabling
   // drag too, since reordering a read-only itinerary is harmless (no data
   // change) and not worth its own separate gate.
   readOnly?: boolean;
+  // Change/Replace Hotel flow (P1) — set on whichever side of the link this
+  // row is: the label of the hotel this one replaces, or of the hotel that
+  // replaced this one, whichever applies (never both).
+  replacesLabel?: string;
+  replacedByLabel?: string;
 }) {
   const isTransportItem = item.itemType === "transport" || item.itemType === "pickup_drop";
   const Icon = isTransportItem ? transportModeIcon(item.transportDetail?.modeCode) : PLANNING_ITEM_ICON[item.itemType];
@@ -201,7 +212,7 @@ function TimelineRow({
           {item.hotelDetail?.status && (
             <Badge tone={hotelStatusTone(item.hotelDetail.status)}>{item.hotelDetail.status}</Badge>
           )}
-          {item.itemType === "activity" && item.status && (
+          {(item.itemType === "activity" || item.itemType === "transport") && item.status && (
             <Badge tone={hotelStatusTone(item.status)}>{item.status}</Badge>
           )}
         </div>
@@ -209,6 +220,12 @@ function TimelineRow({
         {hotelSummary && <Caption className="mt-0.5 block normal-case text-muted-foreground">{hotelSummary}</Caption>}
         {hotelServices && (
           <Caption className="mt-0.5 block normal-case text-muted-foreground">Services: {hotelServices}</Caption>
+        )}
+        {replacesLabel && (
+          <Caption className="mt-0.5 block normal-case text-muted-foreground">Replaces: {replacesLabel}</Caption>
+        )}
+        {replacedByLabel && (
+          <Caption className="mt-0.5 block normal-case text-muted-foreground">Replaced by: {replacedByLabel}</Caption>
         )}
         {item.notes && <Caption className="mt-0.5 block normal-case text-muted-foreground">{item.notes}</Caption>}
       </div>
@@ -226,6 +243,17 @@ function TimelineRow({
           >
             <RiEdit2Line size={14} />
           </button>
+          {onChangeHotel && (
+            <button
+              type="button"
+              onClick={onChangeHotel}
+              className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label="Change Hotel"
+              title="Change Hotel"
+            >
+              <PiArrowsLeftRightBold size={14} />
+            </button>
+          )}
           {deleting ? (
             <span aria-label="Removing" title="Removing…" className="flex items-center justify-center p-1">
               <Spinner size="sm" />
@@ -328,7 +356,20 @@ export function ItineraryDayPlanner({
     return acc;
   }, {});
 
+  // Change/Replace Hotel flow (P1) — "Replaces X" / "Replaced by Y" captions
+  // on TimelineRow are derived purely from the already-loaded items list
+  // (item.replacesItemUid), no extra fetch.
+  const labelByUid = items.reduce<Record<string, string>>((acc, i) => {
+    acc[i.uid] = i.referenceLabel;
+    return acc;
+  }, {});
+  const replacedByLabelByOldUid = items.reduce<Record<string, string>>((acc, i) => {
+    if (i.replacesItemUid) acc[i.replacesItemUid] = i.referenceLabel;
+    return acc;
+  }, {});
+
   const [deletingUid, setDeletingUid] = useState<string | null>(null);
+  const [changeHotelItem, setChangeHotelItem] = useState<ItineraryItem | null>(null);
   const [modal, setModal] = useState<ModalState | null>(null);
   const [addingType, setAddingType] = useState<QuickAddType | null>(null);
   const [saving, setSaving] = useState(false);
@@ -788,11 +829,14 @@ export function ItineraryDayPlanner({
 
   // Drop mode (status = Drop) replaces the entire modal body with just
   // reason + charge. Hotel keeps its own status on hotelForm (see
-  // HotelDetailFields and ItineraryItemHelper.saveHotelDetail); Activity
-  // uses the item-level status field instead (see ItineraryItemHelper.update).
+  // HotelDetailFields and ItineraryItemHelper.saveHotelDetail); Activity and
+  // Transport share the item-level status field instead (see
+  // ItineraryItemHelper.update).
   const isHotelDropMode = !!modal && modal.itemType === "hotel" && modal.hotelForm.status === "Drop";
   const isActivityDropMode = !!modal && modal.itemType === "activity" && modal.status === "Drop";
-  const isDropMode = isHotelDropMode || isActivityDropMode;
+  const isTransportDropMode = !!modal && modal.itemType === "transport" && modal.status === "Drop";
+  const isItemLevelDropMode = isActivityDropMode || isTransportDropMode;
+  const isDropMode = isHotelDropMode || isItemLevelDropMode;
 
   // Price is a per-traveller rate — this is the booking's actual total,
   // shown read-only alongside it (see ItineraryItem.travelersCount).
@@ -805,6 +849,7 @@ export function ItineraryDayPlanner({
     e.preventDefault();
     if (!modal) return;
     const isActivity = modal.itemType === "activity";
+    const isTransport = modal.itemType === "transport";
     if (isActivity && !modal.referenceId) {
       setFormError("Pick an activity from the library");
       return;
@@ -820,7 +865,7 @@ export function ItineraryDayPlanner({
         return;
       }
     }
-    if (isActivityDropMode && !modal.droppingReason.trim()) {
+    if (isItemLevelDropMode && !modal.droppingReason.trim()) {
       setFormError("Dropping reason is required");
       return;
     }
@@ -843,9 +888,9 @@ export function ItineraryDayPlanner({
           transportDetail:
             modal.itemType === "transport" ? toTransportDetailPayload(modal.transportForm) : undefined,
           hotelDetail: modal.itemType === "hotel" ? toHotelDetailPayload(modal.hotelForm) : undefined,
-          status: isActivity ? modal.status : undefined,
-          droppingReason: isActivityDropMode ? modal.droppingReason.trim() : undefined,
-          cancellationCharge: isActivityDropMode && modal.cancellationCharge ? Number(modal.cancellationCharge) : undefined,
+          status: isActivity || isTransport ? modal.status : undefined,
+          droppingReason: isItemLevelDropMode ? modal.droppingReason.trim() : undefined,
+          cancellationCharge: isItemLevelDropMode && modal.cancellationCharge ? Number(modal.cancellationCharge) : undefined,
         }),
       ).unwrap();
       loadItems();
@@ -1054,9 +1099,16 @@ export function ItineraryDayPlanner({
                 onDragPointerEnd={handleRowPointerEnd}
                 onEdit={() => setModal(editModalState(item))}
                 onDelete={() => handleDeleteItem(item.uid)}
+                onChangeHotel={
+                  item.itemType === "hotel" && item.hotelDetail?.status !== "Drop"
+                    ? () => setChangeHotelItem(item)
+                    : undefined
+                }
                 deleting={deletingUid === item.uid}
                 roomTypesByUid={roomTypesByUid}
                 readOnly={isCancelled}
+                replacesLabel={item.replacesItemUid ? labelByUid[item.replacesItemUid] : undefined}
+                replacedByLabel={replacedByLabelByOldUid[item.uid]}
               />
             ))
           )}
@@ -1097,10 +1149,35 @@ export function ItineraryDayPlanner({
         />
       )}
 
+      {changeHotelItem && (
+        <AddPlanningItemModal
+          open={!!changeHotelItem}
+          onClose={() => setChangeHotelItem(null)}
+          itineraryUid={itineraryUid}
+          dayNumber={changeHotelItem.dayNumber}
+          itemType="hotel"
+          onCreated={loadItems}
+          onMealPlanCreated={handleMealPlanCreated}
+          maxHotelNights={availableHotelNights(items, numberOfDays, changeHotelItem.uid)}
+          mode="replace"
+          replaceOldItemUid={changeHotelItem.uid}
+          {...quickAddConfig.hotel}
+          title="Change Hotel"
+        />
+      )}
+
       <Modal
         open={!!modal}
         onClose={() => setModal(null)}
-        title={isHotelDropMode ? "Drop Hotel" : isActivityDropMode ? "Drop Activity" : "Edit Planning Item"}
+        title={
+          isHotelDropMode
+            ? "Drop Hotel"
+            : isActivityDropMode
+              ? "Drop Activity"
+              : isTransportDropMode
+                ? "Drop Transport"
+                : "Edit Planning Item"
+        }
       >
         {modal && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -1114,7 +1191,7 @@ export function ItineraryDayPlanner({
                 }
               />
             )}
-            {modal.itemType === "activity" && (
+            {(modal.itemType === "activity" || modal.itemType === "transport") && (
               <Select
                 label="Status"
                 options={HOTEL_BOOKING_STATUS_OPTIONS}
@@ -1122,19 +1199,19 @@ export function ItineraryDayPlanner({
                 onChange={(e) => setModal((m) => (m ? { ...m, status: e.target.value } : m))}
               />
             )}
-            {isActivityDropMode && (
+            {isItemLevelDropMode && (
               <>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-foreground" htmlFor="activity-dropping-reason">
+                  <label className="text-sm font-medium text-foreground" htmlFor="item-dropping-reason">
                     Dropping Reason <span className="text-danger">*</span>
                   </label>
                   <textarea
-                    id="activity-dropping-reason"
+                    id="item-dropping-reason"
                     value={modal.droppingReason}
                     onChange={(e) => setModal((m) => (m ? { ...m, droppingReason: e.target.value } : m))}
                     rows={3}
                     required
-                    placeholder="Why this activity is being dropped"
+                    placeholder={`Why this ${modal.itemType} is being dropped`}
                     className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
                   />
                 </div>

@@ -16,6 +16,8 @@ import { fetchEscapeById, updateEscapeSummaryNotes } from "@/features/escapes/es
 import { selectCurrentEscape } from "@/features/escapes/escapesSelectors";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import type { PricingBreakdown } from "@/features/quotes/types";
+import { fetchItineraryItems } from "@/features/itineraryItems/itineraryItemsThunks";
+import { selectItineraryItems, selectItineraryItemsStatus } from "@/features/itineraryItems/itineraryItemsSelectors";
 
 // Dynamically imported (TipTap/ProseMirror add ~90KB) — same pattern as
 // ItineraryContentSection's Terms/Inclusions/Exclusions editor.
@@ -111,6 +113,8 @@ export function SummaryPanel({ itineraryUid, escapeUid }: { itineraryUid: string
   const quotes = useAppSelector((s) => selectQuotesForItinerary(s, itineraryUid));
   const quotesStatus = useAppSelector((s) => selectQuotesStatus(s, itineraryUid));
   const taxProfiles = useAppSelector(selectTaxProfiles);
+  const items = useAppSelector((s) => selectItineraryItems(s, itineraryUid));
+  const itemsStatus = useAppSelector((s) => selectItineraryItemsStatus(s, itineraryUid));
 
   const [breakdown, setBreakdown] = useState<PricingBreakdown | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -124,8 +128,31 @@ export function SummaryPanel({ itineraryUid, escapeUid }: { itineraryUid: string
   useEffect(() => {
     dispatch(fetchQuotesForItinerary(itineraryUid));
     dispatch(fetchTaxProfiles());
+    if (itemsStatus === "idle") {
+      dispatch(fetchItineraryItems(itineraryUid));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itineraryUid]);
+
+  // Dropped Hotel/Activity/Transport bookings and their cancellation charge —
+  // Hotel keeps its own status/charge on hotelDetail (separate table), the
+  // other types use the item-level fields directly (see ItineraryItemHelper).
+  // Purely a read of already-loaded item data — no new backend call, so this
+  // can never drift from what the Planning tab itself shows.
+  const droppedItems = items
+    .map((item) => {
+      const isHotel = item.itemType === "hotel";
+      const status = isHotel ? item.hotelDetail?.status : item.status;
+      if (status !== "Drop") return null;
+      return {
+        uid: item.uid,
+        label: item.referenceLabel || item.title || item.itemType,
+        itemType: item.itemType,
+        reason: (isHotel ? item.hotelDetail?.droppingReason : item.droppingReason) ?? null,
+        charge: (isHotel ? item.hotelDetail?.cancellationCharge : item.cancellationCharge) ?? 0,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
 
   // The quote this Summary reflects: the accepted one if there is one,
   // otherwise the most recently created quote that hasn't been rejected or
@@ -256,6 +283,9 @@ export function SummaryPanel({ itineraryUid, escapeUid }: { itineraryUid: string
             <div className="flex justify-between"><dt>Activities</dt><dd>{money(breakdown?.activitiesInr)}</dd></div>
             <div className="flex justify-between"><dt>Transport</dt><dd>{money(breakdown?.transportInr)}</dd></div>
             <div className="flex justify-between"><dt>Other</dt><dd>{money(breakdown?.otherInr)}</dd></div>
+            {!!breakdown?.cancellationInr && (
+              <div className="flex justify-between border-t border-border pt-1.5"><dt>Cancellation Charges</dt><dd>{money(breakdown?.cancellationInr)}</dd></div>
+            )}
           </dl>
         </div>
 
@@ -270,6 +300,27 @@ export function SummaryPanel({ itineraryUid, escapeUid }: { itineraryUid: string
           </dl>
         </div>
       </div>
+
+      {droppedItems.length > 0 && (
+        <div className="rounded border border-border p-3">
+          <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Cancellation Charges Summary</div>
+          <dl className="flex flex-col gap-2 text-sm">
+            {droppedItems.map((d) => (
+              <div key={d.uid} className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <dt className="truncate font-medium text-foreground">{d.label}</dt>
+                  {d.reason && <Caption className="mt-0.5 block normal-case text-muted-foreground">{d.reason}</Caption>}
+                </div>
+                <dd className="shrink-0">{money(d.charge)}</dd>
+              </div>
+            ))}
+            <div className="flex justify-between border-t border-border pt-1.5 font-semibold text-foreground">
+              <dt>Total Cancellation Charges</dt>
+              <dd>{money(breakdown?.cancellationInr ?? droppedItems.reduce((sum, d) => sum + d.charge, 0))}</dd>
+            </div>
+          </dl>
+        </div>
+      )}
 
       <div className="rounded border border-border p-3">
         <div className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Update discount, GST &amp; TCS</div>

@@ -37,6 +37,8 @@ export interface PricingBreakdown {
   activitiesInr: number;
   transportInr: number;
   otherInr: number;
+  /** Cancellation charges from Dropped Hotel/Activity/Transport bookings — kept separate so the type buckets above stay an accurate "active booking cost". */
+  cancellationInr: number;
 }
 
 export interface ComputeQuoteResult {

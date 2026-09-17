@@ -13,7 +13,7 @@ import { formatInr } from "@/lib/currency";
 import { cn } from "@/lib/cn";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useAppDispatch } from "@/store/hooks";
-import { createItineraryItem } from "@/features/itineraryItems/itineraryItemsThunks";
+import { createItineraryItem, replaceHotelItem } from "@/features/itineraryItems/itineraryItemsThunks";
 import type { PlanningItemType } from "@/lib/itinerary-items";
 import { PLANNING_ITEM_ICON, PLANNING_ITEM_BADGE_CLASS } from "@/lib/itinerary-planning";
 import { transportModeIcon } from "@/lib/transport-modes";
@@ -96,6 +96,8 @@ export function AddPlanningItemModal({
   defaultTravelersCount,
   onMealPlanCreated,
   maxHotelNights,
+  mode = "create",
+  replaceOldItemUid,
 }: {
   open: boolean;
   onClose: () => void;
@@ -125,6 +127,13 @@ export function AddPlanningItemModal({
   // Remaining hotel nights this escape has left (see availableHotelNights) —
   // only meaningful when itemType is "hotel", ignored otherwise.
   maxHotelNights?: number;
+  // Change/Replace Hotel flow (P1) — "replace" drops `replaceOldItemUid`
+  // (through the exact same Drop mechanism a plain Drop Hotel edit uses) and
+  // creates this modal's picked hotel as its linked replacement, in one
+  // backend call (see ItineraryItemHelper.replaceHotel), instead of a plain
+  // create. Only meaningful when itemType is "hotel".
+  mode?: "create" | "replace";
+  replaceOldItemUid?: string;
 }) {
   const dispatch = useAppDispatch();
   const [step, setStep] = useState<"select" | "details">("select");
@@ -145,6 +154,11 @@ export function AddPlanningItemModal({
   const [hotelForm, setHotelForm] = useState<HotelDetailFormState>(emptyHotelDetailForm());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  // Replace mode only — the OLD hotel's Drop reason/charge, same rule as a
+  // plain Drop Hotel edit.
+  const [droppingReason, setDroppingReason] = useState("");
+  const [cancellationCharge, setCancellationCharge] = useState("");
+  const isReplace = mode === "replace";
   const isTransport = itemType === "transport";
   const isHotel = itemType === "hotel";
   const isActivity = itemType === "activity";
@@ -174,6 +188,8 @@ export function AddPlanningItemModal({
     setTravelersCount(defaultTravelersCount != null ? String(defaultTravelersCount) : "");
     setTransportForm(emptyTransportDetailForm());
     setHotelForm(emptyHotelDetailForm());
+    setDroppingReason("");
+    setCancellationCharge("");
     setError(undefined);
   }
 
@@ -222,25 +238,46 @@ export function AddPlanningItemModal({
         return;
       }
     }
+    if (isReplace && !droppingReason.trim()) {
+      setError("Dropping reason is required for the hotel being replaced");
+      return;
+    }
     setSaving(true);
     setError(undefined);
     try {
-      await dispatch(
-        createItineraryItem({
-          itineraryUid,
-          dayNumber,
-          itemType,
-          referenceId: selected.referenceId ?? undefined,
-          title: selected.referenceId ? undefined : selected.name,
-          startTime: startTime || undefined,
-          notes: notes.trim() || undefined,
-          longDescription: longDescription.trim() || undefined,
-          price: isActivity && price ? Number(price) : undefined,
-          travelersCount: isActivity && travelersCount ? Number(travelersCount) : undefined,
-          transportDetail: isTransport ? toTransportDetailPayload(transportForm) : undefined,
-          hotelDetail: isHotel ? toHotelDetailPayload(hotelForm) : undefined,
-        }),
-      ).unwrap();
+      if (isReplace && replaceOldItemUid) {
+        await dispatch(
+          replaceHotelItem({
+            uid: replaceOldItemUid,
+            itineraryUid,
+            droppingReason: droppingReason.trim(),
+            cancellationCharge: cancellationCharge ? Number(cancellationCharge) : undefined,
+            newHotel: {
+              dayNumber,
+              referenceId: selected.referenceId ?? undefined,
+              title: selected.referenceId ? undefined : selected.name,
+              hotelDetail: toHotelDetailPayload(hotelForm),
+            },
+          }),
+        ).unwrap();
+      } else {
+        await dispatch(
+          createItineraryItem({
+            itineraryUid,
+            dayNumber,
+            itemType,
+            referenceId: selected.referenceId ?? undefined,
+            title: selected.referenceId ? undefined : selected.name,
+            startTime: startTime || undefined,
+            notes: notes.trim() || undefined,
+            longDescription: longDescription.trim() || undefined,
+            price: isActivity && price ? Number(price) : undefined,
+            travelersCount: isActivity && travelersCount ? Number(travelersCount) : undefined,
+            transportDetail: isTransport ? toTransportDetailPayload(transportForm) : undefined,
+            hotelDetail: isHotel ? toHotelDetailPayload(hotelForm) : undefined,
+          }),
+        ).unwrap();
+      }
       onCreated();
       reset();
       onClose();
@@ -486,6 +523,37 @@ export function AddPlanningItemModal({
               className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
             />
           </div>
+
+          {isReplace && (
+            <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/30 p-3">
+              <Caption className="normal-case text-muted-foreground">
+                The hotel this is replacing will be marked Drop once this replacement is saved.
+              </Caption>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-foreground" htmlFor="replace-hotel-dropping-reason">
+                  Dropping Reason (for the old hotel) <span className="text-danger">*</span>
+                </label>
+                <textarea
+                  id="replace-hotel-dropping-reason"
+                  value={droppingReason}
+                  onChange={(e) => setDroppingReason(e.target.value)}
+                  rows={2}
+                  required
+                  placeholder="Why the original hotel is being replaced"
+                  className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+                />
+              </div>
+              <TextInput
+                label="Cancellation Charge (INR)"
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="Charged for the cancellation, if any"
+                value={cancellationCharge}
+                onChange={(e) => setCancellationCharge(e.target.value)}
+              />
+            </div>
+          )}
 
           {error && <p className="text-sm text-danger">{error}</p>}
 

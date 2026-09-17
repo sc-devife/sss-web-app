@@ -8,6 +8,7 @@ import type {
   DeleteItineraryItemPayload,
   ReorderItineraryItemsPayload,
   ReorderItineraryDaysPayload,
+  ReplaceHotelPayload,
 } from "@/features/itineraryItems/types";
 
 // Fetch is keyed by itineraryUid in the slice — unlike most modules, more
@@ -73,6 +74,17 @@ export const deleteItineraryItem = createAsyncThunk<void, DeleteItineraryItemPay
       await clientApi.delete(`/itinerary-items/${uid}`);
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to remove item"));
+    }
+  },
+);
+
+export const replaceHotelItem = createAsyncThunk<void, ReplaceHotelPayload, { rejectValue: string }>(
+  "itineraryItems/replaceHotelItem",
+  async ({ uid, droppingReason, cancellationCharge, newHotel }, { rejectWithValue }) => {
+    try {
+      await clientApi.post(`/itinerary-items/${uid}/replace`, { droppingReason, cancellationCharge, newHotel });
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to replace hotel"));
     }
   },
 );

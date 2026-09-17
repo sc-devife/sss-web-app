@@ -84,10 +84,12 @@ export interface ItineraryItem {
   sortOrder: number;
   transportDetail: TransportDetail | null;
   hotelDetail: HotelDetail | null;
-  /** Item-level Initialize/Booked/Drop status — currently meaningful for Activity only (Hotel has its own separate status on hotelDetail). */
+  /** Item-level Initialize/Booked/Drop status — meaningful for Activity and Transport (Hotel has its own separate status on hotelDetail). */
   status: string;
   droppingReason: string | null;
   cancellationCharge: number | null;
+  /** Set only on a hotel item created by the Change/Replace Hotel flow — the (now Dropped) hotel item it replaces. */
+  replacesItemUid: string | null;
 }
 
 export async function getItemsForItinerary(itineraryUid: string): Promise<ItineraryItem[]> {

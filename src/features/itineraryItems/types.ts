@@ -42,6 +42,22 @@ export interface DeleteItineraryItemPayload {
   itineraryUid: string;
 }
 
+// Change/Replace Hotel flow — drops `uid` (the existing hotel item) and
+// creates `newHotel` as its replacement in one backend call. See
+// ItineraryItemHelper.replaceHotel.
+export interface ReplaceHotelPayload {
+  uid: string;
+  itineraryUid: string;
+  droppingReason: string;
+  cancellationCharge?: number;
+  newHotel: {
+    dayNumber: number;
+    referenceId?: string;
+    title?: string;
+    hotelDetail?: HotelDetail;
+  };
+}
+
 export interface ReorderItineraryItemsPayload {
   itineraryUid: string;
   orderedItemUids: string[];
