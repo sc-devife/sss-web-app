@@ -20,6 +20,7 @@ import { Body, Caption } from "@/components/ui/Typography";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ItineraryCard } from "@/components/escapes/ItineraryCard";
 import { DealPanel } from "@/components/escapes/DealPanel";
+import { SupplierPaymentsPanel } from "@/components/escapes/SupplierPaymentsPanel";
 import { TasksCommentsPanel } from "@/components/followups/TasksCommentsPanel";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { formatDisplayDateTime } from "@/lib/date";
@@ -770,16 +771,20 @@ export function EscapeWorkspaceTabs({
           }
 
           if (active === "payments") {
-            if (!deal) {
-              return (
-                <EmptyState
-                  icon={PiPulseFill}
-                  title="No deal yet"
-                  description="Accept a quote from the Planning tab to start tracking payment milestones."
-                />
-              );
-            }
-            return <DealPanel deal={deal} />;
+            return (
+              <div className="flex flex-col gap-4">
+                <SupplierPaymentsPanel escapeUid={escapeUid} />
+                {!deal ? (
+                  <EmptyState
+                    icon={PiPulseFill}
+                    title="No deal yet"
+                    description="Accept a quote from the Planning tab to start tracking payment milestones."
+                  />
+                ) : (
+                  <DealPanel deal={deal} />
+                )}
+              </div>
+            );
           }
 
           if (active === "tasks") {
