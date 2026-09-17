@@ -122,7 +122,7 @@ export function TransportPanel({
   // transport-typed provider, even though that's true for every provider
   // actually selectable from the Add/Edit form below.
   const providerFilterOptions = useMemo(
-    () => [{ value: "", label: "Provider" }, ...providers.map((p) => ({ value: p.uid, label: p.name }))],
+    () => [{ value: "", label: "Default" }, ...providers.map((p) => ({ value: p.uid, label: p.name }))],
     [providers],
   );
 
@@ -462,8 +462,7 @@ export function TransportPanel({
                 options={providerFilterOptions}
                 value={providerFilter}
                 onChange={setProviderFilter}
-                placeholder="Provider"
-                hideLabel
+                placeholder="Default"
                 searchable
                 searchPlaceholder="Search Provider…"
               />
