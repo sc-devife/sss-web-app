@@ -115,6 +115,22 @@ export function getItemTotalPrice(item: ItineraryItem): number | null {
   return null;
 }
 
+// The amount this item actually bills toward a day/itinerary total — unlike
+// getItemTotalPrice above (which always answers "what would this item cost
+// if booked", used for its own row's reference display), a Dropped Hotel/
+// Activity/Transport bills only its cancellation charge (0 if none), never
+// its nominal price. Mirrors QuoteComputationServiceImpl.resolvePrice's
+// exact same rule, so the day-tab total shown here never disagrees with the
+// Quote total for the same items.
+export function getItemBilledAmount(item: ItineraryItem): number {
+  const isHotel = item.itemType === "hotel";
+  const status = isHotel ? item.hotelDetail?.status : item.status;
+  if (status === "Drop") {
+    return (isHotel ? item.hotelDetail?.cancellationCharge : item.cancellationCharge) ?? 0;
+  }
+  return getItemTotalPrice(item) ?? 0;
+}
+
 // A hotel item's "No. of Night" is capped by what's left of the escape's
 // total hotel-night budget — numberOfDays - 1 (Day 1 is the start date
 // itself, so an N-day trip has N-1 nights to fill — matches EscapeHelper's

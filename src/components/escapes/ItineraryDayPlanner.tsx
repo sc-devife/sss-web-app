@@ -26,6 +26,7 @@ import {
   formatDayDateWithWeekday,
   formatStartTime,
   getItemTotalPrice,
+  getItemBilledAmount,
   availableHotelNights,
 } from "@/lib/itinerary-planning";
 import { transportModeIcon } from "@/lib/transport-modes";
@@ -1007,7 +1008,7 @@ export function ItineraryDayPlanner({
         {Array.from({ length: dayCount }, (_, i) => i + 1).flatMap((day, i) => {
           const isActive = openDay === day;
           const date = dayNumberToDate(escapeStartDate, day);
-          const dayTotal = (itemsByDay[day] ?? []).reduce((sum, item) => sum + (getItemTotalPrice(item) ?? 0), 0);
+          const dayTotal = (itemsByDay[day] ?? []).reduce((sum, item) => sum + getItemBilledAmount(item), 0);
           const nodes = [];
           if (draggingDay != null && dayDropIndex === i) {
             nodes.push(<div key={`day-drop-${i}`} className="h-11 w-0.5 shrink-0 self-stretch rounded-full bg-primary" />);
