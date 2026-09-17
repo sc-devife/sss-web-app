@@ -23,3 +23,8 @@ export async function getServiceProviders(): Promise<ServiceProvider[]> {
   const providers = await backendJson<Omit<ServiceProvider, "countryLabel">[]>("/api/v1/service-providers");
   return providers.map((p) => ({ ...p, countryLabel: resolveCountryLabel(p.countryCode) }));
 }
+
+export async function getServiceProviderByUid(uid: string): Promise<ServiceProvider> {
+  const provider = await backendJson<Omit<ServiceProvider, "countryLabel">>(`/api/v1/service-providers/${uid}`);
+  return { ...provider, countryLabel: resolveCountryLabel(provider.countryCode) };
+}
