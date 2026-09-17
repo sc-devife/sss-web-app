@@ -370,6 +370,8 @@ export function ItineraryDayPlanner({
   }, {});
 
   const [deletingUid, setDeletingUid] = useState<string | null>(null);
+  const [confirmDeleteItem, setConfirmDeleteItem] = useState<ItineraryItem | null>(null);
+  const [deleteError, setDeleteError] = useState<string | undefined>();
   const [changeHotelItem, setChangeHotelItem] = useState<ItineraryItem | null>(null);
   const [modal, setModal] = useState<ModalState | null>(null);
   const [addingType, setAddingType] = useState<QuickAddType | null>(null);
@@ -787,9 +789,13 @@ export function ItineraryDayPlanner({
 
   async function handleDeleteItem(uid: string) {
     setDeletingUid(uid);
+    setDeleteError(undefined);
     try {
-      await dispatch(deleteItineraryItem({ uid, itineraryUid }));
+      await dispatch(deleteItineraryItem({ uid, itineraryUid })).unwrap();
       loadItems();
+      setConfirmDeleteItem(null);
+    } catch (err) {
+      setDeleteError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to remove item"));
     } finally {
       setDeletingUid(null);
     }
@@ -1099,7 +1105,10 @@ export function ItineraryDayPlanner({
                 onDragPointerMove={handleRowPointerMove}
                 onDragPointerEnd={handleRowPointerEnd}
                 onEdit={() => setModal(editModalState(item))}
-                onDelete={() => handleDeleteItem(item.uid)}
+                onDelete={() => {
+                  setDeleteError(undefined);
+                  setConfirmDeleteItem(item);
+                }}
                 onChangeHotel={
                   item.itemType === "hotel" && item.hotelDetail?.status !== "Drop"
                     ? () => setChangeHotelItem(item)
@@ -1166,6 +1175,37 @@ export function ItineraryDayPlanner({
           title="Change Hotel"
         />
       )}
+
+      <Modal
+        open={!!confirmDeleteItem}
+        onClose={() => !deletingUid && setConfirmDeleteItem(null)}
+        title="Remove item"
+      >
+        {confirmDeleteItem && (
+          <div className="flex flex-col items-center gap-3 text-center">
+            <Body>
+              Remove <span className="font-medium text-foreground">{confirmDeleteItem.referenceLabel}</span> from this
+              itinerary? This can&apos;t be undone.
+            </Body>
+            {deleteError && <p className="text-sm text-danger">{deleteError}</p>}
+            <div className="flex justify-center gap-2">
+              <Button type="button" variant="ghost" disabled={!!deletingUid} onClick={() => setConfirmDeleteItem(null)}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                disabled={!!deletingUid}
+                loading={deletingUid === confirmDeleteItem.uid}
+                loadingText="Removing…"
+                onClick={() => handleDeleteItem(confirmDeleteItem.uid)}
+              >
+                Remove
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <Modal
         open={!!modal}
