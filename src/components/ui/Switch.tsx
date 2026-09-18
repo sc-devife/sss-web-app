@@ -14,6 +14,7 @@ export function Switch({
   onLabel = "ON",
   offLabel = "OFF",
   ariaLabel,
+  title,
 }: {
   checked: boolean;
   onChange: (next: boolean) => void;
@@ -21,21 +22,24 @@ export function Switch({
   onLabel?: string;
   offLabel?: string;
   ariaLabel?: string;
+  title?: string;
 }) {
   return (
     <label
       className={cn(
-        "relative inline-flex h-6 w-16 shrink-0 items-center rounded-full px-2 transition-colors",
+        "relative inline-flex h-6 w-14 shrink-0 items-center rounded-full px-2 transition-colors",
         checked ? "justify-start bg-primary" : "justify-end bg-muted",
         disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
       )}
+      title={title}
     >
       <input
         type="checkbox"
         className="sr-only"
         checked={checked}
         disabled={disabled}
-        aria-label={ariaLabel}
+        aria-label={ariaLabel ?? title}
+        title={title}
         onChange={(e) => onChange(e.target.checked)}
       />
       <span
@@ -49,7 +53,7 @@ export function Switch({
       <span
         className={cn(
           "absolute left-0.5 h-5 w-5 rounded-full bg-background shadow-sm transition-transform",
-          checked ? "translate-x-[42px]" : "translate-x-0",
+          checked ? "translate-x-[32px]" : "translate-x-0",
         )}
       />
     </label>

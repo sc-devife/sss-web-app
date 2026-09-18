@@ -37,6 +37,18 @@ const OWNER_TYPE_OPTIONS = [
   { value: "multi", label: "Multi Vehicle Owner" },
 ];
 
+// Existing records predate ownerType — infer from whether a provider is
+// linked rather than leaving it unset. Shared by the Provider column, its
+// filterValue, and the Provider toolbar filter's "Single Vehicle Owner"
+// option, so all three agree on the same record.
+function effectiveOwnerType(t: Transport): string {
+  return t.ownerType ?? (t.provider ? "multi" : "single");
+}
+
+// Sentinel value for the Provider filter's "Single Vehicle Owner" entry —
+// distinct from any real ServiceProvider uid.
+const SINGLE_OWNER_FILTER_VALUE = "__single_vehicle_owner__";
+
 const emptyForm = {
   ownerType: "multi",
   modeCode: "",
@@ -122,7 +134,11 @@ export function TransportPanel({
   // transport-typed provider, even though that's true for every provider
   // actually selectable from the Add/Edit form below.
   const providerFilterOptions = useMemo(
-    () => [{ value: "", label: "Default" }, ...providers.map((p) => ({ value: p.uid, label: p.name }))],
+    () => [
+      { value: "", label: "Default" },
+      { value: SINGLE_OWNER_FILTER_VALUE, label: "Single Vehicle Owner" },
+      ...providers.map((p) => ({ value: p.uid, label: p.name })),
+    ],
     [providers],
   );
 
@@ -132,7 +148,11 @@ export function TransportPanel({
     return transports.filter((t) => {
       if (escapePointFilter && t.escapePoint?.uid !== escapePointFilter) return false;
       if (modeFilter && t.modeCode !== modeFilter) return false;
-      if (providerFilter && t.provider?.uid !== providerFilter) return false;
+      if (providerFilter === SINGLE_OWNER_FILTER_VALUE) {
+        if (effectiveOwnerType(t) !== "single") return false;
+      } else if (providerFilter && t.provider?.uid !== providerFilter) {
+        return false;
+      }
       return true;
     });
   }, [transports, escapePointFilter, modeFilter, providerFilter]);
@@ -265,8 +285,8 @@ export function TransportPanel({
     {
       key: "provider",
       header: "Provider",
-      render: (t) => t.provider?.name ?? "—",
-      filterValue: (t) => t.provider?.name ?? "",
+      render: (t) => (effectiveOwnerType(t) === "single" ? "Single Vehicle Owner" : t.provider?.name ?? "—"),
+      filterValue: (t) => (effectiveOwnerType(t) === "single" ? "Single Vehicle Owner" : t.provider?.name ?? ""),
     },
     {
       key: "basePrice",
@@ -456,7 +476,15 @@ export function TransportPanel({
                 searchable
                 searchPlaceholder="Search Escape Point…"
               />
-              <ToolbarSelect label="Mode" options={MODE_FILTER_OPTIONS} value={modeFilter} onChange={setModeFilter} placeholder="Default" />
+              <ToolbarSelect
+                label="Mode"
+                options={MODE_FILTER_OPTIONS}
+                value={modeFilter}
+                onChange={setModeFilter}
+                placeholder="Default"
+                searchable
+                searchPlaceholder="Search Mode…"
+              />
               <ToolbarSelect
                 label="Provider"
                 options={providerFilterOptions}

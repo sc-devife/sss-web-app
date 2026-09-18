@@ -205,6 +205,7 @@ export function AgentAssignmentSettingsPanel({ escapePoints }: { escapePoints: E
                 onChange={(next) => update(user.uid, { acceptingLeads: next })}
                 disabled={rowIsSaving}
                 ariaLabel={`${user.name}: accepting leads`}
+                title={row.acceptingLeads ? "Accepting leads" : "Not accepting leads"}
               />
             </div>
 
@@ -265,7 +266,7 @@ export function AgentAssignmentSettingsPanel({ escapePoints }: { escapePoints: E
                 {/* Tied to "Escape Point specialist" above — left border reads
                     as a child of that checkbox rather than an unrelated field. */}
                 {row.isSpecialist && (
-                  <div className="border-l-2 border-border pl-4 sm:flex-1">
+                  <div className="pl-4 sm:flex-1">
                     <MultiSelectSearch
                       label="Specialist escape points"
                       helperText="Select one or more"
