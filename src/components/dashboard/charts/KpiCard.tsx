@@ -2,6 +2,7 @@ import type { ComponentType, ReactNode } from "react";
 import { Card } from "@/components/ui/Card";
 import { Caption } from "@/components/ui/Typography";
 import { cn } from "@/lib/cn";
+import { FaCaretDown, FaCaretUp } from "react-icons/fa6";
 
 export interface KpiTrend {
   direction: "up" | "down";
@@ -31,13 +32,13 @@ export function KpiCard({
     <Card
       variant="elevated"
       className={cn(
-        "flex gap-3 rounded-lg border border-border/50 p-2",
+        "flex gap-3 rounded-2xl border border-border/50 p-2",
         className
       )}
     >
       {/* Icon */}
       {CategoryIcon && (
-        <div className="flex shrink-0 items-center justify-center self-center rounded-lg bg-primary/10 p-2 text-primary">
+        <div className="flex shrink-0 items-center justify-center self-center rounded-xl bg-primary/10 p-2 text-primary">
           <CategoryIcon className="h-7 w-7" />
         </div>
       )}
@@ -66,10 +67,10 @@ export function KpiCard({
                 : "text-danger"
             )}
           >
-            <span>{trend.direction === "up" ? "↑" : "↓"}</span>
+            <span>{trend.direction === "up" ? <FaCaretUp /> : <FaCaretDown />}</span>
             <span>{trend.percent.toFixed(1)}%</span>
             <span className="font-normal text-muted-foreground">
-              vs previous period
+              vs last period
             </span>
           </div>
         )}

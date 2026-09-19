@@ -7,7 +7,7 @@ import { dashboardRoute, protectedRoutes, visibleGroupsForRoles, type RouteGroup
 import { cn } from "@/lib/cn";
 import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { FaChevronLeft, FaChevronRight, FaChevronDown, FaPowerOff } from "react-icons/fa";
-import { BsFillInboxesFill } from "react-icons/bs";
+import { BsInboxes, BsInboxesFill } from "react-icons/bs";
 import { clientApi } from "@/lib/axios/clientClient";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { closeMobile as closeMobileAction } from "@/features/ui/uiSlice";
@@ -25,30 +25,39 @@ import pkg from "../../../package.json";
 // used to follow before this swap.
 const FOLLOWUP_COUNT_POLL_MS = 60000;
 
+type NavIcon = React.ComponentType<{ className?: string }>;
+
+// Plain `pathname === path || pathname.startsWith(path + "/")` would mark
+// both "/leads" and "/leads/sources" active while on "/leads/sources",
+// since "/leads" is a real sibling route, not a detail-child of "/leads".
+// Resolve the single longest-matching registered route instead — same
+// logic as findRouteByPath — so only the most specific one lights up.
+function useActiveRoutePath(): string | undefined {
+  const pathname = usePathname();
+  const matches = protectedRoutes.filter((r) => pathname === r.path || pathname.startsWith(`${r.path}/`));
+  return matches.sort((a, b) => b.path.length - a.path.length)[0]?.path;
+}
+
 function NavLink({
   path,
   title,
   Icon,
+  ActiveIcon,
   collapsed,
   indent,
 }: {
   path: string;
   title: string;
-  Icon: React.ComponentType<{ className?: string }>;
+  Icon: NavIcon;
+  /** Filled twin shown while this route is active; falls back to Icon. */
+  ActiveIcon?: NavIcon;
   collapsed: boolean;
   /** Extra left offset so submenu items read as children of their group
    * header rather than flush-aligned siblings. */
   indent?: boolean;
 }) {
-  const pathname = usePathname();
-  // Plain `pathname === path || pathname.startsWith(path + "/")` would mark
-  // both "/leads" and "/leads/sources" active while on "/leads/sources",
-  // since "/leads" is a real sibling route, not a detail-child of "/leads".
-  // Resolve the single longest-matching registered route instead — same
-  // logic as findRouteByPath — so only the most specific one lights up.
-  const matches = protectedRoutes.filter((r) => pathname === r.path || pathname.startsWith(`${r.path}/`));
-  const bestMatch = matches.sort((a, b) => b.path.length - a.path.length)[0];
-  const active = bestMatch?.path === path;
+  const active = useActiveRoutePath() === path;
+  const CurrentIcon = active ? ActiveIcon ?? Icon : Icon;
 
   return (
     <Link
@@ -63,7 +72,8 @@ function NavLink({
           : "text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
-      <Icon className={cn("h-4 w-4 shrink-0", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+      {/* Collapsed rail: match the group icons' h-5 w-5 (CollapsedGroupIcon) so Dashboard doesn't look undersized next to them. */}
+      <CurrentIcon className={cn("shrink-0", collapsed ? "h-5 w-5" : "h-4 w-4", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
       {!collapsed && <HoverMarqueeText className="truncate font-medium">{title}</HoverMarqueeText>}
     </Link>
   );
@@ -72,16 +82,26 @@ function NavLink({
 // Collapsed-rail representation of one group: just its icon. Clicking it
 // opens the overlay panel (same as the manual toggle) rather than reflowing
 // the rail itself — the group's name + its routes then appear in that panel.
+// The child routes aren't visible on the rail, so the group icon itself
+// carries the active state (filled + primary) whenever any child is active.
 function CollapsedGroupIcon({ group, onExpand }: { group: RouteGroup; onExpand: () => void }) {
+  const activePath = useActiveRoutePath();
+  const active = group.routes.some((r) => r.path === activePath);
+  const GroupIcon = active ? group.activeIcon : group.icon;
   return (
     <button
       type="button"
       onClick={onExpand}
       aria-label={`Expand ${group.title} menu`}
       title={group.title}
-      className="flex items-center justify-center rounded-xl p-2.5 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground"
+      className={cn(
+        "flex items-center justify-center rounded-xl p-2.5 outline-none transition-colors",
+        active
+          ? "bg-primary/10 text-primary"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground",
+      )}
     >
-      <group.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+      <GroupIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
     </button>
   );
 }
@@ -99,22 +119,33 @@ function ExpandedGroup({
   isOpen: boolean;
   onToggle: () => void;
 }) {
+  // While the group is open, its active child carries the active state and
+  // the header stays plain outline. Only when the group is closed (children
+  // hidden) does the header itself stand in for the active child.
+  const activePath = useActiveRoutePath();
+  const headerActive = !isOpen && group.routes.some((r) => r.path === activePath);
+  const HeaderIcon = headerActive ? group.activeIcon : group.icon;
   return (
     <div className="mt-4">
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={isOpen}
-        className="mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        className={cn(
+          "mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-widest transition-colors",
+          headerActive
+            ? "bg-primary/10 text-primary"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        )}
       >
-        <group.icon className="size-4 shrink-0" aria-hidden="true" />
+        <HeaderIcon className="size-4 shrink-0" aria-hidden="true" />
         <span className="flex-1 text-left">{group.title}</span>
         <FaChevronDown className={cn("h-2.5 w-2.5 shrink-0 transition-transform", isOpen && "rotate-180")} aria-hidden="true" />
       </button>
       {isOpen && (
         <div className="flex flex-col gap-1">
           {group.routes.map((route) => (
-            <NavLink key={route.path} path={route.path} title={route.title} Icon={route.icon} collapsed={false} indent />
+            <NavLink key={route.path} path={route.path} title={route.title} Icon={route.icon} ActiveIcon={route.activeIcon} collapsed={false} indent />
           ))}
         </div>
       )}
@@ -182,7 +213,7 @@ function FollowUpsLink({ collapsed }: { collapsed: boolean }) {
       )}
     >
       <span className="relative shrink-0">
-        <BsFillInboxesFill className="h-4 w-4" />
+        {active ? <BsInboxesFill className="h-4 w-4" /> : <BsInboxes className="h-4 w-4" />}
         {followUpCount > 0 && (
           <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
             {followUpCount > 99 ? "99+" : followUpCount}
@@ -322,7 +353,7 @@ export function Sidebar({ roles }: { roles: string[] }) {
         </button>
         <div className="flex-1 overflow-y-auto px-2 py-4">
           <div className="flex flex-col gap-1">
-            <NavLink path={dashboardRoute.path} title={dashboardRoute.title} Icon={dashboardRoute.icon} collapsed />
+            <NavLink path={dashboardRoute.path} title={dashboardRoute.title} Icon={dashboardRoute.icon} ActiveIcon={dashboardRoute.activeIcon} collapsed />
           </div>
           <div className="mt-4 flex flex-col items-center gap-2">
             {groups.map((group) => (
@@ -376,7 +407,7 @@ export function Sidebar({ roles }: { roles: string[] }) {
         </button>
         <div className="flex-1 overflow-y-auto px-3 py-4">
           <div className="flex flex-col gap-1">
-            <NavLink path={dashboardRoute.path} title={dashboardRoute.title} Icon={dashboardRoute.icon} collapsed={false} />
+            <NavLink path={dashboardRoute.path} title={dashboardRoute.title} Icon={dashboardRoute.icon} ActiveIcon={dashboardRoute.activeIcon} collapsed={false} />
           </div>
           {groups.map((group) => (
             <ExpandedGroup

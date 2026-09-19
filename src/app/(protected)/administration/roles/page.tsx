@@ -6,7 +6,7 @@ export default function Page() {
   const { route, groupTitle } = findRouteWithGroup("/administration/roles")!;
   return (
     <Card variant="page" className="min-h-full">
-      <ComingSoon title={route.title} section={groupTitle} icon={route.icon} />
+      <ComingSoon title={route.title} section={groupTitle} icon={route.activeIcon ?? route.icon} />
     </Card>
   );
 }

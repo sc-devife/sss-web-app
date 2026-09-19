@@ -50,6 +50,9 @@ const LOGO_SHAPE_CLASS: Record<string, string> = {
 export function Header() {
   const pathname = usePathname();
   const route = findRouteByPath(pathname);
+  // Page-title icon is always the filled glyph — the outline/filled swap is
+  // a sidebar-only active-state cue.
+  const TitleIcon = route?.activeIcon ?? route?.icon;
   const dispatch = useAppDispatch();
   const user = useAppSelector(selectLoggedInUser);
   const shapeClass = LOGO_SHAPE_CLASS[user?.organizationLogoShape ?? "round"] ?? LOGO_SHAPE_CLASS.round;
@@ -109,7 +112,7 @@ export function Header() {
           <PiHouseFill size={20} />
         </Link>
         <span className="h-3 w-px bg-border/50" aria-hidden="true" />
-        {route?.icon && <route.icon size={20} />}
+        {TitleIcon && <TitleIcon size={20} />}
         <h1 className="text-lg font-semibold text-foreground">{route?.title ?? "Dashboard"}</h1>
       </div>
       <div className="flex items-center gap-2">
