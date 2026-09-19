@@ -8,6 +8,7 @@ import { cn } from "@/lib/cn";
 import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { FaChevronLeft, FaChevronRight, FaChevronDown, FaPowerOff } from "react-icons/fa";
 import { BsInboxes, BsInboxesFill } from "react-icons/bs";
+import { NavGlyph } from "@/components/layout/NavGlyph";
 import { clientApi } from "@/lib/axios/clientClient";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { closeMobile as closeMobileAction } from "@/features/ui/uiSlice";
@@ -26,6 +27,12 @@ import pkg from "../../../package.json";
 const FOLLOWUP_COUNT_POLL_MS = 60000;
 
 type NavIcon = React.ComponentType<{ className?: string }>;
+
+// One glyph size per context, shared by parent groups, child routes, Dashboard,
+// Follow-ups and Logout, so no row's icon reads bigger than its neighbours.
+// NavGlyph normalises each icon's own padding/shape to fill this box.
+const RAIL_ICON = "size-5";
+const PANEL_ICON = "size-[18px]";
 
 // Plain `pathname === path || pathname.startsWith(path + "/")` would mark
 // both "/leads" and "/leads/sources" active while on "/leads/sources",
@@ -72,8 +79,7 @@ function NavLink({
           : "text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
-      {/* Collapsed rail: match the group icons' h-5 w-5 (CollapsedGroupIcon) so Dashboard doesn't look undersized next to them. */}
-      <CurrentIcon className={cn("shrink-0", collapsed ? "h-5 w-5" : "h-4 w-4", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+      <NavGlyph Icon={CurrentIcon} className={cn(collapsed ? RAIL_ICON : PANEL_ICON, active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
       {!collapsed && <HoverMarqueeText className="truncate font-medium">{title}</HoverMarqueeText>}
     </Link>
   );
@@ -101,7 +107,7 @@ function CollapsedGroupIcon({ group, onExpand }: { group: RouteGroup; onExpand: 
           : "text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground",
       )}
     >
-      <GroupIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
+      <NavGlyph Icon={GroupIcon} className={RAIL_ICON} />
     </button>
   );
 }
@@ -138,7 +144,7 @@ function ExpandedGroup({
             : "text-muted-foreground hover:bg-muted hover:text-foreground",
         )}
       >
-        <HeaderIcon className="size-4 shrink-0" aria-hidden="true" />
+        <NavGlyph Icon={HeaderIcon} className={PANEL_ICON} />
         <span className="flex-1 text-left">{group.title}</span>
         <FaChevronDown className={cn("h-2.5 w-2.5 shrink-0 transition-transform", isOpen && "rotate-180")} aria-hidden="true" />
       </button>
@@ -206,14 +212,14 @@ function FollowUpsLink({ collapsed }: { collapsed: boolean }) {
       title={collapsed ? "Follow-ups" : undefined}
       className={cn(
         "relative flex items-center gap-3 rounded-xl p-2.5 text-sm font-medium transition-colors",
-        collapsed ? "w-auto justify-center" : "w-full",
+        collapsed ? "w-auto justify-center" : "w-full px-2",
         active
           ? "bg-primary/10 text-primary"
           : "text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
       <span className="relative shrink-0">
-        {active ? <BsInboxesFill className="h-4 w-4" /> : <BsInboxes className="h-4 w-4" />}
+        <NavGlyph Icon={active ? BsInboxesFill : BsInboxes} className={collapsed ? RAIL_ICON : PANEL_ICON} />
         {followUpCount > 0 && (
           <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
             {followUpCount > 99 ? "99+" : followUpCount}
@@ -235,10 +241,10 @@ function SidebarFooter({ collapsed, loggingOut, onLogout }: { collapsed: boolean
         title={collapsed ? "Logout" : undefined}
         className={cn(
           "flex items-center gap-3 rounded-xl p-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-red-400 hover:text-white disabled:opacity-50",
-          collapsed ? "w-auto justify-center px-3 py-2.5" : "w-full",
+          collapsed ? "w-auto justify-center px-3 py-2.5" : "w-full px-2",
         )}
       >
-        <FaPowerOff className="h-4 w-4 shrink-0" />
+        <NavGlyph Icon={FaPowerOff} className={collapsed ? RAIL_ICON : PANEL_ICON} />
         {!collapsed && <span>{loggingOut ? "Logging out…" : "Logout"}</span>}
       </button>
       {!collapsed && <p className="mt-1 text-center text-xs text-muted-foreground">Travel CRM v{pkg.version}</p>}
