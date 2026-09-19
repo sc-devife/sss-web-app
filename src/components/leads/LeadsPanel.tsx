@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { ToolbarSelect } from "@/components/ui/ToolbarSelect";
+import { PeriodFilter } from "@/components/ui/PeriodFilter";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { MultiSelectSearch } from "@/components/ui/MultiSelectSearch";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
@@ -19,7 +20,7 @@ import { LEAD_STATUS_ORDER } from "@/lib/lead-status";
 import { FaPlus } from "react-icons/fa";
 import { BsFillInboxesFill } from "react-icons/bs";
 import { PiPencilSimple, PiArchiveBold } from "react-icons/pi";
-import { IoChevronBack, IoChevronForward, IoFilterOutline, IoClose } from "react-icons/io5";
+import { IoFilterOutline, IoClose } from "react-icons/io5";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchLeads, archiveLead } from "@/features/leads/leadsThunks";
 import { selectLeads, selectLeadsStatus, selectLeadsError, selectLeadsPage, selectLeadsTotalPages } from "@/features/leads/leadsSelectors";
@@ -242,43 +243,6 @@ function MoreFiltersPopover({
 const PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
 
-const PERIOD_TYPE_OPTIONS: { value: LeadPeriodType; label: string }[] = [
-  { value: "month", label: "Month" },
-  { value: "week", label: "Week" },
-  { value: "day", label: "Day" },
-  { value: "all", label: "All" },
-];
-
-// Small icon-only prev/next control matching ToolbarSelect's own compact
-// pill styling (that trigger hand-rolls its button rather than using the
-// shared Button component, so this does too, for the same "sits directly
-// beside a ToolbarSelect" visual context — Button's smallest size is h-8,
-// 4px taller, which would misalign the row).
-function PeriodStepButton({
-  direction,
-  label,
-  onClick,
-  disabled,
-}: {
-  direction: "prev" | "next";
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      title={label}
-      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-transparent bg-[#f8f8fa] text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground focus-visible:border-primary/40 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40"
-    >
-      {direction === "prev" ? <IoChevronBack size={14} /> : <IoChevronForward size={14} />}
-    </button>
-  );
-}
-
 // "Priority" isn't a real Lead.status value (it's the separate isPriority
 // flag, shown as its own badge next to status elsewhere on this page) —
 // sent to the backend as its own `priority=true` param (LeadSpecifications.
@@ -363,8 +327,8 @@ export function LeadsPanel({
   const [periodAnchor, setPeriodAnchor] = useState<Date>(() => new Date());
   const periodRange = getLeadPeriodRange(periodType, periodAnchor);
 
-  function handlePeriodTypeChange(value: string) {
-    setPeriodType(value as LeadPeriodType);
+  function handlePeriodTypeChange(value: LeadPeriodType) {
+    setPeriodType(value);
     setPeriodAnchor(new Date());
     setPage(0);
   }
@@ -568,18 +532,7 @@ export function LeadsPanel({
                 searchPlaceholder="Search Escape Point…"
               />
               <ToolbarSelect label="Status" options={STATUS_FILTER_OPTIONS} value={statusFilter} onChange={handleStatusChange} placeholder="Default" />
-              <div className="flex items-center gap-1">
-                <PeriodStepButton direction="prev" label={`Previous ${periodType}`} onClick={() => stepPeriod(-1)} disabled={periodType === "all"} />
-                <ToolbarSelect
-                  label="Period"
-                  hideLabel
-                  options={PERIOD_TYPE_OPTIONS}
-                  value={periodType}
-                  onChange={handlePeriodTypeChange}
-                />
-                <PeriodStepButton direction="next" label={`Next ${periodType}`} onClick={() => stepPeriod(1)} disabled={periodType === "all"} />
-              </div>
-              {periodRange.label && <span className="text-sm text-muted-foreground">{periodRange.label}</span>}
+              <PeriodFilter type={periodType} label={periodRange.label} onTypeChange={handlePeriodTypeChange} onStep={stepPeriod} />
               <MoreFiltersPopover applied={moreFilters} onSubmit={handleMoreFiltersSubmit} />
             </div>
           }

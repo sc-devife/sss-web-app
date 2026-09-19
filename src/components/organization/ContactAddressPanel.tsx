@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
+import { CheckOption } from "@/components/ui/CheckOption";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -125,17 +126,11 @@ function AddressFormFields({
       <TextInput label="Label" value={form.label} onChange={(e) => update("label", e.target.value)} error={errors.label} required placeholder="e.g. Head Office" />
       <div className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-foreground">Used For</span>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-2">
           {ADDRESS_TYPE_OPTIONS.map((opt) => (
-            <label key={opt.value} className="flex cursor-pointer items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.addressTypes.includes(opt.value)}
-                onChange={() => toggleType(opt.value)}
-                className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
-              />
+            <CheckOption key={opt.value} checked={form.addressTypes.includes(opt.value)} onChange={() => toggleType(opt.value)}>
               {opt.label}
-            </label>
+            </CheckOption>
           ))}
         </div>
         {errors.addressTypes && <p className="text-sm text-danger">{errors.addressTypes}</p>}
@@ -172,17 +167,11 @@ function AddressFormFields({
       {form.addressTypes.includes("BILLING") && (
         <TextInput label="GSTIN" value={form.gstin} onChange={(e) => update("gstin", e.target.value.toUpperCase())} placeholder="e.g. 22AAAAA0000A1Z5" />
       )}
-      <label className="flex cursor-pointer items-center gap-2 text-sm md:col-span-2">
-        <input
-          type="checkbox"
-          checked={form.primaryAddress}
-          onChange={(e) => setPrimaryAddress(e.target.checked)}
-          className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
-        />
+      <CheckOption checked={form.primaryAddress} onChange={setPrimaryAddress} className="w-fit md:col-span-2">
         Set as default {form.addressTypes.includes("BILLING") && form.addressTypes.includes("CONTACT")
           ? "billing & contact"
           : form.addressTypes.includes("BILLING") ? "billing" : "contact"} address
-      </label>
+      </CheckOption>
     </>
   );
 }

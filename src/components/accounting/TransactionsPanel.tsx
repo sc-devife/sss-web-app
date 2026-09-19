@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { PeriodFilter } from "@/components/ui/PeriodFilter";
+import { getLeadPeriodRange, shiftLeadPeriodAnchor, type LeadPeriodType } from "@/lib/lead-period";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { Body } from "@/components/ui/Typography";
@@ -22,6 +24,36 @@ import {
 } from "@/features/transactions/transactionsSelectors";
 import { PiArrowDownLeftBold, PiArrowUpRightBold } from "react-icons/pi";
 
+// Month/Week/Day/All navigator (same control as the Leads page). The lists are
+// fetched whole, so the period is applied client-side against `getDate` —
+// the row's own transaction date. Defaults to the current month like Leads.
+function usePeriodFilter<T>(rows: T[], getDate: (row: T) => string | null | undefined) {
+  const [type, setType] = useState<LeadPeriodType>("month");
+  const [anchor, setAnchor] = useState<Date>(() => new Date());
+  const range = getLeadPeriodRange(type, anchor);
+
+  const filtered = rows.filter((row) => {
+    if (!range.from || !range.to) return true;
+    // "YYYY-MM-DD" prefix compares lexically, and works for both plain dates
+    // and full ISO timestamps.
+    const date = getDate(row)?.slice(0, 10);
+    return !!date && date >= range.from && date <= range.to;
+  });
+
+  const control = (
+    <PeriodFilter
+      type={type}
+      label={range.label}
+      onTypeChange={(next) => {
+        setType(next);
+        setAnchor(new Date());
+      }}
+      onStep={(direction) => setAnchor((a) => shiftLeadPeriodAnchor(type, a, direction))}
+    />
+  );
+  return { filtered, control, isAll: type === "all" };
+}
+
 const STATUS_TONES: Record<string, "success" | "warning" | "neutral"> = {
   paid: "success",
   partially_paid: "warning",
@@ -38,6 +70,8 @@ function IncomingTransactionsTable() {
   useEffect(() => {
     dispatch(fetchIncomingTransactions());
   }, [dispatch]);
+
+  const period = usePeriodFilter(transactions, (t) => t.markedPaidAt);
 
   const columns: DataTableColumn<IncomingTransaction>[] = [
     {
@@ -101,10 +135,11 @@ function IncomingTransactionsTable() {
   return (
     <DataTable
       columns={columns}
-      rows={transactions}
+      rows={period.filtered}
       rowKey={(t) => t.milestoneUid}
+      toolbarExtra={<div className="flex items-center gap-2">{period.control}</div>}
       searchPlaceholder="Search by customer, amount, reference…"
-      emptyMessage="No incoming payments recorded yet."
+      emptyMessage={period.isAll ? "No incoming payments recorded yet." : "No incoming payments in this period."}
       onRowClick={(t) => router.push(`/escapes/${t.escapeUid}`)}
       loading={status !== "succeeded" && transactions.length === 0}
     />
@@ -124,6 +159,8 @@ function OutgoingTransactionsTable() {
   useEffect(() => {
     dispatch(fetchOutgoingTransactions());
   }, [dispatch]);
+
+  const period = usePeriodFilter(transactions, (t) => t.paymentDate);
 
   const columns: DataTableColumn<OutgoingTransaction>[] = [
     {
@@ -188,10 +225,11 @@ function OutgoingTransactionsTable() {
   return (
     <DataTable
       columns={columns}
-      rows={transactions}
+      rows={period.filtered}
       rowKey={(t) => t.paymentUid}
+      toolbarExtra={<div className="flex items-center gap-2">{period.control}</div>}
       searchPlaceholder="Search by hotel, escape ID, amount…"
-      emptyMessage="No outgoing payments recorded yet."
+      emptyMessage={period.isAll ? "No outgoing payments recorded yet." : "No outgoing payments in this period."}
       onRowClick={(t) =>
         router.push(t.vendorType === "Hotel" ? `/library/hotels/${t.vendorUid}` : `/library/activities/${t.vendorUid}`)
       }
@@ -210,7 +248,7 @@ export function TransactionsPanel() {
           <button
             type="button"
             onClick={() => setActiveTab("incoming")}
-            className={`group flex items-center gap-2 rounded-3xl px-5 py-2.5 text-sm font-medium transition-all duration-200 ${activeTab === "incoming"
+            className={`group flex items-center gap-2 rounded-3xl px-5 py-2 text-sm font-medium transition-all duration-200 ${activeTab === "incoming"
               ? "bg-primary text-white shadow-sm ring-1 ring-gray-200"
               : "text-gray-500 hover:bg-white/70 hover:text-gray-900"
               }`}
@@ -227,7 +265,7 @@ export function TransactionsPanel() {
           <button
             type="button"
             onClick={() => setActiveTab("outgoing")}
-            className={`group flex items-center gap-2 rounded-3xl px-5 py-2.5 text-sm font-medium transition-all duration-200 ${activeTab === "outgoing"
+            className={`group flex items-center gap-2 rounded-3xl px-5 py-2 text-sm font-medium transition-all duration-200 ${activeTab === "outgoing"
               ? "bg-primary text-white shadow-sm ring-1 ring-gray-200"
               : "text-gray-500 hover:bg-white/70 hover:text-gray-900"
               }`}

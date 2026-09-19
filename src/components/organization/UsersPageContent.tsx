@@ -73,9 +73,9 @@ export function UsersPageContent() {
 
       <Card variant="elevated">
         <div className="border-b px-4 py-3">
-          <div className="flex items-center gap-2.5">
-            <div className="rounded-lg bg-primary/10 p-1.5 text-primary">
-              <PiUsersThree className="h-4 w-4" />
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
+              <PiUsersThree className="h-5 w-5" />
             </div>
             <div>
               <Heading as="h3" className="text-base font-semibold">
@@ -100,9 +100,9 @@ export function UsersPageContent() {
 
       <Card variant="elevated" className="border-warning/20 bg-warning/5">
         <div className="border-b border-warning/20 px-4 py-3">
-          <div className="flex items-center gap-2.5">
-            <div className="rounded-lg bg-warning/15 p-1.5 text-warning">
-              <PiClock className="h-4 w-4" />
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-warning/15 p-2.5 text-warning">
+              <PiClock className="h-5 w-5" />
             </div>
             <div>
               <Heading as="h3" className="text-base font-semibold">
