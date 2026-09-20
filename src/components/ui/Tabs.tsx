@@ -25,11 +25,14 @@ export function Tabs({
   tabs,
   defaultTab,
   aside,
+  bare,
   children,
 }: {
   tabs: TabItem[];
   defaultTab?: string;
   aside?: ReactNode;
+  /** Drops the grey bordered box around the tab content, for a tab whose content lays out its own surfaces (e.g. a toolbar above a table). */
+  bare?: boolean;
   children: (activeTab: string) => ReactNode;
 }) {
   const [active, setActive] = useState(defaultTab ?? tabs[0]?.id);
@@ -64,7 +67,12 @@ export function Tabs({
         </div>
         {aside && <div className="flex shrink-0 items-center">{aside}</div>}
       </div>
-      <div className="show-scrollbar min-w-0 overflow-x-auto rounded-lg border border-border bg-[#f2f2f5] p-2 lg:flex lg:min-h-0 lg:flex-1 lg:w-full lg:flex-col lg:overflow-y-auto">
+      <div
+        className={cn(
+          "show-scrollbar min-w-0 overflow-x-auto lg:flex lg:min-h-0 lg:flex-1 lg:w-full lg:flex-col lg:overflow-y-auto",
+          !bare && "rounded-lg border border-border bg-[#f2f2f5] p-2",
+        )}
+      >
         {children(active)}
       </div>
     </div>

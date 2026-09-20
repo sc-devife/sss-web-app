@@ -53,6 +53,7 @@ import { MdOutlineHotel, MdHotel } from "react-icons/md";
 import { BsPlug, BsPlugFill, BsInboxes, BsInboxesFill, BsBuildingGear, BsBuildingFillGear } from "react-icons/bs";
 import { FaPersonWalkingLuggage } from "react-icons/fa6";
 import { FaUsersCog } from "react-icons/fa";
+import { HiDocumentReport, HiOutlineDocumentReport } from "react-icons/hi";
 
 // Nav is a plain data structure — the sidebar renders from it, and each
 // `path` maps 1:1 onto an `app/(protected)/<path>/page.tsx` route. Adding a
@@ -98,6 +99,7 @@ export const routeGroups: RouteGroup[] = [
       { path: "/leads", title: "Leads", icon: PiFunnel, activeIcon: PiFunnelFill },
       { path: "/leads/sources", title: "Lead Sources", icon: PiGitFork, activeIcon: PiGitForkFill },
       { path: "/escapes", title: "Escapes", icon: PiPersonSimpleWalkBold, activeIcon: FaPersonWalkingLuggage },
+      { path: "/reports", title: "Reports", icon: HiOutlineDocumentReport, activeIcon: HiDocumentReport },
     ],
   },
   {

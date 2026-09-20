@@ -30,6 +30,9 @@ export type FollowUpsPage = Page<FollowUp>;
 
 export interface FetchFollowUpsParams {
   filter?: FollowUpFilter;
+  /** Inclusive due dates, "YYYY-MM-DD"; a single day is from === to. When either is set the backend ignores `filter`. */
+  from?: string;
+  to?: string;
   search?: string;
   page?: number;
   size?: number;

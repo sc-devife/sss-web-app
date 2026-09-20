@@ -19,6 +19,8 @@ export const fetchFollowUps = createAsyncThunk<FollowUpsPage, FetchFollowUpsPara
     try {
       const search = new URLSearchParams();
       if (params?.filter) search.set("filter", params.filter);
+      if (params?.from) search.set("from", params.from);
+      if (params?.to) search.set("to", params.to);
       if (params?.search) search.set("search", params.search);
       if (params?.page != null) search.set("page", String(params.page));
       if (params?.size != null) search.set("size", String(params.size));

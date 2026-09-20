@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PeriodFilter } from "@/components/ui/PeriodFilter";
-import { getLeadPeriodRange, shiftLeadPeriodAnchor, type LeadPeriodType } from "@/lib/lead-period";
+import { DateRangeFilter } from "@/components/ui/DateRangeFilter";
+import { getLeadPeriodRange, shiftLeadPeriodAnchor, type LeadPeriodRange, type LeadPeriodType } from "@/lib/lead-period";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { Body } from "@/components/ui/Typography";
@@ -24,34 +25,66 @@ import {
 } from "@/features/transactions/transactionsSelectors";
 import { PiArrowDownLeftBold, PiArrowUpRightBold } from "react-icons/pi";
 
-// Month/Week/Day/All navigator (same control as the Leads page). The lists are
-// fetched whole, so the period is applied client-side against `getDate` —
-// the row's own transaction date. Defaults to the current month like Leads.
+// Month/Week/Day/All navigator (same control as the Leads page) plus a "Dates
+// between" range. The lists are fetched whole, so the filter is applied
+// client-side against `getDate` — the row's own transaction date. Defaults to
+// the current month like Leads. A Dates-between range (either end may be left
+// open) overrides the period, and picking a period type again clears it.
 function usePeriodFilter<T>(rows: T[], getDate: (row: T) => string | null | undefined) {
   const [type, setType] = useState<LeadPeriodType>("month");
   const [anchor, setAnchor] = useState<Date>(() => new Date());
-  const range = getLeadPeriodRange(type, anchor);
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const customActive = Boolean(customFrom || customTo);
+
+  const periodRange = getLeadPeriodRange(type, anchor);
+  const range: LeadPeriodRange = customActive
+    ? {
+        from: customFrom || null,
+        to: customTo || null,
+        label:
+          customFrom && customTo
+            ? `${formatDisplayDate(customFrom)} – ${formatDisplayDate(customTo)}`
+            : customFrom
+              ? `From ${formatDisplayDate(customFrom)}`
+              : `Until ${formatDisplayDate(customTo)}`,
+      }
+    : periodRange;
 
   const filtered = rows.filter((row) => {
-    if (!range.from || !range.to) return true;
+    if (!range.from && !range.to) return true;
     // "YYYY-MM-DD" prefix compares lexically, and works for both plain dates
     // and full ISO timestamps.
     const date = getDate(row)?.slice(0, 10);
-    return !!date && date >= range.from && date <= range.to;
+    if (!date) return false;
+    return (!range.from || date >= range.from) && (!range.to || date <= range.to);
   });
 
   const control = (
-    <PeriodFilter
-      type={type}
-      label={range.label}
-      onTypeChange={(next) => {
-        setType(next);
-        setAnchor(new Date());
-      }}
-      onStep={(direction) => setAnchor((a) => shiftLeadPeriodAnchor(type, a, direction))}
-    />
+    <>
+      <PeriodFilter
+        type={type}
+        label={range.label}
+        onTypeChange={(next) => {
+          setType(next);
+          setAnchor(new Date());
+          setCustomFrom("");
+          setCustomTo("");
+        }}
+        onStep={(direction) => setAnchor((a) => shiftLeadPeriodAnchor(type, a, direction))}
+        stepDisabled={customActive}
+      />
+      <DateRangeFilter
+        from={customFrom}
+        to={customTo}
+        onApply={(from, to) => {
+          setCustomFrom(from);
+          setCustomTo(to);
+        }}
+      />
+    </>
   );
-  return { filtered, control, isAll: type === "all" };
+  return { filtered, control, isAll: !customActive && type === "all" };
 }
 
 const STATUS_TONES: Record<string, "success" | "warning" | "neutral"> = {

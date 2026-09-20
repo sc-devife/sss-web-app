@@ -1,0 +1,12 @@
+import { Card } from "@/components/ui/Card";
+import { SalesReportsPanel } from "@/components/reports/SalesReportsPanel";
+
+export default function Page() {
+  return (
+    <Card variant="page" className="flex min-h-full flex-col gap-4">
+      <div className="min-h-0 flex-1">
+        <SalesReportsPanel />
+      </div>
+    </Card>
+  );
+}

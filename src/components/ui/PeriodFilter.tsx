@@ -50,17 +50,20 @@ export function PeriodFilter({
   label,
   onTypeChange,
   onStep,
+  stepDisabled = false,
 }: {
   type: LeadPeriodType;
   /** Current period's display label; empty for "all". */
   label: string;
   onTypeChange: (value: LeadPeriodType) => void;
   onStep: (direction: 1 | -1) => void;
+  /** Disables prev/next even for a steppable type — e.g. while a custom date range overrides the period. */
+  stepDisabled?: boolean;
 }) {
   return (
     <>
       <div className="flex items-center gap-1">
-        <PeriodStepButton direction="prev" label={`Previous ${type}`} onClick={() => onStep(-1)} disabled={type === "all"} />
+        <PeriodStepButton direction="prev" label={`Previous ${type}`} onClick={() => onStep(-1)} disabled={type === "all" || stepDisabled} />
         <ToolbarSelect
           label="Period"
           hideLabel
@@ -68,7 +71,7 @@ export function PeriodFilter({
           value={type}
           onChange={(v) => onTypeChange(v as LeadPeriodType)}
         />
-        <PeriodStepButton direction="next" label={`Next ${type}`} onClick={() => onStep(1)} disabled={type === "all"} />
+        <PeriodStepButton direction="next" label={`Next ${type}`} onClick={() => onStep(1)} disabled={type === "all" || stepDisabled} />
       </div>
       {label && <span className="text-sm text-muted-foreground">{label}</span>}
     </>

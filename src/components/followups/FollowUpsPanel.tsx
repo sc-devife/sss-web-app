@@ -5,8 +5,9 @@ import Link from "next/link";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { Body } from "@/components/ui/Typography";
+import { DateRangeFilter } from "@/components/ui/DateRangeFilter";
 import { cn } from "@/lib/cn";
-import { formatDisplayDateTime } from "@/lib/date";
+import { formatDisplayDate, formatDisplayDateTime } from "@/lib/date";
 import type { FollowUp, FollowUpFilter, FollowUpStatus } from "@/features/followups/types";
 import { FOLLOWUP_STATUS_OPTIONS } from "@/features/followups/types";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -75,6 +76,11 @@ export function FollowUpsPanel() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filter, setFilter] = useState<FollowUpFilter>("today");
+  // Dates filter ("YYYY-MM-DD" or ""): a Day is from === to, a range has both
+  // (or either, open-ended). When set it replaces the quick filter above.
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const datesActive = Boolean(dateFrom || dateTo);
   const [page, setPage] = useState(0);
   const [updatingUid, setUpdatingUid] = useState<string | null>(null);
 
@@ -91,17 +97,40 @@ export function FollowUpsPanel() {
     setPage(0);
   }
 
+  // Picking a quick filter hands control back from the Dates filter.
   function handleFilterChange(next: FollowUpFilter) {
     setFilter(next);
+    setDateFrom("");
+    setDateTo("");
     setPage(0);
   }
 
+  function handleDatesApply(from: string, to: string) {
+    setDateFrom(from);
+    setDateTo(to);
+    setPage(0);
+  }
+
+  const datesLabel = !datesActive
+    ? ""
+    : dateFrom && dateTo
+      ? dateFrom === dateTo
+        ? formatDisplayDate(dateFrom)
+        : `${formatDisplayDate(dateFrom)} – ${formatDisplayDate(dateTo)}`
+      : dateFrom
+        ? `From ${formatDisplayDate(dateFrom)}`
+        : `Until ${formatDisplayDate(dateTo)}`;
+
   useEffect(() => {
-    dispatch(fetchFollowUps({ search: debouncedSearch || undefined, filter, page, size: PAGE_SIZE }));
-  }, [dispatch, debouncedSearch, filter, page]);
+    dispatch(
+      fetchFollowUps({ search: debouncedSearch || undefined, filter, from: dateFrom || undefined, to: dateTo || undefined, page, size: PAGE_SIZE }),
+    );
+  }, [dispatch, debouncedSearch, filter, dateFrom, dateTo, page]);
 
   function refetchCurrentPage() {
-    dispatch(fetchFollowUps({ search: debouncedSearch || undefined, filter, page, size: PAGE_SIZE }));
+    dispatch(
+      fetchFollowUps({ search: debouncedSearch || undefined, filter, from: dateFrom || undefined, to: dateTo || undefined, page, size: PAGE_SIZE }),
+    );
   }
 
   function openEdit(followUp: FollowUp) {
@@ -202,10 +231,10 @@ export function FollowUpsPanel() {
                   key={opt.value}
                   type="button"
                   onClick={() => handleFilterChange(opt.value)}
-                  aria-pressed={filter === opt.value}
+                  aria-pressed={!datesActive && filter === opt.value}
                   className={cn(
                     "flex h-7 items-center rounded-full px-3 text-sm font-medium transition-colors",
-                    filter === opt.value
+                    !datesActive && filter === opt.value
                       ? "bg-primary text-primary-foreground"
                       : "bg-[#f8f8fa] text-foreground hover:border-primary/30 border border-transparent",
                   )}
@@ -213,6 +242,8 @@ export function FollowUpsPanel() {
                   {opt.label}
                 </button>
               ))}
+              <DateRangeFilter from={dateFrom} to={dateTo} onApply={handleDatesApply} label="Dates" withDay toLabel="End Date" />
+              {datesLabel && <span className="text-sm text-muted-foreground">{datesLabel}</span>}
             </div>
           }
         />
