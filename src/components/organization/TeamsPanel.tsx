@@ -14,6 +14,7 @@ import { Body, Caption, Heading } from "@/components/ui/Typography";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import type { Team } from "@/lib/teams";
+import { maxConcurrentOptions } from "@/lib/max-concurrent";
 import type { EscapePoint } from "@/lib/escape-points";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
@@ -25,6 +26,8 @@ import { fetchUsers } from "@/features/users/usersThunks";
 import { selectOrgUsers } from "@/features/users/usersSelectors";
 import { FaPlus, FaUsers } from "react-icons/fa";
 import { PiUsersThreeFill } from "react-icons/pi";
+
+const MAX_CONCURRENT_PRESETS = [5, 10, 15, 20, 50, 100];
 
 const emptyForm = {
   name: "",
@@ -176,7 +179,7 @@ export function TeamsPanel({ escapePoints }: { escapePoints: EscapePoint[] }) {
       <div className="flex justify-end">
         <Button onClick={openCreate}>
           <FaPlus />
-          Add team
+          Add Team
         </Button>
       </div>
 
@@ -265,20 +268,34 @@ export function TeamsPanel({ escapePoints }: { escapePoints: EscapePoint[] }) {
           if (saving) return;
           setModalOpen(false);
         }}
-        title={editing ? "Edit team" : "Add team"}
+        title={editing ? "Edit Team" : "Add Team"}
+        className="max-w-xl"
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <fieldset disabled={saving} className="contents">
-            <TextInput
-              label="Name"
-              value={form.name}
-              onChange={(e) => {
-                update("name", e.target.value);
-                setErrors((p) => ({ ...p, name: "" }));
-              }}
-              error={errors.name}
-              required
-            />
+            {/* Order: who (name + lead), what it is (description), what it
+                covers (specialization), then capacity and status. */}
+            <div className="grid grid-cols-2 gap-3">
+              <TextInput
+                label="Name"
+                value={form.name}
+                onChange={(e) => {
+                  update("name", e.target.value);
+                  setErrors((p) => ({ ...p, name: "" }));
+                }}
+                error={errors.name}
+                required
+              />
+
+              <Select
+                label="Team lead"
+                options={users.map((u) => ({ value: String(u.seqp), label: u.name }))}
+                value={form.teamLeadUserId}
+                onChange={(e) => update("teamLeadUserId", e.target.value)}
+                placeholder="No team lead"
+                searchable
+              />
+            </div>
 
             <TextInput label="Description" value={form.description} onChange={(e) => update("description", e.target.value)} />
 
@@ -291,33 +308,24 @@ export function TeamsPanel({ escapePoints }: { escapePoints: EscapePoint[] }) {
               onChange={(next) => update("specializedEscapePoints", next)}
             />
 
-            <Select
-              label="Team lead"
-              options={users.map((u) => ({ value: String(u.seqp), label: u.name }))}
-              value={form.teamLeadUserId}
-              onChange={(e) => update("teamLeadUserId", e.target.value)}
-              placeholder="No team lead"
-              searchable
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <Select
+                label="Max concurrent assignments (team-wide)"
+                options={maxConcurrentOptions(form.maxConcurrentAssignments, MAX_CONCURRENT_PRESETS, "No Limit")}
+                value={form.maxConcurrentAssignments}
+                onChange={(e) => update("maxConcurrentAssignments", e.target.value)}
+              />
 
-            <TextInput
-              label="Max concurrent assignments (team-wide)"
-              type="number"
-              min={0}
-              value={form.maxConcurrentAssignments}
-              onChange={(e) => update("maxConcurrentAssignments", e.target.value)}
-              placeholder="No cap"
-            />
-
-            <Select
-              label="Status"
-              options={[
-                { value: "ACTIVE", label: "Active" },
-                { value: "INACTIVE", label: "Inactive" },
-              ]}
-              value={form.status}
-              onChange={(e) => update("status", e.target.value)}
-            />
+              <Select
+                label="Status"
+                options={[
+                  { value: "ACTIVE", label: "Active" },
+                  { value: "INACTIVE", label: "Inactive" },
+                ]}
+                value={form.status}
+                onChange={(e) => update("status", e.target.value)}
+              />
+            </div>
           </fieldset>
 
           {formError && (
@@ -331,7 +339,7 @@ export function TeamsPanel({ escapePoints }: { escapePoints: EscapePoint[] }) {
               Cancel
             </Button>
             <Button type="submit" disabled={saving || (!!editing && !isDirty)} loading={saving} loadingText="Saving…" className="w-full">
-              Save team
+              Save Team
             </Button>
           </div>
         </form>

@@ -12,7 +12,7 @@ import type { EscapePoint } from "@/lib/escape-points";
 import type { ReferenceOption } from "@/lib/reference-data";
 import { fetchCountryOptions } from "@/lib/reference-data-client";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
-import { useIsDirty, chunkPairs } from "@/lib/forms";
+import { useIsDirty } from "@/lib/forms";
 import { required, runValidators, emailField, countryCodeField, mobileField } from "@/lib/validators";
 import { useAppDispatch } from "@/store/hooks";
 import { createServiceProvider, updateServiceProvider } from "@/features/serviceProviders/serviceProvidersThunks";
@@ -151,61 +151,52 @@ export function ServiceProviderFormModal({
     }
   }
 
-  // One flat, ordered list — chunkPairs() below groups it into 2-per-row,
-  // so the Type-dependent field(s) always reflow into whatever comes next
-  // (Country/Status) instead of leaving a gap next to them.
-  const formFields = [
-    <TextInput key="contactName" label="Contact Name" value={form.contactName} onChange={(e) => update("contactName", e.target.value)} />,
-    <PhoneInput
-      key="contactNumber"
-      label="Contact Number"
-      value={form.contactNumber}
-      onChange={(v) => {
-        update("contactNumber", v);
-        setErrors((p) => ({ ...p, contactNumber: "" }));
-      }}
-      error={errors.contactNumber}
-    />,
-    <TextInput
-      key="contactEmail"
-      label="Contact Email"
-      type="email"
-      value={form.contactEmail}
-      onChange={(e) => {
-        update("contactEmail", e.target.value);
-        setErrors((p) => ({ ...p, contactEmail: "" }));
-      }}
-      error={errors.contactEmail}
-    />,
-    <Select
-      key="escapePoint"
-      label="Escape Point"
-      options={escapePoints.map((ep) => ({ value: ep.uid, label: ep.name }))}
-      value={form.escapePointId}
-      onChange={(e) => update("escapePointId", e.target.value)}
-      placeholder={escapePoints.length ? "Select an escape point" : "No escape points added yet"}
-      searchable
-    />,
-    <TextInput
-      key="name"
-      label="Company Name"
-      value={form.name}
-      onChange={(e) => {
-        update("name", e.target.value);
-        setErrors((p) => ({ ...p, name: "" }));
-      }}
-      error={errors.name}
-      required
-    />,
-    <Select
-      key="typeCode"
-      label="Type"
-      options={SERVICE_PROVIDER_TYPE_OPTIONS}
-      value={form.typeCode}
-      onChange={(e) => update("typeCode", e.target.value)}
-      searchable
-    />,
-    ...(form.typeCode === "other"
+  // Ordered rows of fields: the company (name + type), where it operates
+  // (country + escape point), the Type-dependent quantity (plus "Specify
+  // Other" for the Other type), then the contact person, then status. A row
+  // with one field keeps the left half.
+  const formRows: React.ReactNode[][] = [
+    [
+      <TextInput
+        key="name"
+        label="Company Name"
+        value={form.name}
+        onChange={(e) => {
+          update("name", e.target.value);
+          setErrors((p) => ({ ...p, name: "" }));
+        }}
+        error={errors.name}
+        required
+      />,
+      <Select
+        key="typeCode"
+        label="Type"
+        options={SERVICE_PROVIDER_TYPE_OPTIONS}
+        value={form.typeCode}
+        onChange={(e) => update("typeCode", e.target.value)}
+        searchable
+      />,
+    ],
+    [
+      <Select
+        key="countryCode"
+        label="Country"
+        options={countryOptions.map((c) => ({ value: c.code, label: c.label }))}
+        value={form.countryCode}
+        onChange={(e) => update("countryCode", e.target.value)}
+        placeholder="Select a country"
+      />,
+      <Select
+        key="escapePoint"
+        label="Escape Point"
+        options={escapePoints.map((ep) => ({ value: ep.uid, label: ep.name }))}
+        value={form.escapePointId}
+        onChange={(e) => update("escapePointId", e.target.value)}
+        placeholder={escapePoints.length ? "Select an escape point" : "No escape points added yet"}
+        searchable
+      />,
+    ],
+    form.typeCode === "other"
       ? [
         <TextInput
           key="otherTypeLabel"
@@ -231,25 +222,43 @@ export function ServiceProviderFormModal({
           value={form.quantity}
           onChange={(e) => update("quantity", e.target.value)}
         />,
-      ]),
-    <Select
-      key="countryCode"
-      label="Country"
-      options={countryOptions.map((c) => ({ value: c.code, label: c.label }))}
-      value={form.countryCode}
-      onChange={(e) => update("countryCode", e.target.value)}
-      placeholder="Select a country"
-    />,
-    <Select
-      key="status"
-      label="Status"
-      options={[
-        { value: "active", label: "Active" },
-        { value: "inactive", label: "Inactive" },
-      ]}
-      value={form.status}
-      onChange={(e) => update("status", e.target.value)}
-    />,
+      ],
+    [
+      <TextInput key="contactName" label="Contact Name" value={form.contactName} onChange={(e) => update("contactName", e.target.value)} />,
+      <PhoneInput
+        key="contactNumber"
+        label="Contact Number"
+        value={form.contactNumber}
+        onChange={(v) => {
+          update("contactNumber", v);
+          setErrors((p) => ({ ...p, contactNumber: "" }));
+        }}
+        error={errors.contactNumber}
+      />,
+    ],
+    [
+      <TextInput
+        key="contactEmail"
+        label="Contact Email"
+        type="email"
+        value={form.contactEmail}
+        onChange={(e) => {
+          update("contactEmail", e.target.value);
+          setErrors((p) => ({ ...p, contactEmail: "" }));
+        }}
+        error={errors.contactEmail}
+      />,
+      <Select
+        key="status"
+        label="Status"
+        options={[
+          { value: "active", label: "Active" },
+          { value: "inactive", label: "Inactive" },
+        ]}
+        value={form.status}
+        onChange={(e) => update("status", e.target.value)}
+      />,
+    ],
   ];
 
   return (
@@ -260,12 +269,13 @@ export function ServiceProviderFormModal({
         onClose();
       }}
       title={provider ? "Edit Service Provider" : "Add Service Provider"}
+      className="max-w-xl"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <fieldset disabled={saving} className="contents">
-          {chunkPairs(formFields).map((pair, i) => (
+          {formRows.map((fields, i) => (
             <div key={i} className="grid grid-cols-2 gap-3">
-              {pair}
+              {fields}
             </div>
           ))}
         </fieldset>
@@ -281,7 +291,7 @@ export function ServiceProviderFormModal({
             Cancel
           </Button>
           <Button type="submit" disabled={saving || (!!provider && !isDirty)} loading={saving} loadingText="Saving…" className="w-full">
-            Save service provider
+            Save Service Provider
           </Button>
         </div>
       </form>

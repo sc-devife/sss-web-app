@@ -32,6 +32,10 @@ export interface EscapePoint {
   // relation, not from reference-data code lookups.
   locations: EscapePointLocationRef[];
   locationLabel: string;
+  // Non-archived hotels / activities linked to this destination. Optional
+  // because only the Escape Points list endpoint fills them in.
+  hotelCount?: number | null;
+  activityCount?: number | null;
 }
 
 export async function getEscapePoints(): Promise<EscapePoint[]> {

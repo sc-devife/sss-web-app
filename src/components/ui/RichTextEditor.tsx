@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useEditor, EditorContent, type Editor } from "@tiptap/react";
+import { useEditor, EditorContent, Extension, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import {
@@ -22,6 +22,41 @@ interface RichTextEditorProps {
   placeholder?: string;
   className?: string;
   error?: string;
+}
+
+// Heading / bullet list / numbered list apply to a whole block, so a line
+// typed after a soft line break (<br>) is still part of the same paragraph and
+// would be formatted together with the lines around it. Every line therefore
+// needs to be its own block:
+//  - Shift+Enter behaves exactly like Enter (new paragraph / new list item)
+//    instead of inserting a soft break, and
+//  - content saved earlier with <br>-separated lines is split into one
+//    paragraph per line when loaded.
+const ShiftEnterNewBlock = Extension.create({
+  name: "shiftEnterNewBlock",
+  priority: 1000,
+  addKeyboardShortcuts() {
+    // Same command chain the Enter key runs (list item split first, then the
+    // core paragraph/block ones).
+    return {
+      "Shift-Enter": () =>
+        this.editor.commands.first(({ commands }) => [
+          () => commands.splitListItem("listItem"),
+          () => commands.newlineInCode(),
+          () => commands.createParagraphNear(),
+          () => commands.liftEmptyBlock(),
+          () => commands.splitBlock(),
+        ]),
+    };
+  },
+});
+
+function splitSoftBreaks(html: string): string {
+  return html.replace(/<p>([\s\S]*?)<\/p>/g, (whole, inner: string) => {
+    if (!/<br\s*\/?>/i.test(inner)) return whole;
+    const lines = inner.split(/<br\s*\/?>/i).filter((line) => line.replace(/<[^>]*>/g, "").trim() !== "");
+    return lines.length > 0 ? lines.map((line) => `<p>${line}</p>`).join("") : "<p></p>";
+  });
 }
 
 function ToolbarButton({
@@ -125,8 +160,8 @@ export function RichTextEditor({ label, value, onChange, placeholder, className,
 
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: [StarterKit, Underline],
-    content: value || "",
+    extensions: [StarterKit, Underline, ShiftEnterNewBlock],
+    content: splitSoftBreaks(value || ""),
     editorProps: {
       attributes: {
         class: "prose-editor min-h-[10rem] max-w-none px-3 py-2 text-sm text-foreground focus:outline-none",
@@ -141,7 +176,7 @@ export function RichTextEditor({ label, value, onChange, placeholder, className,
   useEffect(() => {
     if (!editor || editor.isFocused) return;
     if (value !== editor.getHTML()) {
-      editor.commands.setContent(value || "");
+      editor.commands.setContent(splitSoftBreaks(value || ""));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, editor]);

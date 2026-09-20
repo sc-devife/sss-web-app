@@ -14,6 +14,9 @@ export interface Activity {
   // Vendor/supplier email — recipient for the "Send Booking Email"
   // booking-request flow (see ActivityBookingEmailModal).
   email: string | null;
+  contactNumber: string | null;
+  // Rich-text HTML (RichTextEditor output).
+  rulesAndPolicies: string | null;
   // This activity vendor's own payout details (bank account and/or UPI) —
   // same shape/purpose as Hotel's own Account tab. All optional.
   accountHolderName: string | null;

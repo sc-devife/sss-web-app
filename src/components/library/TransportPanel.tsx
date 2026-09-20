@@ -16,7 +16,7 @@ import type { Transport } from "@/lib/transports";
 import type { ServiceProvider } from "@/lib/service-providers";
 import type { EscapePoint } from "@/lib/escape-points";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
-import { useIsDirty, chunkPairs } from "@/lib/forms";
+import { useIsDirty } from "@/lib/forms";
 import { positiveNumber, required, requiredSelection, runValidators, emailField, countryCodeField, mobileField } from "@/lib/validators";
 import { cn } from "@/lib/cn";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -305,51 +305,13 @@ export function TransportPanel({
   // One flat, ordered list — chunkPairs() below groups it into 2-per-row, so
   // Provider (hidden for a Single Vehicle Owner) never leaves a gap next to
   // Mode: whichever field comes next always reflows up into its place.
-  const formFields = [
-    <TextInput
-      key="contactName"
-      label="Contact Name"
-      value={form.contactName}
-      onChange={(e) => {
-        update("contactName", e.target.value);
-        setErrors((p) => ({ ...p, contactName: "" }));
-      }}
-      error={errors.contactName}
-      required={form.ownerType === "single"}
-    />,
-    <PhoneInput
-      key="contactNumber"
-      label="Contact Number"
-      value={form.contactNumber}
-      onChange={(v) => {
-        update("contactNumber", v);
-        setErrors((p) => ({ ...p, contactNumber: "" }));
-      }}
-      error={errors.contactNumber}
-      required={form.ownerType === "single"}
-    />,
-    <TextInput
-      key="contactEmail"
-      label="Contact Email"
-      type="email"
-      value={form.contactEmail}
-      onChange={(e) => {
-        update("contactEmail", e.target.value);
-        setErrors((p) => ({ ...p, contactEmail: "" }));
-      }}
-      error={errors.contactEmail}
-    />,
-    <Select
-      key="escapePoint"
-      label="Escape Point"
-      options={escapePoints.map((d) => ({ value: d.uid, label: d.name }))}
-      value={form.escapePointId}
-      onChange={(e) => update("escapePointId", e.target.value)}
-      placeholder={escapePoints.length ? "Select an escape point" : "No escape points added yet"}
-      searchable
-    />,
+  // Ordered rows of fields: owner details first (the Provider, hidden for a
+  // Single Vehicle Owner, gets a full-width row of its own so nothing reflows
+  // around it), then the vehicle, then the route, then status. A row with one
+  // field spans the full width.
+  const formRows: React.ReactNode[][] = [
     ...(form.ownerType === "multi"
-      ? [
+      ? [[
         <Select
           key="providerId"
           label="Provider"
@@ -364,73 +326,129 @@ export function TransportPanel({
           searchable
           required
         />,
-      ]
+      ]]
       : []),
-    <Select
-      key="modeCode"
-      label="Mode"
-      options={MODE_OPTIONS}
-      value={form.modeCode}
-      onChange={(e) => {
-        update("modeCode", e.target.value);
-        update("vehicleTypeCode", "");
-        setErrors((p) => ({ ...p, modeCode: "" }));
-      }}
-      error={errors.modeCode}
-      placeholder="Select mode"
-    />,
-    <Select
-      key="vehicleTypeCode"
-      label="Vehicle type"
-      options={vehicleTypeOptions}
-      value={form.vehicleTypeCode}
-      onChange={(e) => update("vehicleTypeCode", e.target.value)}
-      placeholder={vehicleTypeOptions.length ? "Select vehicle type" : "Not applicable"}
-      disabled={!vehicleTypeOptions.length}
-    />,
-    <TextInput key="vehicleNumber" label="Vehicle Number" value={form.vehicleNumber} onChange={(e) => update("vehicleNumber", e.target.value)} />,
-    <TextInput
-      key="capacity"
-      label="Capacity"
-      type="number"
-      min={1}
-      value={form.capacity}
-      onChange={(e) => {
-        update("capacity", e.target.value);
-        setErrors((p) => ({ ...p, capacity: "" }));
-      }}
-      error={errors.capacity}
-    />,
-    <TextInput
-      key="pickupLocation"
-      label="Pickup Location"
-      value={form.pickupLocation}
-      onChange={(e) => update("pickupLocation", e.target.value)}
-    />,
-    <TextInput key="dropLocation" label="Drop Location" value={form.dropLocation} onChange={(e) => update("dropLocation", e.target.value)} />,
-    <TextInput
-      key="basePrice"
-      label="Base price (INR)"
-      type="number"
-      min={0}
-      step="0.01"
-      value={form.basePrice}
-      onChange={(e) => {
-        update("basePrice", e.target.value);
-        setErrors((p) => ({ ...p, basePrice: "" }));
-      }}
-      error={errors.basePrice}
-    />,
-    <Select
-      key="status"
-      label="Status"
-      options={[
-        { value: "active", label: "Active" },
-        { value: "inactive", label: "Inactive" },
-      ]}
-      value={form.status}
-      onChange={(e) => update("status", e.target.value)}
-    />,
+    [
+      <TextInput
+        key="contactName"
+        label="Contact Name"
+        value={form.contactName}
+        onChange={(e) => {
+          update("contactName", e.target.value);
+          setErrors((p) => ({ ...p, contactName: "" }));
+        }}
+        error={errors.contactName}
+        required={form.ownerType === "single"}
+      />,
+      <PhoneInput
+        key="contactNumber"
+        label="Contact Number"
+        value={form.contactNumber}
+        onChange={(v) => {
+          update("contactNumber", v);
+          setErrors((p) => ({ ...p, contactNumber: "" }));
+        }}
+        error={errors.contactNumber}
+        required={form.ownerType === "single"}
+      />,
+    ],
+    [
+      <TextInput
+        key="contactEmail"
+        label="Contact Email"
+        type="email"
+        value={form.contactEmail}
+        onChange={(e) => {
+          update("contactEmail", e.target.value);
+          setErrors((p) => ({ ...p, contactEmail: "" }));
+        }}
+        error={errors.contactEmail}
+      />,
+    ],
+    [
+      <Select
+        key="escapePoint"
+        label="Escape Point"
+        options={escapePoints.map((d) => ({ value: d.uid, label: d.name }))}
+        value={form.escapePointId}
+        onChange={(e) => update("escapePointId", e.target.value)}
+        placeholder={escapePoints.length ? "Select an escape point" : "No escape points added yet"}
+        searchable
+      />,
+      <Select
+        key="modeCode"
+        label="Mode"
+        options={MODE_OPTIONS}
+        value={form.modeCode}
+        onChange={(e) => {
+          update("modeCode", e.target.value);
+          update("vehicleTypeCode", "");
+          setErrors((p) => ({ ...p, modeCode: "" }));
+        }}
+        error={errors.modeCode}
+        placeholder="Select mode"
+      />,
+    ],
+    [
+      <Select
+        key="vehicleTypeCode"
+        label="Vehicle type"
+        options={vehicleTypeOptions}
+        value={form.vehicleTypeCode}
+        onChange={(e) => update("vehicleTypeCode", e.target.value)}
+        placeholder={vehicleTypeOptions.length ? "Select vehicle type" : "Not applicable"}
+        disabled={!vehicleTypeOptions.length}
+      />,
+      <TextInput key="vehicleNumber" label="Vehicle Number" value={form.vehicleNumber} onChange={(e) => update("vehicleNumber", e.target.value)} />,
+    ],
+    [
+      <TextInput
+        key="capacity"
+        label="Capacity"
+        type="number"
+        min={1}
+        value={form.capacity}
+        onChange={(e) => {
+          update("capacity", e.target.value);
+          setErrors((p) => ({ ...p, capacity: "" }));
+        }}
+        error={errors.capacity}
+      />,
+      <TextInput
+        key="basePrice"
+        label="Base price (INR)"
+        type="number"
+        min={0}
+        step="0.01"
+        value={form.basePrice}
+        onChange={(e) => {
+          update("basePrice", e.target.value);
+          setErrors((p) => ({ ...p, basePrice: "" }));
+        }}
+        error={errors.basePrice}
+      />,
+    ],
+    [
+      <TextInput
+        key="pickupLocation"
+        label="Pickup Location"
+        value={form.pickupLocation}
+        onChange={(e) => update("pickupLocation", e.target.value)}
+      />,
+      <TextInput key="dropLocation" label="Drop Location" value={form.dropLocation} onChange={(e) => update("dropLocation", e.target.value)} />,
+    ],
+    [
+      <Select
+        key="status"
+        label="Status"
+        options={[
+          { value: "active", label: "Active" },
+          { value: "inactive", label: "Inactive" },
+        ]}
+        value={form.status}
+        onChange={(e) => update("status", e.target.value)}
+      />,
+    ],
   ];
 
   return (
@@ -506,6 +524,7 @@ export function TransportPanel({
           setModalOpen(false);
         }}
         title={editing ? "Edit Transport" : "Add Transport"}
+        className="max-w-xl"
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <fieldset disabled={saving} className="contents">
@@ -534,9 +553,9 @@ export function TransportPanel({
               </div>
             </div>
 
-            {chunkPairs(formFields).map((pair, i) => (
-              <div key={i} className="grid grid-cols-2 gap-3">
-                {pair}
+            {formRows.map((fields, i) => (
+              <div key={i} className={cn("grid gap-3", fields.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
+                {fields}
               </div>
             ))}
           </fieldset>
@@ -552,7 +571,7 @@ export function TransportPanel({
               Cancel
             </Button>
             <Button type="submit" disabled={saving || (!!editing && !isDirty)} loading={saving} loadingText="Saving…" className="w-full">
-              Save transport
+              Save Transport
             </Button>
           </div>
         </form>

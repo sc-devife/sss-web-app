@@ -440,6 +440,12 @@ export function HotelDetailPanel({
     }
   }
 
+  // Each section only renders when it has content. The rich-text editor
+  // leaves markup behind when cleared (e.g. "<p></p>"), so strip tags before
+  // deciding it's empty.
+  const aboutText = hotel.about?.trim() ?? "";
+  const hasRules = (hotel.rulesAndPolicies ?? "").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim() !== "";
+
   return (
     <Card variant="page" className="flex min-h-full flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
@@ -538,29 +544,53 @@ export function HotelDetailPanel({
         </div>
       </div>
 
-      {hotel.mealPlans && hotel.mealPlans.length > 0 && (
-        <div className="rounded-xl border border-border bg-muted/20 p-4">
-          <Caption className="font-semibold">Meal Plans</Caption>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {hotel.mealPlans.map((m) => (
-              <Badge key={m.uid} tone="neutral">
-                {m.code}
-              </Badge>
-            ))}
-          </div>
+      {/* Meal Plans and Amenities share a row on desktop (lg+, justified to
+          opposite edges, equal width) and stack on tablet and below. A lone
+          card simply takes the full row. */}
+      {((hotel.mealPlans && hotel.mealPlans.length > 0) || (hotel.amenities && hotel.amenities.length > 0)) && (
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:justify-between">
+          {hotel.mealPlans && hotel.mealPlans.length > 0 && (
+            <div className="rounded-xl border border-border bg-muted/20 p-4 lg:flex-1">
+              <Caption className="font-semibold">Meal Plans</Caption>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {hotel.mealPlans.map((m) => (
+                  <Badge key={m.uid} tone="neutral">
+                    {m.code}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {hotel.amenities && hotel.amenities.length > 0 && (
+            <div className="rounded-xl border border-border bg-muted/20 p-4 lg:flex-1">
+              <Caption className="font-semibold">Amenities</Caption>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {hotel.amenities.map((a) => (
+                  <Badge key={a} tone="neutral">
+                    {a}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {hotel.amenities && hotel.amenities.length > 0 && (
+      {aboutText && (
         <div className="rounded-xl border border-border bg-muted/20 p-4">
-          <Caption className="font-semibold">Amenities</Caption>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {hotel.amenities.map((a) => (
-              <Badge key={a} tone="neutral">
-                {a}
-              </Badge>
-            ))}
-          </div>
+          <Caption className="font-semibold">About</Caption>
+          <p className="mt-2 whitespace-pre-line text-sm text-foreground">{aboutText}</p>
+        </div>
+      )}
+
+      {hasRules && (
+        <div className="rounded-xl border border-border bg-muted/20 p-4">
+          <Caption className="font-semibold">Rules and Policies</Caption>
+          <div
+            className="prose-content mt-2 text-sm text-foreground"
+            dangerouslySetInnerHTML={{ __html: hotel.rulesAndPolicies ?? "" }}
+          />
         </div>
       )}
 

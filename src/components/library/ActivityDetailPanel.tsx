@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/cn";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -307,6 +308,13 @@ export function ActivityDetailPanel({
     setEmailModalItineraryItemUid(itineraryItemUid);
   }
 
+  // Each of these only renders when it has content. The rich-text editor
+  // leaves markup behind when cleared (e.g. "<p></p>"), so strip tags before
+  // deciding Rules and Policies is empty.
+  const contactNumber = activity.contactNumber?.trim() ?? "";
+  const email = activity.email?.trim() ?? "";
+  const hasRules = (activity.rulesAndPolicies ?? "").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim() !== "";
+
   return (
     <Card variant="page" className="flex min-h-full flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
@@ -386,6 +394,33 @@ export function ActivityDetailPanel({
           {activity.description || "No description available."}
         </Body>
       </div>
+
+      {hasRules && (
+        <div className="rounded-xl border border-border bg-muted/20 p-4">
+          <Caption>Rules and Policies</Caption>
+          <div
+            className="prose-content mt-2 text-sm text-foreground"
+            dangerouslySetInnerHTML={{ __html: activity.rulesAndPolicies ?? "" }}
+          />
+        </div>
+      )}
+
+      {(contactNumber || email) && (
+        <div className={cn("grid grid-cols-1 gap-3", contactNumber && email && "md:grid-cols-2")}>
+          {contactNumber && (
+            <div className="rounded-xl border border-border bg-muted/20 p-4">
+              <Caption>Contact Number</Caption>
+              <Body className="mt-1">{contactNumber}</Body>
+            </div>
+          )}
+          {email && (
+            <div className="rounded-xl border border-border bg-muted/20 p-4">
+              <Caption>Email</Caption>
+              <Body className="mt-1 break-all">{email}</Body>
+            </div>
+          )}
+        </div>
+      )}
 
       {images.length > 1 && (
         <div>

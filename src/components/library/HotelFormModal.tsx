@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import dynamic from "next/dynamic";
 import { IoTrashOutline } from "react-icons/io5";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
@@ -12,7 +13,6 @@ import { MultiSelectSearch } from "@/components/ui/MultiSelectSearch";
 import { Modal } from "@/components/ui/Modal";
 import { FileUpload } from "@/components/ui/FileUpload";
 import { Alert } from "@/components/ui/Alert";
-import { Caption } from "@/components/ui/Typography";
 import type { Hotel } from "@/lib/hotels";
 import type { LibraryLocation } from "@/lib/locations";
 import type { EscapePoint } from "@/lib/escape-points";
@@ -28,6 +28,13 @@ import { fetchCountryOptions, fetchRegionOptions } from "@/lib/reference-data-cl
 import type { ReferenceOption } from "@/lib/reference-data-client";
 import { useAppDispatch } from "@/store/hooks";
 import { createHotel, updateHotel, fetchHotels } from "@/features/hotels/hotelsThunks";
+
+// Dynamically imported (TipTap/ProseMirror add ~90KB) so pages that never
+// open this form don't pay for it on first load.
+const RichTextEditor = dynamic(() => import("@/components/ui/RichTextEditor").then((m) => m.RichTextEditor), {
+  ssr: false,
+  loading: () => <div className="skeleton h-40 rounded border border-border" />,
+});
 
 // One repeatable "Room Types" row: a room type selection paired with this
 // hotel's own price/night for it — kept as a string in form state (same
@@ -45,7 +52,6 @@ const emptyForm = {
   checkInTime: "",
   checkOutTime: "",
   childAgeForExtraBed: "",
-  basePrice: "",
   rateValidFrom: "",
   rateValidTo: "",
   address: "",
@@ -55,6 +61,8 @@ const emptyForm = {
   amenities: [] as string[],
   status: "active",
   notes: "",
+  about: "",
+  rulesAndPolicies: "",
 };
 
 type FormState = typeof emptyForm;
@@ -104,7 +112,6 @@ function snapshotFromHotel(hotel: Hotel | null): FormState {
     checkInTime: hotel.checkInTime ?? "",
     checkOutTime: hotel.checkOutTime ?? "",
     childAgeForExtraBed: hotel.childAgeForExtraBed ?? "",
-    basePrice: hotel.basePrice != null ? String(hotel.basePrice) : "",
     rateValidFrom: hotel.rateValidFrom ?? "",
     rateValidTo: hotel.rateValidTo ?? "",
     address: hotel.address ?? "",
@@ -114,6 +121,8 @@ function snapshotFromHotel(hotel: Hotel | null): FormState {
     amenities: hotel.amenities ?? [],
     status: hotel.status ?? "active",
     notes: hotel.notes ?? "",
+    about: hotel.about ?? "",
+    rulesAndPolicies: hotel.rulesAndPolicies ?? "",
   };
 }
 
@@ -404,7 +413,6 @@ export function HotelFormModal({
         checkInTime: form.checkInTime || null,
         checkOutTime: form.checkOutTime || null,
         childAgeForExtraBed: form.childAgeForExtraBed,
-        basePrice: form.basePrice ? Number(form.basePrice) : null,
         rateValidFrom: form.rateValidFrom || null,
         rateValidTo: form.rateValidTo || null,
         address: form.address,
@@ -414,6 +422,8 @@ export function HotelFormModal({
         amenities: form.amenities,
         status: form.status,
         notes: form.notes,
+        about: form.about,
+        rulesAndPolicies: form.rulesAndPolicies,
       };
 
       if (hotel) {
@@ -439,6 +449,7 @@ export function HotelFormModal({
         onClose();
       }}
       title={hotel ? "Edit Hotel" : "Add Hotel"}
+      className="max-w-xl"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <fieldset disabled={saving} className="contents">
@@ -547,10 +558,68 @@ export function HotelFormModal({
             </div>
           )}
 
+          <TextInput label="Address" value={form.address} onChange={(e) => update("address", e.target.value)} />
+
+          <div className="grid grid-cols-2 gap-3">
+            <PhoneInput
+              label="Phone Number"
+              value={form.phoneNumber}
+              onChange={(v) => {
+                update("phoneNumber", v);
+                setErrors((p) => ({ ...p, phoneNumber: "" }));
+              }}
+              error={errors.phoneNumber}
+            />
+            <TextInput
+              label="Email"
+              type="email"
+              placeholder="e.g. reservations@hotel.com"
+              value={form.email}
+              onChange={(e) => {
+                update("email", e.target.value);
+                setErrors((p) => ({ ...p, email: "" }));
+              }}
+              error={errors.email}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <TimePicker
+              label="Check-in time"
+              value={form.checkInTime}
+              onChange={(v) => update("checkInTime", v)}
+            />
+            <TimePicker
+              label="Check-out time"
+              value={form.checkOutTime}
+              onChange={(v) => update("checkOutTime", v)}
+            />
+          </div>
+
+          <TextInput
+            label="Child extra-bed age policy"
+            placeholder="e.g. 6-12yo"
+            value={form.childAgeForExtraBed}
+            onChange={(e) => update("childAgeForExtraBed", e.target.value)}
+          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <DatePicker
+              label="Rate valid from"
+              value={form.rateValidFrom}
+              onChange={(v) => update("rateValidFrom", v)}
+            />
+            <DatePicker
+              label="Rate valid to"
+              value={form.rateValidTo}
+              onChange={(v) => update("rateValidTo", v)}
+            />
+          </div>
+
           <div className="flex flex-col gap-1.5">
             <MultiSelectSearch
               label="Meal plans"
-              placeholder="Search meal plans…"
+              placeholder="Search available meal plans"
               options={mealPlanOptions.map((m) => ({ value: m.uid, label: `${m.code} — ${m.name}` }))}
               value={form.mealPlanIds}
               onChange={(v) => update("mealPlanIds", v)}
@@ -561,7 +630,7 @@ export function HotelFormModal({
                 onClick={() => setAddingMealPlan(true)}
                 className="self-start text-sm text-primary hover:underline"
               >
-                + Add Meals
+                + Add New Meals
               </button>
             ) : (
               <div className="flex flex-col gap-3 rounded border border-border p-3">
@@ -616,7 +685,7 @@ export function HotelFormModal({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Caption>Room Types</Caption>
+            <span className="text-sm font-medium text-foreground">Room Types</span>
 
             {form.roomTypePricing.length > 0 && (
               <div className="flex flex-col gap-2">
@@ -726,7 +795,7 @@ export function HotelFormModal({
           <div className="flex flex-col gap-1.5">
             <MultiSelectSearch
               label="Services"
-              placeholder="Search services…"
+              placeholder="Search available services"
               options={serviceOptions.map((s) => ({ value: s.uid, label: s.name }))}
               value={form.serviceIds}
               onChange={(v) => update("serviceIds", v)}
@@ -737,7 +806,7 @@ export function HotelFormModal({
                 onClick={() => setAddingService(true)}
                 className="self-start text-sm text-primary hover:underline"
               >
-                + Add Services
+                + Add New Services
               </button>
             ) : (
               <div className="flex flex-col gap-3 rounded border border-border p-3">
@@ -792,74 +861,6 @@ export function HotelFormModal({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <TimePicker
-              label="Check-in time"
-              value={form.checkInTime}
-              onChange={(v) => update("checkInTime", v)}
-            />
-            <TimePicker
-              label="Check-out time"
-              value={form.checkOutTime}
-              onChange={(v) => update("checkOutTime", v)}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <TextInput
-              label="Base Price (INR)"
-              type="number"
-              min={0}
-              step="0.01"
-              placeholder="Starting rate shown in itinerary suggestions"
-              value={form.basePrice}
-              onChange={(e) => update("basePrice", e.target.value)}
-            />
-            <TextInput
-              label="Child extra-bed age policy"
-              placeholder="e.g. 6-12yo"
-              value={form.childAgeForExtraBed}
-              onChange={(e) => update("childAgeForExtraBed", e.target.value)}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <DatePicker
-              label="Rate valid from"
-              value={form.rateValidFrom}
-              onChange={(v) => update("rateValidFrom", v)}
-            />
-            <DatePicker
-              label="Rate valid to"
-              value={form.rateValidTo}
-              onChange={(v) => update("rateValidTo", v)}
-            />
-          </div>
-
-          <TextInput label="Address" value={form.address} onChange={(e) => update("address", e.target.value)} />
-          <div className="grid grid-cols-2 gap-3">
-            <PhoneInput
-              label="Phone Number"
-              value={form.phoneNumber}
-              onChange={(v) => {
-                update("phoneNumber", v);
-                setErrors((p) => ({ ...p, phoneNumber: "" }));
-              }}
-              error={errors.phoneNumber}
-            />
-            <TextInput
-              label="Email"
-              type="email"
-              placeholder="e.g. reservations@hotel.com"
-              value={form.email}
-              onChange={(e) => {
-                update("email", e.target.value);
-                setErrors((p) => ({ ...p, email: "" }));
-              }}
-              error={errors.email}
-            />
-          </div>
-
           <MultiSelectSearch
             label="Amenities"
             placeholder="Search amenities…"
@@ -867,6 +868,27 @@ export function HotelFormModal({
             value={form.amenities}
             onChange={(v) => update("amenities", v)}
             onCreateOption={handleCreateAmenity}
+          />
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="hotel-about" className="text-sm font-medium text-foreground">
+              About
+            </label>
+            <textarea
+              id="hotel-about"
+              value={form.about}
+              onChange={(e) => update("about", e.target.value)}
+              rows={4}
+              placeholder="A short description of the hotel"
+              className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+            />
+          </div>
+
+          <RichTextEditor
+            label="Rules and Policies"
+            value={form.rulesAndPolicies}
+            onChange={(html) => update("rulesAndPolicies", html)}
+            placeholder="Check-in rules, cancellation policy, house rules…"
           />
 
           <FileUpload label="Images" value={form.images} onChange={(images) => update("images", images)} />
@@ -899,7 +921,7 @@ export function HotelFormModal({
             Cancel
           </Button>
           <Button type="submit" disabled={saving || (!!hotel && !canSubmit)} loading={saving} loadingText="Saving…" className="w-full">
-            Save hotel
+            Save Hotel
           </Button>
         </div>
       </form>

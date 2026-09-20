@@ -32,6 +32,10 @@ export interface Hotel {
   amenities: string[] | null;
   status: string | null;
   notes: string | null;
+  // Plain-text blurb, and rich-text HTML (RichTextEditor output) — both
+  // edited on the Add/Edit Hotel form.
+  about: string | null;
+  rulesAndPolicies: string | null;
   // This hotel's own payout details (bank account and/or UPI), used when
   // settling a booking with the hotel directly — unrelated to the org's own
   // receivable bank accounts. All optional.

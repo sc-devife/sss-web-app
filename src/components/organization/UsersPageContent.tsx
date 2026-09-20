@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { PiUsersThree, PiClock } from "react-icons/pi";
+import { IoSearchOutline } from "react-icons/io5";
 import { Card } from "@/components/ui/Card";
 import { Heading, Body } from "@/components/ui/Typography";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -58,6 +59,22 @@ export function UsersPageContent() {
   const invitations = useAppSelector(selectPendingInvitations);
   const invitationsStatus = useAppSelector(selectPendingInvitationsStatus);
 
+  // Active Members search: name, email, phone, role or team, case-insensitive.
+  const [memberSearch, setMemberSearch] = useState("");
+  const memberQuery = memberSearch.trim().toLowerCase();
+  const visibleUsers = memberQuery
+    ? users.filter((u) =>
+        [
+          `${u.first_name ?? ""} ${u.last_name ?? ""}`,
+          u.name,
+          u.email,
+          u.contact_number,
+          ...u.roles.map((r) => r.role.label),
+          ...u.teams.map((t) => t.name),
+        ].some((v) => v?.toLowerCase().includes(memberQuery)),
+      )
+    : users;
+
   useEffect(() => {
     dispatch(fetchUsers());
     dispatch(fetchAssignableRoles());
@@ -93,7 +110,27 @@ export function UsersPageContent() {
           ) : usersStatus === "failed" ? (
             <Body className="text-danger">{usersError}</Body>
           ) : (
-            <UsersList users={users} roles={roles} teams={teams} />
+            <div className="flex flex-col gap-3">
+              {users.length > 0 && (
+                <div className="relative max-w-xs">
+                  <IoSearchOutline className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
+                  <input
+                    value={memberSearch}
+                    onChange={(e) => setMemberSearch(e.target.value)}
+                    placeholder="Search members…"
+                    aria-label="Search active members"
+                    className="h-8 w-full rounded-full border border-transparent bg-[#f8f8fa] pl-7 pr-3 text-sm text-foreground placeholder:text-[#9da3af] transition-colors focus-visible:border-primary/40 focus-visible:bg-background focus-visible:outline-none"
+                  />
+                </div>
+              )}
+              {users.length > 0 && visibleUsers.length === 0 ? (
+                <Body muted className="py-6 text-center">
+                  No members match your search.
+                </Body>
+              ) : (
+                <UsersList users={visibleUsers} roles={roles} teams={teams} />
+              )}
+            </div>
           )}
         </div>
       </Card>

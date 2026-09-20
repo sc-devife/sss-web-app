@@ -78,6 +78,18 @@ export function EscapePointsPanel({ locations }: { locations: LibraryLocation[] 
       filterValue: (d) => d.locationLabel,
     },
     {
+      key: "hotelCount",
+      header: "No. of Hotels",
+      render: (d) => d.hotelCount ?? 0,
+      sortValue: (d) => d.hotelCount ?? 0,
+    },
+    {
+      key: "activityCount",
+      header: "No. of Activities",
+      render: (d) => d.activityCount ?? 0,
+      sortValue: (d) => d.activityCount ?? 0,
+    },
+    {
       key: "status",
       header: "Status",
       render: (d) => <Badge tone={d.status === "archived" ? "danger" : "success"}>{d.status ?? "active"}</Badge>,

@@ -175,6 +175,21 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
     }
   }
 
+  // Plain text field wired to form state + its error; required unless flagged.
+  const textField = (key: keyof typeof emptyForm, label: string, required = true) => (
+    <TextInput
+      key={key}
+      label={label}
+      value={form[key]}
+      onChange={(e) => {
+        update(key, e.target.value);
+        setErrors((p) => ({ ...p, [key]: "" }));
+      }}
+      error={errors[key]}
+      required={required}
+    />
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-5 border-b border-border/70 pb-6 sm:flex-row sm:items-end sm:justify-between">
@@ -182,7 +197,7 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
           <Body className="max-w-2xl text-muted-foreground">Manage settlement accounts and keep your organization&apos;s banking details organized in one secure place.</Body>
         </div>
         <Button className="shrink-0" onClick={openAddModal}>
-          <FaPlus /> Add bank account
+          <FaPlus /> Add Bank Account
         </Button>
       </header>
 
@@ -205,7 +220,7 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
         <Card className="flex min-h-[280px] flex-col items-center justify-center gap-4 border-dashed border-border/80 bg-muted/20 p-8 text-center">
           <div className="flex size-14 items-center justify-center rounded-2xl border border-border bg-background text-primary shadow-sm"><FaUniversity className="size-6" /></div>
           <div className="flex flex-col gap-1"><Body className="font-semibold">No bank accounts yet</Body><Caption>Add your first settlement account to get started.</Caption></div>
-          <Button variant="secondary" size="sm" onClick={openAddModal}><FaPlus /> Add bank account</Button>
+          <Button variant="secondary" size="sm" onClick={openAddModal}><FaPlus /> Add Bank Account</Button>
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -259,33 +274,31 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
         </div>
       )}
 
-      <Modal open={showForm} onClose={closeAddModal} title="Add Bank Account" className="max-w-2xl">
+      <Modal open={showForm} onClose={closeAddModal} title="Add Bank Account" className="max-w-xl">
         <form onSubmit={handleAdd} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <fieldset disabled={saving} className="contents">
-            {(
-              [
-                ["accountName", "Account holder name"],
-                ["accountNumber", "Account number"],
-                ["bankName", "Bank name"],
-                ["bankShortName", "Bank short name"],
-                ["branchName", "Branch name"],
-                ["ifsc", "IFSC"],
-                ["swiftCode", "SWIFT code"],
-                ["micrCode", "MICR code"],
-              ] as const
-            ).map(([key, label]) => (
-              <TextInput
-                key={key}
-                label={label}
-                value={form[key]}
-                onChange={(e) => {
-                  update(key, e.target.value);
-                  setErrors((p) => ({ ...p, [key]: "" }));
-                }}
-                error={errors[key]}
-                required={key !== "swiftCode" && key !== "micrCode"}
-              />
-            ))}
+            {/* Order: account holder + number, the bank, routing codes (IFSC +
+                currency, then the optional SWIFT / MICR), then the branch
+                (name + country, state + city, address), then the default flag. */}
+            {textField("accountName", "Account holder name")}
+            {textField("accountNumber", "Account number")}
+            {textField("bankName", "Bank name")}
+            {textField("bankShortName", "Bank short name")}
+            {textField("ifsc", "IFSC")}
+            <TextInput
+              label="Currency"
+              value={form.currency}
+              onChange={(e) => {
+                update("currency", e.target.value.toUpperCase());
+                setErrors((p) => ({ ...p, currency: "" }));
+              }}
+              error={errors.currency}
+              required
+              maxLength={3}
+            />
+            {textField("swiftCode", "SWIFT code", false)}
+            {textField("micrCode", "MICR code", false)}
+            {textField("branchName", "Branch name")}
             {/* Stored/matched by country name, not code — this field held
                 free text before this dropdown, so existing saved values round-trip. */}
             <Select
@@ -315,27 +328,7 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
               disabled={!branchCountryCode}
               required
             />
-            <TextInput
-              label="Branch city"
-              value={form.branchCity}
-              onChange={(e) => {
-                update("branchCity", e.target.value);
-                setErrors((p) => ({ ...p, branchCity: "" }));
-              }}
-              error={errors.branchCity}
-              required
-            />
-            <TextInput
-              label="Currency"
-              value={form.currency}
-              onChange={(e) => {
-                update("currency", e.target.value.toUpperCase());
-                setErrors((p) => ({ ...p, currency: "" }));
-              }}
-              error={errors.currency}
-              required
-              maxLength={3}
-            />
+            {textField("branchCity", "Branch city")}
             <TextInput
               label="Branch address"
               value={form.branchAddress}
@@ -364,7 +357,7 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
               Cancel
             </Button>
             <Button type="submit" disabled={saving} loading={saving} loadingText="Saving…" className="w-full">
-              Save account
+              Save Account
             </Button>
           </div>
         </form>

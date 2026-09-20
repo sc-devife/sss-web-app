@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
 import { Body } from "@/components/ui/Typography";
 import type { Service } from "@/lib/services";
-import { formatInr } from "@/lib/currency";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
 import { required, runValidators } from "@/lib/validators";
@@ -18,7 +17,7 @@ import { fetchServices, createService, updateService, deleteService } from "@/fe
 import { selectServices, selectServicesStatus, selectServicesError } from "@/features/services/servicesSelectors";
 import { FaPlus } from "react-icons/fa";
 
-const emptyForm = { name: "", description: "", price: "", isActive: true };
+const emptyForm = { name: "", description: "", isActive: true };
 type FormState = typeof emptyForm;
 
 function validate(v: FormState): Record<string, string> {
@@ -65,7 +64,6 @@ export function ServicesPanel() {
     const snapshot: FormState = {
       name: service.name,
       description: service.description ?? "",
-      price: service.price != null ? String(service.price) : "",
       isActive: service.isActive,
     };
     setEditing(service);
@@ -94,7 +92,6 @@ export function ServicesPanel() {
       const payload = {
         name: form.name,
         description: form.description,
-        price: form.price ? Number(form.price) : null,
       };
       if (editing) {
         await dispatch(updateService({ uid: editing.uid, payload: { ...payload, isActive: form.isActive } })).unwrap();
@@ -123,7 +120,6 @@ export function ServicesPanel() {
   const columns: DataTableColumn<Service>[] = [
     { key: "name", header: "Name", render: (s) => s.name, sortValue: (s) => s.name.toLowerCase(), filterValue: (s) => s.name },
     { key: "description", header: "Description", render: (s) => s.description ?? "—" },
-    { key: "price", header: "Price", render: (s) => formatInr(s.price), sortValue: (s) => s.price ?? -1 },
     {
       key: "isActive",
       header: "Status",
@@ -179,14 +175,6 @@ export function ServicesPanel() {
               label="Description"
               value={form.description}
               onChange={(e) => update("description", e.target.value)}
-            />
-            <TextInput
-              label="Price (INR)"
-              type="number"
-              min={0}
-              step="0.01"
-              value={form.price}
-              onChange={(e) => update("price", e.target.value)}
             />
             {editing && (
               <label className="flex cursor-pointer items-center gap-2 text-sm">

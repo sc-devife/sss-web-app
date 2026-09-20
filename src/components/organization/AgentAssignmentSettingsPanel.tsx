@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { CheckOption } from "@/components/ui/CheckOption";
+import { maxConcurrentOptions } from "@/lib/max-concurrent";
 import { cn } from "@/lib/cn";
 import { ToolbarMultiSelect } from "@/components/ui/ToolbarMultiSelect";
 import { MultiSelectSearch } from "@/components/ui/MultiSelectSearch";
@@ -53,20 +54,7 @@ function displayName(user: AppUser): string {
   return `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() || user.name;
 }
 
-// "" = no cap (saved as null). A cap already saved with a value outside this
-// list (set before it became a dropdown) is added as its own option so the
-// field never shows blank or silently rewrites it.
 const MAX_CONCURRENT_PRESETS = [5, 10, 15, 20, 50];
-
-function maxConcurrentOptions(current: string) {
-  const values = [...MAX_CONCURRENT_PRESETS];
-  const n = Number(current);
-  if (current !== "" && Number.isFinite(n) && !values.includes(n)) {
-    values.push(n);
-    values.sort((a, b) => a - b);
-  }
-  return [{ value: "", label: "No limit" }, ...values.map((v) => ({ value: String(v), label: String(v) }))];
-}
 
 // Assignment filter options. Ticked options combine with AND (e.g. specialist
 // + priority-eligible shows only users who are both) — except the two
@@ -363,7 +351,7 @@ export function AgentAssignmentSettingsPanel({ escapePoints }: { escapePoints: E
                 <div className="min-w-0">
                   <Select
                     label="Maximum concurrent leads/escapes"
-                    options={maxConcurrentOptions(row.maxConcurrentAssignments)}
+                    options={maxConcurrentOptions(row.maxConcurrentAssignments, MAX_CONCURRENT_PRESETS, "No limit")}
                     value={row.maxConcurrentAssignments}
                     onChange={(e) => update(user.uid, { maxConcurrentAssignments: e.target.value })}
                     error={errs.maxConcurrentAssignments}

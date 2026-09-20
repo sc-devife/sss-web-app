@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Modal } from "@/components/ui/Modal";
 import { FileUpload } from "@/components/ui/FileUpload";
 import { Alert } from "@/components/ui/Alert";
@@ -11,9 +13,16 @@ import type { Activity } from "@/lib/activities";
 import type { EscapePoint } from "@/lib/escape-points";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useIsDirty } from "@/lib/forms";
-import { emailField, positiveNumber, required, runValidators } from "@/lib/validators";
+import { countryCodeField, emailField, mobileField, positiveNumber, required, runValidators } from "@/lib/validators";
 import { useAppDispatch } from "@/store/hooks";
 import { createActivity, updateActivity, fetchActivities } from "@/features/activities/activitiesThunks";
+
+// Dynamically imported (TipTap/ProseMirror add ~90KB) so pages that never
+// open this form don't pay for it on first load.
+const RichTextEditor = dynamic(() => import("@/components/ui/RichTextEditor").then((m) => m.RichTextEditor), {
+  ssr: false,
+  loading: () => <div className="skeleton h-40 rounded border border-border" />,
+});
 
 export const CATEGORY_OPTIONS = [
   { value: "water_sports", label: "Water Sports" },
@@ -31,6 +40,8 @@ const emptyForm = {
   basePrice: "",
   status: "active",
   email: "",
+  contactNumber: "",
+  rulesAndPolicies: "",
 };
 
 type FormState = typeof emptyForm;
@@ -45,6 +56,8 @@ function validate(v: FormState): Record<string, string> {
   if (priceErr) errors.basePrice = priceErr;
   const emailErr = runValidators(v.email, [emailField()]);
   if (emailErr) errors.email = emailErr;
+  const phoneErr = runValidators(v.contactNumber, [countryCodeField(), mobileField()]); // optional, format-checked only if filled
+  if (phoneErr) errors.contactNumber = phoneErr;
   return errors;
 }
 
@@ -60,6 +73,8 @@ function snapshotFromActivity(activity: Activity | null): FormState {
     basePrice: activity.basePrice != null ? String(activity.basePrice) : "",
     status: activity.status ?? "active",
     email: activity.email ?? "",
+    contactNumber: activity.contactNumber ?? "",
+    rulesAndPolicies: activity.rulesAndPolicies ?? "",
   };
 }
 
@@ -124,6 +139,8 @@ export function ActivityFormModal({
         basePrice: form.basePrice ? Number(form.basePrice) : null,
         status: form.status,
         email: form.email || null,
+        contactNumber: form.contactNumber || null,
+        rulesAndPolicies: form.rulesAndPolicies,
       };
       if (activity) {
         await dispatch(updateActivity({ uid: activity.uid, payload })).unwrap();
@@ -148,6 +165,7 @@ export function ActivityFormModal({
         onClose();
       }}
       title={activity ? "Edit Activity" : "Add Activity"}
+      className="max-w-xl"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <fieldset disabled={saving} className="contents">
@@ -195,21 +213,6 @@ export function ActivityFormModal({
             />
           </div>
 
-          {/* Textarea and image upload both need more room than a half-width
-              column allows, so each stays full-width on its own row. */}
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="activity-description" className="text-sm font-medium text-foreground">Description</label>
-            <textarea
-              id="activity-description"
-              value={form.description}
-              onChange={(e) => update("description", e.target.value)}
-              rows={3}
-              className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
-            />
-          </div>
-
-          <FileUpload label="Images" value={form.images} onChange={(images) => update("images", images)} />
-
           <div className="grid grid-cols-2 gap-3">
             <TextInput
               label="Base price (INR)"
@@ -235,17 +238,51 @@ export function ActivityFormModal({
             />
           </div>
 
-          <TextInput
-            label="Email"
-            type="email"
-            placeholder="e.g. bookings@activityvendor.com"
-            value={form.email}
-            onChange={(e) => {
-              update("email", e.target.value);
-              setErrors((p) => ({ ...p, email: "" }));
-            }}
-            error={errors.email}
+          <div className="grid grid-cols-2 gap-3">
+            <TextInput
+              label="Email"
+              type="email"
+              placeholder="e.g. bookings@activityvendor.com"
+              value={form.email}
+              onChange={(e) => {
+                update("email", e.target.value);
+                setErrors((p) => ({ ...p, email: "" }));
+              }}
+              error={errors.email}
+            />
+
+            <PhoneInput
+              label="Contact Number"
+              value={form.contactNumber}
+              onChange={(v) => {
+                update("contactNumber", v);
+                setErrors((p) => ({ ...p, contactNumber: "" }));
+              }}
+              error={errors.contactNumber}
+            />
+          </div>
+
+          {/* Long-form content and image upload need more room than a half-width
+              column allows, so each stays full-width on its own row. */}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="activity-about" className="text-sm font-medium text-foreground">About</label>
+            <textarea
+              id="activity-about"
+              value={form.description}
+              onChange={(e) => update("description", e.target.value)}
+              rows={3}
+              className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+            />
+          </div>
+
+          <RichTextEditor
+            label="Rules and Policies"
+            value={form.rulesAndPolicies}
+            onChange={(html) => update("rulesAndPolicies", html)}
+            placeholder="Cancellation policy, safety rules, what to bring…"
           />
+
+          <FileUpload label="Images" value={form.images} onChange={(images) => update("images", images)} />
         </fieldset>
 
         {formError && (
@@ -259,7 +296,7 @@ export function ActivityFormModal({
             Cancel
           </Button>
           <Button type="submit" disabled={saving || (!!activity && !isDirty)} loading={saving} loadingText="Saving…" className="w-full">
-            Save activity
+            Save Activity
           </Button>
         </div>
       </form>

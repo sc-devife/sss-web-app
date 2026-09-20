@@ -217,6 +217,7 @@ export function EscapePointFormModal({
         onClose();
       }}
       title={editing ? "Edit Escape Point" : "Add Escape Point"}
+      className="max-w-xl"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <fieldset disabled={saving} className="contents">
@@ -326,19 +327,6 @@ export function EscapePointFormModal({
             </Caption>
           )}
 
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="description" className="text-sm font-medium text-foreground">Description</label>
-            <textarea
-              id="description"
-              value={form.description}
-              onChange={(e) => update("description", e.target.value)}
-              rows={3}
-              className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
-            />
-          </div>
-
-          <FileUpload label="Images" value={form.images} onChange={(images) => update("images", images)} />
-
           <div className="grid grid-cols-2 gap-3">
             <TextInput
               label="Nearest Airport"
@@ -373,6 +361,19 @@ export function EscapePointFormModal({
               onChange={(e) => update("status", e.target.value)}
             />
           </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="description" className="text-sm font-medium text-foreground">Description</label>
+            <textarea
+              id="description"
+              value={form.description}
+              onChange={(e) => update("description", e.target.value)}
+              rows={3}
+              className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+            />
+          </div>
+
+          <FileUpload label="Images" value={form.images} onChange={(images) => update("images", images)} />
         </fieldset>
 
         {formError && (
@@ -386,7 +387,7 @@ export function EscapePointFormModal({
             Cancel
           </Button>
           <Button type="submit" disabled={saving || (!!editing && !canSubmit)} loading={saving} loadingText="Saving…" className="w-full">
-            Save escape point
+            Save Escape Point
           </Button>
         </div>
       </form>
