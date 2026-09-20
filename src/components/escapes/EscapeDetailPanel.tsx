@@ -96,16 +96,18 @@ export function EscapeDetailPanel({
       <Card variant="page" className="flex min-h-full flex-col gap-2">
         <BackToEscapes />
         <div className="border-t border-border" />
-        <div className="grid grid-cols-1 gap-2 lg:grid-cols-[1.2fr_3.4fr]">
+        <div className="grid grid-cols-1 gap-2 lg:grid-cols-[0.8fr_2.4fr_0.8fr]">
           <div className="flex flex-col gap-3 rounded-xl border border-border p-4">
             <Skeleton className="h-40 w-full rounded-lg" />
             <Skeleton className="h-5 w-2/3" />
             <Skeleton className="h-4 w-1/2" />
             <div className="flex flex-col gap-2 pt-2">
-              {Array.from({ length: 4 }).map((_, i) => (
+              {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-4 w-full" />
               ))}
             </div>
+            <Skeleton className="h-5 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
           </div>
           <div className="flex flex-col gap-3">
             <div className="flex gap-2">
@@ -114,6 +116,26 @@ export function EscapeDetailPanel({
               ))}
             </div>
             <Skeleton className="h-64 w-full rounded-xl" />
+          </div>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 rounded-xl border border-border p-4">
+              <div className="flex flex-col gap-2 pt-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="p-2 rounded border border-border">
+                    <Skeleton key={i} className="h-4 w-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 rounded-xl border border-border p-4">
+              <div className="flex flex-col gap-2 pt-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="p-2 rounded border border-border">
+                    <Skeleton key={i} className="h-4 w-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </Card>
