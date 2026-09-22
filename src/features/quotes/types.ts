@@ -25,6 +25,7 @@ export interface ComputeQuotePayload {
   uid: string;
   itineraryUid: string;
   taxProfileUid: string | null;
+  taxRatePercentOverride: number | null;
   tcsRatePercent: number | null;
   discountType: string;
   discountValue: number | null;
@@ -49,4 +50,10 @@ export interface ComputeQuoteResult {
 export interface QuoteUidWithItinerary {
   uid: string;
   itineraryUid: string;
+}
+
+export interface UpdateQuoteValidUntilPayload {
+  uid: string;
+  itineraryUid: string;
+  validUntil: string | null;
 }

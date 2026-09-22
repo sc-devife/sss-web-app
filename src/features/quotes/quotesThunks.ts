@@ -10,6 +10,7 @@ import type {
   ComputeQuotePayload,
   ComputeQuoteResult,
   QuoteUidWithItinerary,
+  UpdateQuoteValidUntilPayload,
 } from "@/features/quotes/types";
 
 // Keyed by itineraryUid in the slice — several ItineraryCards can be
@@ -60,11 +61,15 @@ export const renameQuote = createAsyncThunk<void, RenameQuotePayload, { rejectVa
   },
 );
 
-export const reviseQuote = createAsyncThunk<void, QuoteUidWithItinerary, { rejectValue: string }>(
+// Returns the new revision (not void) so a caller that needs to switch its
+// selection to it — the Quote tab, after Revise — can do so without a
+// separate lookup.
+export const reviseQuote = createAsyncThunk<Quote, QuoteUidWithItinerary, { rejectValue: string }>(
   "quotes/reviseQuote",
   async ({ uid }, { rejectWithValue }) => {
     try {
-      await clientApi.post(`/quotes/${uid}/revise`);
+      const res = await clientApi.post<Quote>(`/quotes/${uid}/revise`);
+      return res.data;
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to revise quote"));
     }
@@ -117,10 +122,14 @@ export const markQuoteRejected = createAsyncThunk<void, QuoteUidWithItinerary, {
 
 export const computeQuote = createAsyncThunk<ComputeQuoteResult, ComputeQuotePayload, { rejectValue: string }>(
   "quotes/computeQuote",
-  async ({ uid, taxProfileUid, tcsRatePercent, discountType, discountValue, displayCurrencyCode, fxRateSnapshot }, { rejectWithValue }) => {
+  async (
+    { uid, taxProfileUid, taxRatePercentOverride, tcsRatePercent, discountType, discountValue, displayCurrencyCode, fxRateSnapshot },
+    { rejectWithValue },
+  ) => {
     try {
       const res = await clientApi.post<ComputeQuoteResult>(`/quotes/${uid}/compute`, {
         taxProfileUid,
+        taxRatePercentOverride,
         tcsRatePercent,
         discountType,
         discountValue,
@@ -130,6 +139,17 @@ export const computeQuote = createAsyncThunk<ComputeQuoteResult, ComputeQuotePay
       return res.data;
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to compute pricing"));
+    }
+  },
+);
+
+export const updateQuoteValidUntil = createAsyncThunk<void, UpdateQuoteValidUntilPayload, { rejectValue: string }>(
+  "quotes/updateQuoteValidUntil",
+  async ({ uid, validUntil }, { rejectWithValue }) => {
+    try {
+      await clientApi.put(`/quotes/${uid}`, { validUntil });
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to update valid-until date"));
     }
   },
 );

@@ -187,6 +187,7 @@ export function SummaryPanel({ itineraryUid, escapeUid }: { itineraryUid: string
           uid,
           itineraryUid,
           taxProfileUid: effectiveTaxProfileUid || null,
+          taxRatePercentOverride: null,
           tcsRatePercent: effectiveTcsRatePercent ? Number(effectiveTcsRatePercent) : null,
           discountType: effectiveDiscountType,
           discountValue: effectiveDiscountValue ? Number(effectiveDiscountValue) : null,
