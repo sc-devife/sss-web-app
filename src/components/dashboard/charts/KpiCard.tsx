@@ -39,7 +39,7 @@ export function KpiCard({
       {/* Icon */}
       {CategoryIcon && (
         <div className="flex shrink-0 items-center justify-center self-center rounded-xl bg-primary/10 p-2 text-primary">
-          <CategoryIcon className="h-7 w-7" />
+          <CategoryIcon className="h-6 w-6" />
         </div>
       )}
 
@@ -69,9 +69,6 @@ export function KpiCard({
           >
             <span>{trend.direction === "up" ? <FaCaretUp /> : <FaCaretDown />}</span>
             <span>{trend.percent.toFixed(1)}%</span>
-            <span className="font-normal text-muted-foreground">
-              vs last period
-            </span>
           </div>
         )}
       </div>

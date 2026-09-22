@@ -1,12 +1,15 @@
+import { PiShieldCheckFill } from "react-icons/pi";
 import { Card } from "@/components/ui/Card";
 import { ComingSoon } from "@/components/ui/ComingSoon";
-import { findRouteWithGroup } from "@/lib/nav-config";
 
+// Roles isn't in the sidebar yet (its nav-config entry is commented out), so
+// this stub can't look its title/icon up there the way the other coming-soon
+// pages do — a missing entry made that lookup undefined and crashed the
+// build's static prerender of this route. It carries its own copy instead.
 export default function Page() {
-  const { route, groupTitle } = findRouteWithGroup("/administration/roles")!;
   return (
     <Card variant="page" className="min-h-full">
-      <ComingSoon title={route.title} section={groupTitle} icon={route.activeIcon ?? route.icon} />
+      <ComingSoon title="Roles" section="Administration" icon={PiShieldCheckFill} />
     </Card>
   );
 }

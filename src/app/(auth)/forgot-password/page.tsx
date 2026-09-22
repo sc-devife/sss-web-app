@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState, type FormEvent } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { IoMailOutline } from "react-icons/io5";
 import { Card } from "@/components/ui/Card";
@@ -39,9 +40,11 @@ function ForgotPasswordForm() {
       {/* Logo */}
       <div className="mb-4 flex justify-center">
         <div className="flex size-16 items-center justify-center overflow-hidden rounded-2xl border border-border bg-muted/50 p-2 shadow-sm">
-          <img
+          <Image
             src="/logo.jpg"
             alt="Travel Online Agency"
+            width={568}
+            height={585}
             className="h-full w-full object-contain"
           />
         </div>
@@ -157,9 +160,12 @@ export default function ForgotPasswordPage() {
             overflow-hidden
           "
       >
-        <img
+        <Image
           src="/travel-background.svg"
           alt=""
+          width={1600}
+          height={900}
+          priority
           className="
               absolute
               left-1/2

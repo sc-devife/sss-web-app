@@ -101,7 +101,7 @@ export function QuotationPreviewModal({
     // retry starts a new one, so a slow first response can never land after
     // a later request and show stale content.
     return () => controller.abort();
-  }, [open, src, attempt]);
+  }, [open, src, attempt, documentLabel]);
 
   // Downloads the server-generated, watermarked PDF — the SAME endpoint's
   // "/pdf" sibling (e.g. ".../quotation-preview" -> ".../quotation-preview/pdf"),

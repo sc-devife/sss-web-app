@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import Image from "next/image";
 import { toast } from "react-toastify";
 import { PiBuildings, PiInfoBold } from "react-icons/pi";
 
@@ -203,9 +204,12 @@ export function OrganizationForm({
                   )}
                 >
                   {logoPreviewUrl ? (
-                    <img
+                    <Image
                       src={logoPreviewUrl}
                       alt="Organization Logo"
+                      width={160}
+                      height={160}
+                      unoptimized
                       className="h-full w-full object-cover"
                     />
                   ) : (

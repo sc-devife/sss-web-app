@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState, type FormEvent } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
@@ -381,9 +382,12 @@ export default function SignupPage() {
           overflow-hidden
         "
       >
-        <img
+        <Image
           src="/travel-background.svg"
           alt=""
+          width={1600}
+          height={900}
+          priority
           className="
             absolute
             left-1/2

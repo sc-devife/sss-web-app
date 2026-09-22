@@ -227,7 +227,7 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
           {accounts.map((account) => {
             const isActive = account.status === "active";
             return (
-              <Card key={account.uid} className="group flex min-h-[280px] flex-col gap-5 rounded-xl border-border/70 p-5 transition-all duration-200 hover:shadow-lg">
+              <Card key={account.uid} className="group flex min-h-[280px] flex-col gap-3 rounded-xl border-border/70 p-5 transition-all duration-200 hover:shadow-lg">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex min-w-0 items-start gap-3">
                     <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/50 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground"><FaUniversity className="size-5" /></div>
@@ -242,7 +242,7 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
                   <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground"><span className={isActive ? "size-2 rounded-full bg-success" : "size-2 rounded-full bg-muted-foreground/50"} />{isActive ? "Active" : "Inactive"}</span>
                 </div>
 
-                <div className="rounded-xl border border-border/70 bg-muted/30 p-4">
+                <div className="rounded-xl border border-border/70 bg-muted/30 p-3">
                   <div className="flex items-center justify-between gap-2">
                     <Caption className="uppercase tracking-wider text-muted-foreground">Account number</Caption>
                     <button
@@ -254,11 +254,11 @@ export function BankAccountsPanel({ orgId }: { orgId: string }) {
                       {revealedIds.has(account.uid) ? <FaEyeSlash className="size-4" /> : <FaEye className="size-4" />}
                     </button>
                   </div>
-                  <Body className="mt-1 font-mono text-lg font-semibold tracking-widest">
+                  <Body className="mt-0.5 font-mono text-lg font-semibold tracking-widest">
                     {revealedIds.has(account.uid) ? account.accountNumber : maskAccountNumber(account.accountNumber)}
                   </Body>
                 </div>
-                <div className="grid grid-cols-2 gap-4"><OptionalDetail label="Account holder" value={account.accountName} /><OptionalDetail label="IFSC" value={account.ifsc} /><OptionalDetail label="SWIFT" value={account.swiftCode} /><OptionalDetail label="MICR" value={account.micrCode} /></div>
+                <div className="grid grid-cols-2 gap-3"><OptionalDetail label="Account holder" value={account.accountName} /><OptionalDetail label="IFSC" value={account.ifsc} /><OptionalDetail label="SWIFT" value={account.swiftCode} /><OptionalDetail label="MICR" value={account.micrCode} /></div>
                 <div className="mt-auto flex items-end justify-between gap-4 border-t border-border/70 pt-4">
                   <div className="flex min-w-0 items-center gap-2 text-muted-foreground"><FaMapMarkerAlt className="size-3.5 shrink-0" /><HoverMarqueeText className="truncate text-xs uppercase tracking-wide text-muted-foreground">{account.branchCity}, {account.country} · {account.currency}</HoverMarqueeText></div>
                   <div className="flex shrink-0 gap-2">

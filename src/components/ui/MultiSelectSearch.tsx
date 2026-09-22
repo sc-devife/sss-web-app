@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { IconType } from "react-icons";
 import { IoAdd, IoClose, IoSearchOutline } from "react-icons/io5";
@@ -63,6 +63,7 @@ export function MultiSelectSearch({
   const [createError, setCreateError] = useState<string | undefined>();
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const listboxId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
 
   const selectedOptions = value.map((v) => options.find((o) => o.value === v)).filter((o): o is SelectOption => !!o);
@@ -217,8 +218,13 @@ export function MultiSelectSearch({
           onFocus={() => setOpen(true)}
           disabled={disabled}
           placeholder={placeholder}
+          // The input is the trigger of a listbox popup, i.e. an ARIA combobox —
+          // aria-expanded/aria-haspopup aren't valid on the implicit textbox role.
+          role="combobox"
           aria-haspopup="listbox"
           aria-expanded={open}
+          aria-autocomplete="list"
+          aria-controls={open && !disabled ? listboxId : undefined}
           className={cn(
             "h-9 w-full rounded border bg-background pl-7 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors",
             "focus:ring-2",
@@ -260,7 +266,7 @@ export function MultiSelectSearch({
           style={{ position: "fixed", left: pos.left, top: pos.top, width: pos.width }}
           className="z-50 flex flex-col overflow-hidden rounded border border-border bg-card text-card-foreground shadow-xl"
         >
-          <div role="listbox" aria-label={label} aria-multiselectable className="max-h-60 overflow-y-auto py-1">
+          <div id={listboxId} role="listbox" aria-label={label} aria-multiselectable className="max-h-60 overflow-y-auto py-1">
             {options.length === 0 && (
               <div className="px-3 py-2 text-sm text-muted-foreground">No options available</div>
             )}
