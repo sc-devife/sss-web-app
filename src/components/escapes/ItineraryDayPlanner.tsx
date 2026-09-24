@@ -64,6 +64,7 @@ import {
 import { RiEdit2Line } from "react-icons/ri";
 import { TbMailForward } from "react-icons/tb";
 import { toast } from "react-toastify";
+import { clientApi } from "@/lib/axios/clientClient";
 import { CancellationEmailModal } from "@/components/library/CancellationEmailModal";
 
 interface ModalState {
@@ -402,6 +403,11 @@ export function ItineraryDayPlanner({
   const [confirmingAddDay, setConfirmingAddDay] = useState(false);
   const [addingDay, setAddingDay] = useState(false);
   const [addDayError, setAddDayError] = useState<string | undefined>();
+  // Deleting the last day: checked first, and only confirmed with the user when it would wipe planned data.
+  const [checkingDeleteDay, setCheckingDeleteDay] = useState(false);
+  const [deletingDay, setDeletingDay] = useState(false);
+  const [deleteDayImpact, setDeleteDayImpact] = useState<{ daysWithItems: number[]; itemCount: number; quoteLineCount: number } | null>(null);
+  const [deleteDayError, setDeleteDayError] = useState<string | undefined>();
 
   useEffect(() => {
     if (itemsStatus === "idle") {
@@ -606,6 +612,53 @@ export function ItineraryDayPlanner({
       return;
     }
     setOpenDay(day);
+  }
+
+  async function deleteLastDay() {
+    if (!escape?.lead) return;
+    const newCount = dayCount - 1;
+    setDeletingDay(true);
+    setDeleteDayError(undefined);
+    try {
+      await dispatch(
+        updateEscapeDuration({
+          escapeUid: escape.uid,
+          leadUid: escape.lead.uid,
+          startDate: escape.startDate,
+          numberOfDays: newCount,
+        }),
+      ).unwrap();
+      await dispatch(fetchEscapeById(escape.uid));
+      loadItems();
+      setOpenDay((d) => Math.min(d, newCount));
+      setDeleteDayImpact(null);
+    } catch (err) {
+      setDeleteDayError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to delete the day"));
+    } finally {
+      setDeletingDay(false);
+    }
+  }
+
+  // Warn only when the day being removed actually holds planned items (in this
+  // or any other itinerary of the escape); an empty last day is just removed.
+  async function handleDeleteDayClick() {
+    if (!escape || dayCount <= 1) return;
+    setCheckingDeleteDay(true);
+    setDeleteDayError(undefined);
+    try {
+      const res = await clientApi.get<{ daysWithItems: number[]; itemCount: number; quoteLineCount: number }>(
+        `/escapes/${escape.uid}/day-reduction-impact?numberOfDays=${dayCount - 1}`,
+      );
+      if (res.data.itemCount > 0) {
+        setDeleteDayImpact(res.data);
+      } else {
+        await deleteLastDay();
+      }
+    } catch (err) {
+      toast.error(extractErrorMessage(err, "Couldn't check the day before deleting"));
+    } finally {
+      setCheckingDeleteDay(false);
+    }
   }
 
   async function handleConfirmAddDay() {
@@ -1040,7 +1093,8 @@ export function ItineraryDayPlanner({
           if (draggingDay != null && dayDropIndex === i) {
             nodes.push(<div key={`day-drop-${i}`} className="h-11 w-0.5 shrink-0 self-stretch rounded-full bg-primary" />);
           }
-          nodes.push(
+          const canDeleteThisDay = day === dayCount && dayCount > 1 && !isCancelled;
+          const tab = (
             <button
               key={day}
               ref={(el) => registerDayTabRef(day, el)}
@@ -1062,7 +1116,26 @@ export function ItineraryDayPlanner({
               <span className="leading-none">Day {day}</span>
               {date && <span className="leading-none text-[8px] font-normal text-muted-foreground">{formatDayDateWithWeekday(date)}</span>}
               {dayTotal > 0 && <span className="leading-none text-[10px] font-semibold text-primary">{formatInr(dayTotal)}</span>}
-            </button>,
+            </button>
+          );
+          nodes.push(
+            canDeleteThisDay ? (
+              <div key={day} className="relative shrink-0">
+                {tab}
+                <button
+                  type="button"
+                  onClick={handleDeleteDayClick}
+                  disabled={checkingDeleteDay || deletingDay}
+                  title={`Delete Day ${day}`}
+                  aria-label={`Delete Day ${day}`}
+                  className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+                >
+                  {checkingDeleteDay || deletingDay ? <Spinner size="sm" /> : <FaRegTrashCan className="h-2.5 w-2.5" />}
+                </button>
+              </div>
+            ) : (
+              tab
+            ),
           );
           return nodes;
         })}
@@ -1480,6 +1553,41 @@ export function ItineraryDayPlanner({
             </div>
           </form>
         )}
+      </Modal>
+
+      <Modal
+        open={deleteDayImpact !== null}
+        onClose={() => !deletingDay && setDeleteDayImpact(null)}
+        title={`Delete Day ${dayCount}?`}
+      >
+        <div className="flex flex-col items-center gap-3 text-center">
+          <Body>
+            Day {dayCount} has planned items. Deleting it shortens this escape from{" "}
+            <span className="font-medium text-foreground">{dayCount} days</span> to{" "}
+            <span className="font-medium text-foreground">{dayCount - 1} days</span> and permanently deletes{" "}
+            <span className="font-medium text-foreground">
+              {deleteDayImpact?.itemCount} planned item{deleteDayImpact?.itemCount === 1 ? "" : "s"}
+            </span>
+            {deleteDayImpact && deleteDayImpact.quoteLineCount > 0 && (
+              <>
+                {" "}and{" "}
+                <span className="font-medium text-foreground">
+                  {deleteDayImpact.quoteLineCount} quote line{deleteDayImpact.quoteLineCount === 1 ? "" : "s"}
+                </span>
+              </>
+            )}{" "}
+            across all of its itineraries. This can&apos;t be undone.
+          </Body>
+          {deleteDayError && <p className="text-sm text-danger">{deleteDayError}</p>}
+          <div className="flex justify-center gap-2">
+            <Button type="button" variant="ghost" disabled={deletingDay} onClick={() => setDeleteDayImpact(null)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="danger" disabled={deletingDay} loading={deletingDay} loadingText="Deleting…" onClick={deleteLastDay}>
+              Delete Day
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       <Modal

@@ -49,6 +49,7 @@ export function NotificationBell({ collapsed = false, variant = "sidebar" }: { c
 }
 
 const POPUP_SIZE = 10;
+const POPUP_WIDTH = 384; // matches w-[24rem] on the panel
 
 function HeaderBell({ active, unreadCount }: { active: boolean; unreadCount: number }) {
   const dispatch = useAppDispatch();
@@ -56,7 +57,7 @@ function HeaderBell({ active, unreadCount }: { active: boolean; unreadCount: num
   const items = useAppSelector(selectNotifications);
   const status = useAppSelector(selectNotificationsStatus);
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, right: 0 });
+  const [pos, setPos] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const loading = status === "idle" || status === "loading";
@@ -67,7 +68,12 @@ function HeaderBell({ active, unreadCount }: { active: boolean; unreadCount: num
 
     function place() {
       const rect = triggerRef.current?.getBoundingClientRect();
-      if (rect) setPos({ top: rect.bottom + 8, right: Math.max(8, window.innerWidth - rect.right) });
+      if (!rect) return;
+      // Open below the bell, extending mostly to its right: about 5% of the
+      // popup sits to the bell's left. Clamped so it never leaves the viewport.
+      const width = Math.min(POPUP_WIDTH, window.innerWidth - 16);
+      const desired = rect.left + rect.width / 2 - width * 0.05;
+      setPos({ top: rect.bottom + 8, left: Math.max(8, Math.min(desired, window.innerWidth - width - 8)) });
     }
     function onPointerDown(e: MouseEvent) {
       const target = e.target as Node;
@@ -121,7 +127,7 @@ function HeaderBell({ active, unreadCount }: { active: boolean; unreadCount: num
             ref={panelRef}
             role="dialog"
             aria-label="Notifications"
-            style={{ position: "fixed", top: pos.top, right: pos.right }}
+            style={{ position: "fixed", top: pos.top, left: pos.left }}
             className="z-50 flex max-h-[28rem] w-[24rem] max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-xl"
           >
             <div className="flex items-center justify-between border-b border-border px-3 py-2">
