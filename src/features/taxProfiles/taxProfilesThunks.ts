@@ -36,3 +36,25 @@ export const deactivateTaxProfile = createAsyncThunk<void, string, { rejectValue
     }
   },
 );
+
+export const reactivateTaxProfile = createAsyncThunk<void, string, { rejectValue: string }>(
+  "taxProfiles/reactivateTaxProfile",
+  async (uid, { rejectWithValue }) => {
+    try {
+      await clientApi.put(`/tax-profiles/${uid}`, { status: "active" });
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to reactivate tax profile"));
+    }
+  },
+);
+
+export const deleteTaxProfile = createAsyncThunk<void, string, { rejectValue: string }>(
+  "taxProfiles/deleteTaxProfile",
+  async (uid, { rejectWithValue }) => {
+    try {
+      await clientApi.delete(`/tax-profiles/${uid}`);
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, "Failed to delete tax profile"));
+    }
+  },
+);

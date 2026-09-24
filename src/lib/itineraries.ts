@@ -8,6 +8,7 @@ export interface Itinerary {
   version: number;
   createdAt: string;
   updatedAt: string;
+  createdByName?: string | null;
 }
 
 export async function getItinerariesForEscape(escapeUid: string): Promise<Itinerary[]> {

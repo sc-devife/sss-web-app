@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { PiPencilSimple, PiTrash } from "react-icons/pi";
+import { PiPencilSimple } from "react-icons/pi";
+import { FaRegTrashCan } from "react-icons/fa6";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
@@ -446,7 +447,7 @@ export function ContactAddressPanel({ orgId }: { orgId: string }) {
                             disabled={deletingId === address.uid}
                             onClick={() => handleDelete(address.uid)}
                           >
-                            <PiTrash className="h-4 w-4" />
+                            <FaRegTrashCan className="h-4 w-4" />
                             {deletingId === address.uid ? "Deleting..." : "Delete"}
                           </Button>
 

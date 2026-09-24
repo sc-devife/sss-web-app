@@ -5,6 +5,10 @@ import { PiSuitcaseRollingFill, PiFileTextFill } from "react-icons/pi";
 import { cn } from "@/lib/cn";
 import { ItineraryManagementCard } from "@/components/escapes/ItineraryManagementCard";
 import { DocumentsCard } from "@/components/escapes/DocumentsCard";
+import { RailTip } from "@/components/escapes/RailTip";
+import { useAppSelector } from "@/store/hooks";
+import { selectItineraries } from "@/features/itineraries/itinerariesSelectors";
+import { selectQuotesForItinerary } from "@/features/quotes/quotesSelectors";
 import type { Deal } from "@/lib/deals";
 
 // Desktop-only: docked to the right edge of the *viewport* (not the page's
@@ -28,6 +32,8 @@ export function EscapeSidePanel({
   onToggleCollapsed,
   selectedItineraryUid,
   onSelectItinerary,
+  selectedQuoteUid,
+  onSelectQuote,
 }: {
   escapeUid: string;
   deal: Deal | null;
@@ -37,7 +43,18 @@ export function EscapeSidePanel({
    * workspace's Planning tab, which renders only this one itinerary. */
   selectedItineraryUid: string | null;
   onSelectItinerary: (uid: string) => void;
+  selectedQuoteUid: string | null;
+  onSelectQuote: (uid: string | null) => void;
 }) {
+  // Names shown when hovering the collapsed rail's icons: the selected
+  // itinerary/quote, falling back to the newest one.
+  const itineraries = useAppSelector(selectItineraries);
+  const newest = <T extends { createdAt: string }>(list: T[]) =>
+    list.slice().sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
+  const activeItinerary = itineraries.find((i) => i.uid === selectedItineraryUid) ?? newest(itineraries);
+  const quotes = useAppSelector((s) => (activeItinerary ? selectQuotesForItinerary(s, activeItinerary.uid) : []));
+  const activeQuote = quotes.find((q) => q.uid === selectedQuoteUid) ?? newest(quotes);
+
   return (
     <div
       className={cn(
@@ -59,24 +76,44 @@ export function EscapeSidePanel({
 
       {collapsed && (
         <div className="flex flex-col items-center gap-2 pt-4">
-          <button
-            type="button"
-            onClick={onToggleCollapsed}
-            aria-label="Expand panel to view itineraries"
-            title="Itineraries"
-            className="flex items-center justify-center rounded-full p-2.5 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground"
+          <RailTip
+            side="left"
+            label="Itineraries"
+            content={
+              <span className="flex flex-col">
+                <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Itinerary</span>
+                <span className="font-semibold">{activeItinerary?.name ?? "No itineraries yet"}</span>
+              </span>
+            }
           >
-            <PiSuitcaseRollingFill className="h-5 w-5 shrink-0" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={onToggleCollapsed}
-            aria-label="Expand panel to view quotes"
-            title="Quotes"
-            className="flex items-center justify-center rounded-full p-2.5 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground"
+            <button
+              type="button"
+              onClick={onToggleCollapsed}
+              aria-label="Expand panel to view itineraries"
+              className="flex items-center justify-center rounded-full p-2.5 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground"
+            >
+              <PiSuitcaseRollingFill className="h-5 w-5 shrink-0" aria-hidden="true" />
+            </button>
+          </RailTip>
+          <RailTip
+            side="left"
+            label="Quotes"
+            content={
+              <span className="flex flex-col">
+                <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Quote</span>
+                <span className="font-semibold">{activeQuote ? activeQuote.name ?? `Quote ${activeQuote.version}` : "No quotes yet"}</span>
+              </span>
+            }
           >
-            <PiFileTextFill className="h-5 w-5 shrink-0" aria-hidden="true" />
-          </button>
+            <button
+              type="button"
+              onClick={onToggleCollapsed}
+              aria-label="Expand panel to view quotes"
+              className="flex items-center justify-center rounded-full p-2.5 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground"
+            >
+              <PiFileTextFill className="h-5 w-5 shrink-0" aria-hidden="true" />
+            </button>
+          </RailTip>
         </div>
       )}
 
@@ -91,7 +128,14 @@ export function EscapeSidePanel({
             />
           </div>
           <div className="flex min-h-0 flex-1 basis-0 flex-col p-3">
-            <DocumentsCard deal={deal} escapeUid={escapeUid} selectedItineraryUid={selectedItineraryUid} bare />
+            <DocumentsCard
+              deal={deal}
+              escapeUid={escapeUid}
+              selectedItineraryUid={selectedItineraryUid}
+              selectedQuoteUid={selectedQuoteUid}
+              onSelectQuote={onSelectQuote}
+              bare
+            />
           </div>
         </div>
       )}

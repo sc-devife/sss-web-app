@@ -40,7 +40,6 @@ import { fetchItinerariesForEscape } from "@/features/itineraries/itinerariesThu
 import { selectItineraries, selectItinerariesStatus } from "@/features/itineraries/itinerariesSelectors";
 import { addEscapeTraveller, updateTraveller, deleteTraveller, fetchEscapeById } from "@/features/escapes/escapesThunks";
 import { fetchQuotesForItinerary } from "@/features/quotes/quotesThunks";
-import { selectQuotesForItinerary } from "@/features/quotes/quotesSelectors";
 
 const TABS = [
   { id: "travellers", label: "Travellers" },
@@ -575,6 +574,8 @@ export function EscapeWorkspaceTabs({
   onDealChanged,
   selectedItineraryUid,
   onSelectItinerary,
+  selectedQuoteUid,
+  onSelectQuote,
 }: {
   escapeUid: string;
   hotels: Hotel[];
@@ -602,6 +603,8 @@ export function EscapeWorkspaceTabs({
    * on top of each other. */
   selectedItineraryUid: string | null;
   onSelectItinerary: (uid: string) => void;
+  selectedQuoteUid: string | null;
+  onSelectQuote: (uid: string | null) => void;
 }) {
   const dispatch = useAppDispatch();
   const itineraries = useAppSelector(selectItineraries);
@@ -647,33 +650,15 @@ export function EscapeWorkspaceTabs({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeItinerary]);
 
-  // Quotes for whichever itinerary is selected — only needed here to show
-  // its name alongside the itinerary's own, next to the top-level tabs
-  // (scoped to the selection, not to ItineraryCard's own inner sub-tabs).
-  const quotes = useAppSelector((s) => (activeItinerary ? selectQuotesForItinerary(s, activeItinerary.uid) : []));
+  // Keep the selected itinerary's quotes loaded — the collapsed right rail's
+  // quote tooltip reads them from the store even when its Quotes list isn't mounted.
   useEffect(() => {
     if (activeItinerary) dispatch(fetchQuotesForItinerary(activeItinerary.uid));
   }, [dispatch, activeItinerary]);
-  const latestQuote = quotes.slice().sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0))[0];
-
-  const selectionAside = activeItinerary && (
-    <div className="flex shrink-0 items-start gap-4">
-      <div className="flex max-w-[9rem] shrink-0 flex-col">
-        <span className="whitespace-nowrap text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Itinerary</span>
-        <HoverMarqueeText className="truncate whitespace-nowrap text-sm font-semibold text-foreground">{activeItinerary.name}</HoverMarqueeText>
-      </div>
-      <div className="flex max-w-[9rem] shrink-0 flex-col">
-        <span className="whitespace-nowrap text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Quote</span>
-        <HoverMarqueeText className="truncate whitespace-nowrap text-sm font-semibold text-foreground">
-          {latestQuote ? latestQuote.name ?? `Quote ${latestQuote.version}` : "No quotes yet"}
-        </HoverMarqueeText>
-      </div>
-    </div>
-  );
 
   return (
     <div className="flex min-w-0 flex-col gap-2 lg:h-full lg:min-h-0">
-      <Tabs tabs={TABS} defaultTab={initialTab} aside={selectionAside}>
+      <Tabs tabs={TABS} defaultTab={initialTab}>
         {(active) => {
           if (active === "planning") {
             if ((itinerariesStatus === "idle" || itinerariesStatus === "loading") && itineraries.length === 0) {
@@ -721,6 +706,8 @@ export function EscapeWorkspaceTabs({
                 numberOfDays={numberOfDays}
                 onChanged={refreshItineraries}
                 onDealChanged={onDealChanged}
+                selectedQuoteUid={selectedQuoteUid}
+                onSelectQuote={onSelectQuote}
               />
             );
           }

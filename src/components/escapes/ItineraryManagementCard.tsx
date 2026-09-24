@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { PiCopyFill, PiTrashFill, PiPlusFill, PiPencilSimpleFill, PiSuitcaseRollingFill } from "react-icons/pi";
+import { PiCopyFill, PiPlusFill, PiPencilSimpleFill, PiSuitcaseRollingFill } from "react-icons/pi";
+import { FaTrashCan } from "react-icons/fa6";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Spinner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { cn } from "@/lib/cn";
+import { PreviousStatusModal, type PreviousStatus } from "@/components/escapes/PreviousStatusModal";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchItinerariesForEscape, createItinerary, updateItinerary, duplicateItinerary, deleteItinerary } from "@/features/itineraries/itinerariesThunks";
@@ -21,10 +23,11 @@ import { selectItineraries, selectItinerariesStatus, selectItinerariesError } fr
 // functionality. ItineraryCard itself is untouched and still used elsewhere
 // its expand/edit flow applies. Escape status advance/cancel controls live
 // on the Escape workspace itself, not here.
-const STATUS_TONE: Record<string, "neutral" | "success" | "warning"> = {
+const STATUS_TONE: Record<string, "neutral" | "success" | "warning" | "danger"> = {
   draft: "neutral",
   active: "success",
   superseded: "warning",
+  rejected: "danger",
 };
 
 export function ItineraryManagementCard({
@@ -76,19 +79,33 @@ export function ItineraryManagementCard({
     dispatch(fetchItinerariesForEscape(escapeUid));
   }
 
-  async function handleCreate(e: FormEvent) {
+  // Earlier itineraries still "open" — not the accepted one (active) and not
+  // already closed out. If any exist, creating a new one asks what to do with them.
+  const openCount = itineraries.filter((i) => !["active", "rejected", "superseded"].includes(i.status)).length;
+  const [askPrevious, setAskPrevious] = useState(false);
+
+  function handleCreate(e: FormEvent) {
     e.preventDefault();
+    if (openCount > 0) {
+      setAskPrevious(true);
+      return;
+    }
+    createNew(null);
+  }
+
+  async function createNew(previousStatus: PreviousStatus) {
     setSaving(true);
     setFormError(undefined);
     try {
       // A blank name is fine — the backend auto-generates one from the
       // escape's lead name, itinerary count, and trip length.
-      await dispatch(createItinerary({ escapeUid, name: name.trim() })).unwrap();
+      await dispatch(createItinerary({ escapeUid, name: name.trim(), previousStatus: previousStatus ?? undefined })).unwrap();
       refreshItineraries();
       setName("");
     } catch (err) {
       setFormError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to create itinerary"));
     } finally {
+      setAskPrevious(false);
       setSaving(false);
     }
   }
@@ -280,7 +297,7 @@ export function ItineraryManagementCard({
                       title="Delete"
                       className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-50"
                     >
-                      <PiTrashFill className="h-3.5 w-3.5" />
+                      <FaTrashCan className="h-3.5 w-3.5" />
                     </button>
                   )}
                 </div>
@@ -326,11 +343,26 @@ export function ItineraryManagementCard({
     </>
   );
 
+  const modal = (
+    <PreviousStatusModal
+      open={askPrevious}
+      kind="itinerary"
+      count={openCount}
+      busy={saving}
+      onConfirm={createNew}
+      onCancel={() => setAskPrevious(false)}
+    />
+  );
+
   return bare ? (
-    <div className="flex h-full min-h-0 flex-col gap-2.5">{body}</div>
+    <div className="flex h-full min-h-0 flex-col gap-2.5">
+      {body}
+      {modal}
+    </div>
   ) : (
     <Card variant="elevated" className="flex flex-col gap-2.5 p-3">
       {body}
+      {modal}
     </Card>
   );
 }

@@ -25,6 +25,10 @@ export interface Quote {
   createdAt: string;
   updatedAt: string;
   createdByName: string | null;
+  /** When the quotation was last generated — null if never. */
+  generatedAt: string | null;
+  /** Generated, but the quote has changed since. */
+  changedSinceGenerated: boolean | null;
 }
 
 export async function getQuotesForItinerary(itineraryUid: string): Promise<Quote[]> {

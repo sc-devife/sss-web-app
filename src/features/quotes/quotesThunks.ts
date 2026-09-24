@@ -61,21 +61,6 @@ export const renameQuote = createAsyncThunk<void, RenameQuotePayload, { rejectVa
   },
 );
 
-// Returns the new revision (not void) so a caller that needs to switch its
-// selection to it — the Quote tab, after Revise — can do so without a
-// separate lookup.
-export const reviseQuote = createAsyncThunk<Quote, QuoteUidWithItinerary, { rejectValue: string }>(
-  "quotes/reviseQuote",
-  async ({ uid }, { rejectWithValue }) => {
-    try {
-      const res = await clientApi.post<Quote>(`/quotes/${uid}/revise`);
-      return res.data;
-    } catch (err) {
-      return rejectWithValue(extractErrorMessage(err, "Failed to revise quote"));
-    }
-  },
-);
-
 export const deleteQuote = createAsyncThunk<void, QuoteUidWithItinerary, { rejectValue: string }>(
   "quotes/deleteQuote",
   async ({ uid }, { rejectWithValue }) => {

@@ -4,7 +4,6 @@ import {
   fetchQuotesForItinerary,
   fetchCurrencies,
   createQuote,
-  reviseQuote,
   deleteQuote,
   setQuoteTemplate,
   markQuoteSent,
@@ -25,8 +24,6 @@ interface QuotesState {
   saveStatus: RequestStatus;
   saveError: string | null;
 
-  reviseStatus: RequestStatus;
-  reviseError: string | null;
 
   deleteStatus: RequestStatus;
   deleteError: string | null;
@@ -48,8 +45,6 @@ const initialState: QuotesState = {
   currenciesStatus: "idle",
   saveStatus: "idle",
   saveError: null,
-  reviseStatus: "idle",
-  reviseError: null,
   deleteStatus: "idle",
   deleteError: null,
   setTemplateStatus: "idle",
@@ -110,17 +105,6 @@ const quotesSlice = createSlice({
         state.saveError = action.payload ?? "Failed to create quote";
       })
 
-      .addCase(reviseQuote.pending, (state) => {
-        state.reviseStatus = "loading";
-        state.reviseError = null;
-      })
-      .addCase(reviseQuote.fulfilled, (state) => {
-        state.reviseStatus = "succeeded";
-      })
-      .addCase(reviseQuote.rejected, (state, action) => {
-        state.reviseStatus = "failed";
-        state.reviseError = action.payload ?? "Failed to revise quote";
-      })
 
       .addCase(deleteQuote.pending, (state) => {
         state.deleteStatus = "loading";

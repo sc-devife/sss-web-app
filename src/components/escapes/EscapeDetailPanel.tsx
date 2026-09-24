@@ -69,6 +69,9 @@ export function EscapeDetailPanel({
   // fallback) and the center workspace's Planning tab, which renders only
   // this one itinerary instead of every itinerary on the escape.
   const [selectedItineraryUid, setSelectedItineraryUid] = useState<string | null>(null);
+  // Same for the quote being worked on within that itinerary - shared by the
+  // rail's Quotes list and the Planning tab's Quote view.
+  const [selectedQuoteUid, setSelectedQuoteUid] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(fetchEscapeById(escapeUid));
@@ -212,6 +215,8 @@ export function EscapeDetailPanel({
               onDealChanged={handleDealChanged}
               selectedItineraryUid={selectedItineraryUid}
               onSelectItinerary={setSelectedItineraryUid}
+              selectedQuoteUid={selectedQuoteUid}
+              onSelectQuote={setSelectedQuoteUid}
             />
           </div>
         </div>
@@ -224,7 +229,13 @@ export function EscapeDetailPanel({
             selectedUid={selectedItineraryUid}
             onSelect={setSelectedItineraryUid}
           />
-          <DocumentsCard deal={deal} escapeUid={escape.uid} selectedItineraryUid={selectedItineraryUid} />
+          <DocumentsCard
+            deal={deal}
+            escapeUid={escape.uid}
+            selectedItineraryUid={selectedItineraryUid}
+            selectedQuoteUid={selectedQuoteUid}
+            onSelectQuote={setSelectedQuoteUid}
+          />
         </div>
       </div>
 
@@ -235,6 +246,8 @@ export function EscapeDetailPanel({
         onToggleCollapsed={() => setPanelCollapsed((v) => !v)}
         selectedItineraryUid={selectedItineraryUid}
         onSelectItinerary={setSelectedItineraryUid}
+        selectedQuoteUid={selectedQuoteUid}
+        onSelectQuote={setSelectedQuoteUid}
       />
     </Card>
   );

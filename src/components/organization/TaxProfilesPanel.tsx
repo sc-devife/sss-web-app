@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { Card } from "@/components/ui/Card";
+import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Alert } from "@/components/ui/Alert";
@@ -11,7 +12,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { notDuplicate, numberInRange, required, runValidators } from "@/lib/validators";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchTaxProfiles, createTaxProfile, deactivateTaxProfile } from "@/features/taxProfiles/taxProfilesThunks";
+import { fetchTaxProfiles, createTaxProfile, deactivateTaxProfile, reactivateTaxProfile, deleteTaxProfile } from "@/features/taxProfiles/taxProfilesThunks";
 import { selectTaxProfiles, selectTaxProfilesStatus, selectTaxProfilesError } from "@/features/taxProfiles/taxProfilesSelectors";
 import type { TaxProfile } from "@/features/taxProfiles/types";
 
@@ -47,7 +48,9 @@ export function TaxProfilesPanel() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
-  const [deactivatingUid, setDeactivatingUid] = useState<string | null>(null);
+  const [busyUid, setBusyUid] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<TaxProfile | null>(null);
+  const [rowError, setRowError] = useState<string | undefined>();
 
   useEffect(() => {
     dispatch(fetchTaxProfiles());
@@ -88,13 +91,16 @@ export function TaxProfilesPanel() {
     }
   }
 
-  async function handleDeactivate(uid: string) {
-    setDeactivatingUid(uid);
+  async function runRowAction(uid: string, action: () => Promise<unknown>) {
+    setBusyUid(uid);
+    setRowError(undefined);
     try {
-      await dispatch(deactivateTaxProfile(uid));
+      await action();
       dispatch(fetchTaxProfiles());
+    } catch (err) {
+      setRowError(typeof err === "string" ? err : extractErrorMessage(err, "Action failed"));
     } finally {
-      setDeactivatingUid(null);
+      setBusyUid(null);
     }
   }
 
@@ -126,12 +132,16 @@ export function TaxProfilesPanel() {
               </div>
               <div className="flex items-center gap-2">
                 <Badge tone={profile.status === "active" ? "success" : "neutral"}>{profile.status}</Badge>
-                {profile.status === "active" && (
-                  <Button variant="danger" size="sm" disabled={deactivatingUid === profile.uid} onClick={() => handleDeactivate(profile.uid)}>Deactivate</Button>
+                {profile.status === "active" ? (
+                  <Button variant="secondary" size="sm" disabled={busyUid === profile.uid} onClick={() => runRowAction(profile.uid, () => dispatch(deactivateTaxProfile(profile.uid)).unwrap())}>Deactivate</Button>
+                ) : (
+                  <Button variant="secondary" size="sm" disabled={busyUid === profile.uid} onClick={() => runRowAction(profile.uid, () => dispatch(reactivateTaxProfile(profile.uid)).unwrap())}>Reactivate</Button>
                 )}
+                <Button variant="danger" size="sm" disabled={busyUid === profile.uid} onClick={() => setConfirmDelete(profile)}>Delete</Button>
               </div>
             </Card>
           ))}
+          {rowError && <Body className="text-danger">{rowError}</Body>}
         </>
       )}
 
@@ -203,6 +213,27 @@ export function TaxProfilesPanel() {
           </form>
         </Card>
       )}
+
+      <Modal open={confirmDelete !== null} onClose={() => setConfirmDelete(null)} title="Delete tax profile">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <Body>
+            Delete <span className="font-medium">{confirmDelete?.displayName}</span>? This can&apos;t be undone. If quotes already use it, deactivate it instead.
+          </Body>
+          <div className="flex justify-center gap-2">
+            <Button variant="ghost" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                const target = confirmDelete;
+                setConfirmDelete(null);
+                if (target) runRowAction(target.uid, () => dispatch(deleteTaxProfile(target.uid)).unwrap());
+              }}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

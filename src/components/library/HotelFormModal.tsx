@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import dynamic from "next/dynamic";
-import { IoTrashOutline } from "react-icons/io5";
+import { FaRegTrashCan } from "react-icons/fa6";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { DatePicker } from "@/components/ui/DatePicker";
@@ -729,7 +729,7 @@ export function HotelFormModal({
                         aria-label="Remove room type"
                         title="Remove room type"
                       >
-                        <IoTrashOutline size={15} />
+                        <FaRegTrashCan size={15} />
                       </button>
                     </div>
                   );

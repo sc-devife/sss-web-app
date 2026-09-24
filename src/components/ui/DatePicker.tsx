@@ -1,5 +1,6 @@
 "use client";
 
+import { LuCalendarDays } from "react-icons/lu";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { IconType } from "react-icons";
@@ -88,6 +89,10 @@ export interface DatePickerProps {
    * field among many. No trigger button, no portal, no outside-click/Escape
    * handling (there's no popover to dismiss). */
   inline?: boolean;
+  /** Adds a calendar icon to the trigger so it reads as a date control, not a text field. */
+  showIcon?: boolean;
+  /** Muted text shown before the chosen date inside the trigger (e.g. "Valid until"). */
+  prefix?: string;
 }
 
 // Custom calendar popover replacing the native `<input type="date">` —
@@ -109,6 +114,8 @@ export function DatePicker({
   className,
   id,
   inline,
+  showIcon,
+  prefix,
 }: DatePickerProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
@@ -310,7 +317,15 @@ export function DatePicker({
           className,
         )}
       >
-        {value ? formatDisplay(value) : placeholder}
+        {showIcon && <LuCalendarDays className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
+        {value ? (
+          <span className="truncate">
+            {prefix && <span className="mr-1.5 text-muted-foreground">{prefix}</span>}
+            {formatDisplay(value)}
+          </span>
+        ) : (
+          placeholder
+        )}
       </button>
       {error && <span className="text-xs text-danger">{error}</span>}
 

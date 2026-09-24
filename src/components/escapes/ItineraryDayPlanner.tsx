@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
-import { IoTrashOutline } from "react-icons/io5";
+import { FaRegTrashCan } from "react-icons/fa6";
 import { PiPlusFill, PiArrowsLeftRightBold } from "react-icons/pi";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
@@ -288,7 +288,7 @@ function TimelineRow({
               aria-label="Remove"
               title="Remove"
             >
-              <IoTrashOutline size={14} />
+              <FaRegTrashCan size={14} />
             </button>
           )}
         </div>

@@ -7,6 +7,8 @@ export interface CreateQuotePayload {
   itineraryUid: string;
   name?: string;
   validUntil: string | null;
+  /** What to do with the itinerary's earlier open quotes. */
+  previousStatus?: "rejected" | "superseded";
 }
 
 export interface RenameQuotePayload {

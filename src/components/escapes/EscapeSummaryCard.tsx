@@ -17,12 +17,14 @@ import {
   PiUserCircleFill,
   PiHashFill,
   PiWarningCircleFill,
+  PiCalendarCheckFill,
 } from "react-icons/pi";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { Avatar } from "@/components/ui/Avatar";
+import { RailTip } from "@/components/escapes/RailTip";
 import { Body, Caption } from "@/components/ui/Typography";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/cn";
@@ -105,6 +107,15 @@ function resolveNextStep(escape: Escape): { targetStatus: string; label: string 
     return { targetStatus: "Completed", label: "Mark as Completed" };
   }
   return null;
+}
+
+// One icon tile of the collapsed rail (wrapped in a RailTip for its hover text).
+function RailIcon({ icon: Icon }: { icon: IconType }) {
+  return (
+    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+      <Icon className="h-4 w-4" />
+    </span>
+  );
 }
 
 export function EscapeSummaryCard({
@@ -238,19 +249,57 @@ export function EscapeSummaryCard({
       )}
 
       {collapsed && (
-        <div className="hidden flex-col items-center gap-4 py-4 lg:flex" aria-hidden="true">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground" title="Cover image">
-            <PiImageFill className="h-4 w-4" />
-          </span>
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground" title={escapePoint?.name ?? "Location"}>
-            <PiMapPinFill className="h-4 w-4" />
-          </span>
-          <span title={leadName}>
+        <div className="hidden flex-col items-center gap-3 py-4 lg:flex">
+          <RailTip
+            label="Cover image"
+            content={
+              cover && !imageFailed ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={resolveFileUrl(cover)} alt="" className="aspect-[16/9] w-64 rounded object-cover" />
+              ) : (
+                "No cover image"
+              )
+            }
+          >
+            <RailIcon icon={PiImageFill} />
+          </RailTip>
+          <RailTip
+            label="Escape point"
+            content={escape.escapePoints.length > 0 ? escape.escapePoints.map((ep) => ep.name).join(", ") : "No escape point selected"}
+          >
+            <RailIcon icon={PiMapPinFill} />
+          </RailTip>
+          <RailTip label="Traveller" content={leadName}>
             <Avatar name={leadName} />
-          </span>
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground" title="Schedule">
-            <PiCalendarBlankFill className="h-4 w-4" />
-          </span>
+          </RailTip>
+          <RailTip
+            label="Status"
+            content={
+              <Badge tone={escapeStatusTone(escape.status)} icon={escapeStatusIcon(escape.status)}>
+                {escape.status}
+              </Badge>
+            }
+          >
+            <RailIcon icon={escapeStatusIcon(escape.status)} />
+          </RailTip>
+          <RailTip label="Start date" content={`Start date: ${escape.startDate ? formatDisplayDate(escape.startDate) : "—"}`}>
+            <RailIcon icon={PiCalendarBlankFill} />
+          </RailTip>
+          <RailTip label="End date" content={`End date: ${escape.endDate ? formatDisplayDate(escape.endDate) : "—"}`}>
+            <RailIcon icon={PiCalendarCheckFill} />
+          </RailTip>
+          <RailTip label="Duration" content={`Duration: ${escape.numberOfDays ? `${escape.numberOfDays} days` : "—"}`}>
+            <RailIcon icon={PiClockFill} />
+          </RailTip>
+          <RailTip
+            label="Travellers"
+            content={`Travellers: ${lead?.numberOfPeople != null ? lead.numberOfPeople : escape.travellers?.length ?? "—"}`}
+          >
+            <RailIcon icon={PiUsersFill} />
+          </RailTip>
+          <RailTip label="Assigned to" content={`Assigned to: ${escape.assignedToUserName ?? "Unassigned"}`}>
+            <RailIcon icon={PiUserCircleFill} />
+          </RailTip>
         </div>
       )}
 

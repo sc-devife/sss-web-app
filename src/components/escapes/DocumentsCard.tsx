@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { PiFileTextFill, PiTrashFill, PiPlusFill, PiPencilSimpleFill } from "react-icons/pi";
+import { PiFileTextFill, PiPlusFill, PiPencilSimpleFill } from "react-icons/pi";
+import { FaTrashCan } from "react-icons/fa6";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Spinner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { cn } from "@/lib/cn";
+import { PreviousStatusModal, type PreviousStatus } from "@/components/escapes/PreviousStatusModal";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchQuotesForItinerary, createQuote, renameQuote, deleteQuote } from "@/features/quotes/quotesThunks";
@@ -29,6 +31,8 @@ const EMPTY_QUOTES: Quote[] = [];
 // is a lightweight companion list, not a replacement for it.
 export function DocumentsCard({
   selectedItineraryUid = null,
+  selectedQuoteUid = null,
+  onSelectQuote,
   bare = false,
 }: {
   /** Kept for call-site compatibility with the parent's Deal-aware wiring —
@@ -36,6 +40,9 @@ export function DocumentsCard({
   deal?: Deal | null;
   escapeUid?: string;
   selectedItineraryUid?: string | null;
+  /** The quote being worked on - click a row to select it. */
+  selectedQuoteUid?: string | null;
+  onSelectQuote?: (uid: string | null) => void;
   bare?: boolean;
 }) {
   const dispatch = useAppDispatch();
@@ -57,24 +64,52 @@ export function DocumentsCard({
     if (selectedItineraryUid) dispatch(fetchQuotesForItinerary(selectedItineraryUid));
   }, [dispatch, selectedItineraryUid]);
 
+  // Default to (and snap back to) the newest quote when nothing valid is selected.
+  useEffect(() => {
+    if (!onSelectQuote || quotesStatus !== "succeeded") return;
+    if (quotes.length === 0) {
+      if (selectedQuoteUid) onSelectQuote(null);
+      return;
+    }
+    if (selectedQuoteUid && quotes.some((q) => q.uid === selectedQuoteUid)) return;
+    const newest = quotes.slice().sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
+    onSelectQuote(newest.uid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quotes, quotesStatus, selectedQuoteUid]);
+
   function refresh() {
     if (selectedItineraryUid) dispatch(fetchQuotesForItinerary(selectedItineraryUid));
   }
 
-  async function handleCreate(e: FormEvent) {
+  const openCount = quotes.filter((q) => q.status === "draft" || q.status === "sent").length;
+  const [askPrevious, setAskPrevious] = useState(false);
+
+  function handleCreate(e: FormEvent) {
     e.preventDefault();
+    if (!selectedItineraryUid) return;
+    if (openCount > 0) {
+      setAskPrevious(true);
+      return;
+    }
+    createNew(null);
+  }
+
+  async function createNew(previousStatus: PreviousStatus) {
     if (!selectedItineraryUid) return;
     setSaving(true);
     setFormError(undefined);
     try {
       // A blank name is fine — the backend auto-generates one from the
       // itinerary's name and the quote count for that itinerary.
-      await dispatch(createQuote({ itineraryUid: selectedItineraryUid, name: name.trim(), validUntil: null })).unwrap();
-      refresh();
+      await dispatch(createQuote({ itineraryUid: selectedItineraryUid, name: name.trim(), validUntil: null, previousStatus: previousStatus ?? undefined })).unwrap();
+      const res = await dispatch(fetchQuotesForItinerary(selectedItineraryUid)).unwrap();
+      const newest = res.quotes.slice().sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
+      if (newest) onSelectQuote?.(newest.uid);
       setName("");
     } catch (err) {
       setFormError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to create quote"));
     } finally {
+      setAskPrevious(false);
       setSaving(false);
     }
   }
@@ -156,9 +191,11 @@ export function DocumentsCard({
               return (
                 <div
                   key={quote.uid}
+                  onClick={() => onSelectQuote?.(quote.uid)}
                   className={cn(
-                    "group flex items-center gap-2 rounded-lg border border-border/60 bg-card px-2.5 py-2 shadow-sm transition-all duration-150",
-                    "hover:-translate-y-px hover:border-primary/40 hover:shadow-md",
+                    "group flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 shadow-sm transition-all duration-150",
+                    "hover:-translate-y-px hover:shadow-md",
+                    selectedQuoteUid === quote.uid ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border/60 bg-card hover:border-primary/40",
                     isEditing && "border-primary/50 ring-1 ring-primary/20",
                   )}
                 >
@@ -173,6 +210,7 @@ export function DocumentsCard({
                         onChange={(e) => setEditValue(e.target.value)}
                         onBlur={commitEdit}
                         onKeyDown={handleEditKeyDown}
+                        onClick={(e) => e.stopPropagation()}
                         autoFocus
                         className="min-w-0 rounded border border-primary/40 bg-background px-1.5 py-0.5 text-xs font-medium text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
                       />
@@ -183,7 +221,7 @@ export function DocumentsCard({
                         className="flex items-center gap-1.5"
                       >
                         <HoverMarqueeText className="truncate text-xs font-medium text-foreground">{quote.name ?? `Quote ${quote.version}`}</HoverMarqueeText>
-                        <Badge tone={quote.status === "accepted" ? "success" : "neutral"}>{quote.status}</Badge>
+                        <Badge tone={quote.status === "accepted" ? "success" : quote.status === "rejected" ? "danger" : quote.status === "superseded" ? "warning" : "neutral"}>{quote.status}</Badge>
                       </div>
                     )}
                     <HoverMarqueeText className="truncate text-[11px] text-muted-foreground">
@@ -199,7 +237,10 @@ export function DocumentsCard({
                       ) : (
                         <button
                           type="button"
-                          onClick={() => startEditing(quote.uid, quote.name ?? `Quote ${quote.version}`)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEditing(quote.uid, quote.name ?? `Quote ${quote.version}`);
+                          }}
                           aria-label="Rename quote"
                           title="Rename"
                           className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
@@ -216,12 +257,15 @@ export function DocumentsCard({
                       <button
                         type="button"
                         disabled={isRowBusy}
-                        onClick={() => handleDelete(quote.uid)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(quote.uid);
+                        }}
                         aria-label="Delete quote"
                         title="Delete"
                         className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-50"
                       >
-                        <PiTrashFill className="h-3.5 w-3.5" />
+                        <FaTrashCan className="h-3.5 w-3.5" />
                       </button>
                     )}
                   </div>
@@ -269,11 +313,26 @@ export function DocumentsCard({
     </>
   );
 
+  const modal = (
+    <PreviousStatusModal
+      open={askPrevious}
+      kind="quote"
+      count={openCount}
+      busy={saving}
+      onConfirm={createNew}
+      onCancel={() => setAskPrevious(false)}
+    />
+  );
+
   return bare ? (
-    <div className="flex h-full min-h-0 flex-col gap-2">{body}</div>
+    <div className="flex h-full min-h-0 flex-col gap-2">
+      {body}
+      {modal}
+    </div>
   ) : (
     <Card variant="elevated" className="flex flex-col gap-2 p-3">
       {body}
+      {modal}
     </Card>
   );
 }
