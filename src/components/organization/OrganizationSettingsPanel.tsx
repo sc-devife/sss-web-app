@@ -160,7 +160,7 @@ export function OrganizationSettingsPanel() {
                 value={brandPrimaryColor}
                 onChange={(e) => setBrandPrimaryColor(e.target.value)}
                 placeholder="#0f172a"
-                className="h-10 flex-1 rounded border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="h-9 flex-1 rounded-full border border-border bg-card px-4 shadow-sm text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </div>
           </div>

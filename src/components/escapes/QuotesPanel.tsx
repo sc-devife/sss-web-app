@@ -852,7 +852,7 @@ export function QuotesPanel({
               value={templateSearch}
               onChange={(e) => setTemplateSearch(e.target.value)}
               placeholder="Search templates…"
-              className="h-9 w-full rounded border border-border bg-card pl-9 pr-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className="h-9 w-full rounded-full border border-border bg-card pl-9 pr-3 shadow-sm text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <div className="show-scrollbar flex max-h-72 flex-col gap-1.5 overflow-y-auto">

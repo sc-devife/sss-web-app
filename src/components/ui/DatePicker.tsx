@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import type { IconType } from "react-icons";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 import { cn } from "@/lib/cn";
+import { PILL_FIELD, useFormAppearance } from "@/components/ui/FormAppearance";
 
 const WEEKDAY_LABELS = ["Sa", "Su", "Mo", "Tu", "We", "Th", "Fr"];
 const MONTH_LABELS = [
@@ -119,6 +120,7 @@ export function DatePicker({
 }: DatePickerProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
+  const pill = useFormAppearance() === "pill";
 
   const [open, setOpen] = useState(false);
   const [viewDate, setViewDate] = useState<Date>(() => parseIsoDate(value) ?? new Date());
@@ -314,10 +316,11 @@ export function DatePicker({
           !value && "text-muted-foreground",
           error ? "border-danger focus:border-danger focus:ring-danger/20" : "border-border focus:border-primary focus:ring-primary/20",
           disabled && "cursor-not-allowed opacity-60",
+          pill && PILL_FIELD,
           className,
         )}
       >
-        {showIcon && <LuCalendarDays className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
+        {(showIcon || pill) && <LuCalendarDays className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
         {value ? (
           <span className="truncate">
             {prefix && <span className="mr-1.5 text-muted-foreground">{prefix}</span>}

@@ -1,11 +1,16 @@
 "use client";
 
+import { Card } from "@/components/ui/Card";
+import { cn } from "@/lib/cn";
+import { FormAppearanceProvider, PILL_AREA } from "@/components/ui/FormAppearance";
+import { FaChevronLeft } from "react-icons/fa6";
 import { getOrgCurrency } from "@/lib/currency";
 import { PriceCurrencySelect } from "@/components/library/PriceCurrencySelect";
 import { useEffect, useState, type FormEvent } from "react";
 import dynamic from "next/dynamic";
 import { FaRegTrashCan } from "react-icons/fa6";
 import { Button } from "@/components/ui/Button";
+import { EditIconActions } from "@/components/library/HotelSectionEditors";
 import { TextInput } from "@/components/ui/TextInput";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { TimePicker } from "@/components/ui/TimePicker";
@@ -136,6 +141,9 @@ function snapshotFromHotel(hotel: Hotel | null): FormState {
 export function HotelFormModal({
   open,
   hotel,
+  variant = "modal",
+  readOnly = false,
+  embedded = false,
   onClose,
   onSaved,
   locations,
@@ -147,6 +155,12 @@ export function HotelFormModal({
 }: {
   open: boolean;
   hotel: Hotel | null;
+  /** "modal" (default, used to add a hotel) or "page" (rendered inline as a full edit page). */
+  variant?: "modal" | "page";
+  /** Page variant only: show the fields as a non-editable view (Save/Cancel hidden). */
+  readOnly?: boolean;
+  /** Page variant only: render just the form (no card, heading or back link) so a page can embed it. */
+  embedded?: boolean;
   onClose: () => void;
   onSaved: () => void;
   locations: LibraryLocation[];
@@ -446,19 +460,16 @@ export function HotelFormModal({
     }
   }
 
-  return (
-    <Modal
-      open={open}
-      onClose={() => {
-        if (saving) return;
-        onClose();
-      }}
-      title={hotel ? "Edit Hotel" : "Add Hotel"}
-      className="max-w-xl"
-    >
+  // Full-page edit: three fields per row, pill-style fields. The dialog (Add Hotel)
+  // keeps its two-column layout and the default field look.
+  const pair = variant === "page" ? "contents" : "grid grid-cols-2 gap-3";
+  const basicGrid = variant === "page" ? "grid grid-cols-1 items-start gap-x-4 gap-y-4 sm:grid-cols-3" : "contents";
+
+  const formBody = (
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <fieldset disabled={saving} className="contents">
-          <div className="grid grid-cols-2 gap-3">
+        <fieldset disabled={saving || readOnly} className="contents">
+          <div className={basicGrid}>
+          <div className={pair}>
             <TextInput
               label="Name"
               value={form.name}
@@ -502,16 +513,18 @@ export function HotelFormModal({
                 placeholder="Select a location"
                 searchable
               />
-              <button
-                type="button"
-                onClick={() => setAddingLocation(true)}
-                className="self-start text-sm text-primary hover:underline"
-              >
-                + Add a new location
-              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => setAddingLocation(true)}
+                  className="self-start text-sm text-primary hover:underline"
+                >
+                  + Add a new location
+                </button>
+              )}
             </div>
           ) : (
-            <div className="flex flex-col gap-3 rounded border border-border p-3">
+            <div className="flex flex-col gap-3 rounded border border-border p-3 sm:col-span-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-foreground">New location</span>
                 <button type="button" onClick={() => setAddingLocation(false)} className="text-sm text-muted-foreground hover:text-foreground">
@@ -563,9 +576,22 @@ export function HotelFormModal({
             </div>
           )}
 
-          <TextInput label="Address" value={form.address} onChange={(e) => update("address", e.target.value)} />
+          <div className="sm:col-span-2">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="hotel-address" className="text-sm font-medium text-foreground">
+                Address
+              </label>
+              <textarea
+                id="hotel-address"
+                value={form.address}
+                onChange={(e) => update("address", e.target.value)}
+                rows={2}
+                className={cn("w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground", variant === "page" && PILL_AREA)}
+              />
+            </div>
+          </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className={pair}>
             <PhoneInput
               label="Phone Number"
               value={form.phoneNumber}
@@ -588,7 +614,14 @@ export function HotelFormModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <TextInput
+            label="Child extra-bed age policy"
+            placeholder="e.g. 6-12yo"
+            value={form.childAgeForExtraBed}
+            onChange={(e) => update("childAgeForExtraBed", e.target.value)}
+          />
+
+          <div className={pair}>
             <TimePicker
               label="Check-in time"
               value={form.checkInTime}
@@ -601,14 +634,7 @@ export function HotelFormModal({
             />
           </div>
 
-          <TextInput
-            label="Child extra-bed age policy"
-            placeholder="e.g. 6-12yo"
-            value={form.childAgeForExtraBed}
-            onChange={(e) => update("childAgeForExtraBed", e.target.value)}
-          />
-
-          <div className="grid grid-cols-2 gap-3">
+          <div className={pair}>
             <DatePicker
               label="Rate valid from"
               value={form.rateValidFrom}
@@ -620,294 +646,313 @@ export function HotelFormModal({
               onChange={(v) => update("rateValidTo", v)}
             />
           </div>
-
-          <div className="flex flex-col gap-1.5">
-            <MultiSelectSearch
-              label="Meal plans"
-              placeholder="Search available meal plans"
-              options={mealPlanOptions.map((m) => ({ value: m.uid, label: `${m.code} — ${m.name}` }))}
-              value={form.mealPlanIds}
-              onChange={(v) => update("mealPlanIds", v)}
-            />
-            {!addingMealPlan ? (
-              <button
-                type="button"
-                onClick={() => setAddingMealPlan(true)}
-                className="self-start text-sm text-primary hover:underline"
-              >
-                + Add New Meals
-              </button>
-            ) : (
-              <div className="flex flex-col gap-3 rounded border border-border p-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">New meal plan</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAddingMealPlan(false);
-                      setMealPlanError(undefined);
-                    }}
-                    className="text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    Cancel
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <TextInput
-                    label="Code"
-                    placeholder="e.g. CP"
-                    value={newMealPlan.code}
-                    onChange={(e) => setNewMealPlan((m) => ({ ...m, code: e.target.value }))}
-                    required
-                  />
-                  <TextInput
-                    label="Name"
-                    placeholder="e.g. Continental Plan"
-                    value={newMealPlan.name}
-                    onChange={(e) => setNewMealPlan((m) => ({ ...m, name: e.target.value }))}
-                    required
-                  />
-                </div>
-                <TextInput
-                  label="Description"
-                  value={newMealPlan.description}
-                  onChange={(e) => setNewMealPlan((m) => ({ ...m, description: e.target.value }))}
-                />
-                {mealPlanError && <p className="text-sm text-danger">{mealPlanError}</p>}
-                <Button
-                  type="button"
-                  size="sm"
-                  className="self-start"
-                  disabled={savingMealPlan || !newMealPlan.code.trim() || !newMealPlan.name.trim()}
-                  loading={savingMealPlan}
-                  loadingText="Saving…"
-                  onClick={handleAddMealPlan}
-                >
-                  Add meal plan
-                </Button>
-              </div>
-            )}
+          {variant === "page" && (
+            <PriceCurrencySelect value={form.priceCurrency} onChange={(code) => update("priceCurrency", code)} />
+          )}
           </div>
 
-          <div className="flex flex-col gap-2">
-            <PriceCurrencySelect value={form.priceCurrency} onChange={(code) => update("priceCurrency", code)} />
-            <span className="text-sm font-medium text-foreground">Room Types</span>
+          {variant !== "page" && (
+            <div className="flex flex-col gap-1.5">
+              <MultiSelectSearch
+                label="Meal plans"
+                placeholder="Search available meal plans"
+                options={mealPlanOptions.map((m) => ({ value: m.uid, label: `${m.code} — ${m.name}` }))}
+                value={form.mealPlanIds}
+                onChange={(v) => update("mealPlanIds", v)}
+              />
+              {!addingMealPlan ? (
+                <button
+                  type="button"
+                  onClick={() => setAddingMealPlan(true)}
+                  className="self-start text-sm text-primary hover:underline"
+                >
+                  + Add New Meals
+                </button>
+              ) : (
+                <div className="flex flex-col gap-3 rounded border border-border p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">New meal plan</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddingMealPlan(false);
+                        setMealPlanError(undefined);
+                      }}
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <TextInput
+                      label="Code"
+                      placeholder="e.g. CP"
+                      value={newMealPlan.code}
+                      onChange={(e) => setNewMealPlan((m) => ({ ...m, code: e.target.value }))}
+                      required
+                    />
+                    <TextInput
+                      label="Name"
+                      placeholder="e.g. Continental Plan"
+                      value={newMealPlan.name}
+                      onChange={(e) => setNewMealPlan((m) => ({ ...m, name: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <TextInput
+                    label="Description"
+                    value={newMealPlan.description}
+                    onChange={(e) => setNewMealPlan((m) => ({ ...m, description: e.target.value }))}
+                  />
+                  {mealPlanError && <p className="text-sm text-danger">{mealPlanError}</p>}
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="self-start"
+                    disabled={savingMealPlan || !newMealPlan.code.trim() || !newMealPlan.name.trim()}
+                    loading={savingMealPlan}
+                    loadingText="Saving…"
+                    onClick={handleAddMealPlan}
+                  >
+                    Add meal plan
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
 
-            {form.roomTypePricing.length > 0 && (
-              <div className="flex flex-col gap-2">
-                {form.roomTypePricing.map((row, index) => {
-                  // A room type already picked in another row can't be
-                  // picked again here — but stays in THIS row's own list so
-                  // its label keeps rendering once selected.
-                  const takenElsewhere = new Set(
-                    form.roomTypePricing.filter((_, i) => i !== index).map((r) => r.roomTypeId),
-                  );
-                  const rowOptions = roomTypeOptions.filter(
-                    (rt) => rt.uid === row.roomTypeId || !takenElsewhere.has(rt.uid),
-                  );
-                  return (
-                    <div key={index} className="flex items-end gap-2 rounded-lg border border-border bg-muted/20 p-2.5">
-                      <div className="flex-1">
-                        <Select
-                          label="Room Type"
-                          options={rowOptions.map((rt) => ({ value: rt.uid, label: rt.name }))}
-                          value={row.roomTypeId}
-                          onChange={(e) => updateRoomTypeRow(index, { roomTypeId: e.target.value })}
-                          placeholder="Select a room type"
-                          searchable
-                        />
-                      </div>
-                      <div className="w-36 shrink-0">
-                        <TextInput
-                          label="Price / Night"
-                          type="number"
-                          min={0}
-                          step="any"
-                          placeholder="e.g. 8000"
-                          value={row.price}
-                          onChange={(e) => updateRoomTypeRow(index, { price: e.target.value })}
-                        />
-                      </div>
+          {variant !== "page" && (
+            <div className="flex flex-col gap-2">
+              <PriceCurrencySelect value={form.priceCurrency} onChange={(code) => update("priceCurrency", code)} />
+                <span className="text-sm font-medium text-foreground">Room Types</span>
+
+                {form.roomTypePricing.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    {form.roomTypePricing.map((row, index) => {
+                      // A room type already picked in another row can't be
+                      // picked again here — but stays in THIS row's own list so
+                      // its label keeps rendering once selected.
+                      const takenElsewhere = new Set(
+                        form.roomTypePricing.filter((_, i) => i !== index).map((r) => r.roomTypeId),
+                      );
+                      const rowOptions = roomTypeOptions.filter(
+                        (rt) => rt.uid === row.roomTypeId || !takenElsewhere.has(rt.uid),
+                      );
+                      return (
+                        <div key={index} className="flex items-end gap-2 rounded-lg border border-border bg-muted/20 p-2.5">
+                          <div className="flex-1">
+                            <Select
+                              label="Room Type"
+                              options={rowOptions.map((rt) => ({ value: rt.uid, label: rt.name }))}
+                              value={row.roomTypeId}
+                              onChange={(e) => updateRoomTypeRow(index, { roomTypeId: e.target.value })}
+                              placeholder="Select a room type"
+                              searchable
+                            />
+                          </div>
+                          <div className="w-36 shrink-0">
+                            <TextInput
+                              label="Price / Night"
+                              type="number"
+                              min={0}
+                              step="any"
+                              placeholder="e.g. 8000"
+                              value={row.price}
+                              onChange={(e) => updateRoomTypeRow(index, { price: e.target.value })}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeRoomTypeRow(index)}
+                            className="mb-2 shrink-0 rounded-full p-2 text-muted-foreground hover:bg-danger/10 hover:text-danger"
+                            aria-label="Remove room type"
+                            title="Remove room type"
+                          >
+                            <FaRegTrashCan size={15} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <button type="button" onClick={addRoomTypeRow} className="self-start text-sm text-primary hover:underline">
+                  + Add Room Type
+                </button>
+
+                {!addingRoomType ? (
+                  <button
+                    type="button"
+                    onClick={() => setAddingRoomType(true)}
+                    className="self-start text-sm text-primary hover:underline"
+                  >
+                    + Create a new room type
+                  </button>
+                ) : (
+                  <div className="flex flex-col gap-3 rounded border border-border p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground">New room type</span>
                       <button
                         type="button"
-                        onClick={() => removeRoomTypeRow(index)}
-                        className="mb-2 shrink-0 rounded-full p-2 text-muted-foreground hover:bg-danger/10 hover:text-danger"
-                        aria-label="Remove room type"
-                        title="Remove room type"
+                        onClick={() => {
+                          setAddingRoomType(false);
+                          setRoomTypeError(undefined);
+                        }}
+                        className="text-sm text-muted-foreground hover:text-foreground"
                       >
-                        <FaRegTrashCan size={15} />
+                        Cancel
                       </button>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                    <TextInput
+                      label="Name"
+                      placeholder="e.g. Deluxe Room"
+                      value={newRoomType.name}
+                      onChange={(e) => setNewRoomType((r) => ({ ...r, name: e.target.value }))}
+                      required
+                    />
+                    <TextInput
+                      label="Description"
+                      value={newRoomType.description}
+                      onChange={(e) => setNewRoomType((r) => ({ ...r, description: e.target.value }))}
+                    />
+                    {roomTypeError && <p className="text-sm text-danger">{roomTypeError}</p>}
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="self-start"
+                      disabled={savingRoomType || !newRoomType.name.trim()}
+                      loading={savingRoomType}
+                      loadingText="Saving…"
+                      onClick={handleAddRoomType}
+                    >
+                      Add room type
+                    </Button>
+                  </div>
+                )}
+          
+            </div>
+          )}
 
-            <button type="button" onClick={addRoomTypeRow} className="self-start text-sm text-primary hover:underline">
-              + Add Room Type
-            </button>
-
-            {!addingRoomType ? (
-              <button
-                type="button"
-                onClick={() => setAddingRoomType(true)}
-                className="self-start text-sm text-primary hover:underline"
-              >
-                + Create a new room type
-              </button>
-            ) : (
-              <div className="flex flex-col gap-3 rounded border border-border p-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">New room type</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAddingRoomType(false);
-                      setRoomTypeError(undefined);
-                    }}
-                    className="text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    Cancel
-                  </button>
-                </div>
-                <TextInput
-                  label="Name"
-                  placeholder="e.g. Deluxe Room"
-                  value={newRoomType.name}
-                  onChange={(e) => setNewRoomType((r) => ({ ...r, name: e.target.value }))}
-                  required
-                />
-                <TextInput
-                  label="Description"
-                  value={newRoomType.description}
-                  onChange={(e) => setNewRoomType((r) => ({ ...r, description: e.target.value }))}
-                />
-                {roomTypeError && <p className="text-sm text-danger">{roomTypeError}</p>}
-                <Button
+          {variant !== "page" && (
+            <div className="flex flex-col gap-1.5">
+              <MultiSelectSearch
+                label="Services"
+                placeholder="Search available services"
+                options={serviceOptions.map((s) => ({ value: s.uid, label: s.name }))}
+                value={form.serviceIds}
+                onChange={(v) => update("serviceIds", v)}
+              />
+              {!addingService ? (
+                <button
                   type="button"
-                  size="sm"
-                  className="self-start"
-                  disabled={savingRoomType || !newRoomType.name.trim()}
-                  loading={savingRoomType}
-                  loadingText="Saving…"
-                  onClick={handleAddRoomType}
+                  onClick={() => setAddingService(true)}
+                  className="self-start text-sm text-primary hover:underline"
                 >
-                  Add room type
-                </Button>
-              </div>
-            )}
-          </div>
+                  + Add New Services
+                </button>
+              ) : (
+                <div className="flex flex-col gap-3 rounded border border-border p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">
+                      {hotel ? "New service for this hotel" : "New service"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddingService(false);
+                        setServiceError(undefined);
+                      }}
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  <TextInput
+                    label="Name"
+                    placeholder="e.g. Airport Pickup"
+                    value={newService.name}
+                    onChange={(e) => setNewService((s) => ({ ...s, name: e.target.value }))}
+                    required
+                  />
+                  <TextInput
+                    label="Description"
+                    value={newService.description}
+                    onChange={(e) => setNewService((s) => ({ ...s, description: e.target.value }))}
+                  />
+                  <TextInput
+                    label={`Price (${form.priceCurrency || getOrgCurrency()})`}
+                    type="number"
+                    min={0}
+                    step="any"
+                    value={newService.price}
+                    onChange={(e) => setNewService((s) => ({ ...s, price: e.target.value }))}
+                  />
+                  {serviceError && <p className="text-sm text-danger">{serviceError}</p>}
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="self-start"
+                    disabled={savingService || !newService.name.trim()}
+                    loading={savingService}
+                    loadingText="Saving…"
+                    onClick={handleAddService}
+                  >
+                    Add service
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
 
-          <div className="flex flex-col gap-1.5">
+          {variant !== "page" && (
             <MultiSelectSearch
-              label="Services"
-              placeholder="Search available services"
-              options={serviceOptions.map((s) => ({ value: s.uid, label: s.name }))}
-              value={form.serviceIds}
-              onChange={(v) => update("serviceIds", v)}
+              label="Amenities"
+              placeholder="Search amenities…"
+              options={amenityOptions.map((a) => ({ value: a.name, label: a.name }))}
+              value={form.amenities}
+              onChange={(v) => update("amenities", v)}
+              onCreateOption={handleCreateAmenity}
             />
-            {!addingService ? (
-              <button
-                type="button"
-                onClick={() => setAddingService(true)}
-                className="self-start text-sm text-primary hover:underline"
-              >
-                + Add New Services
-              </button>
-            ) : (
-              <div className="flex flex-col gap-3 rounded border border-border p-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">
-                    {hotel ? "New service for this hotel" : "New service"}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAddingService(false);
-                      setServiceError(undefined);
-                    }}
-                    className="text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    Cancel
-                  </button>
-                </div>
-                <TextInput
-                  label="Name"
-                  placeholder="e.g. Airport Pickup"
-                  value={newService.name}
-                  onChange={(e) => setNewService((s) => ({ ...s, name: e.target.value }))}
-                  required
-                />
-                <TextInput
-                  label="Description"
-                  value={newService.description}
-                  onChange={(e) => setNewService((s) => ({ ...s, description: e.target.value }))}
-                />
-                <TextInput
-                  label={`Price (${form.priceCurrency || getOrgCurrency()})`}
-                  type="number"
-                  min={0}
-                  step="any"
-                  value={newService.price}
-                  onChange={(e) => setNewService((s) => ({ ...s, price: e.target.value }))}
-                />
-                {serviceError && <p className="text-sm text-danger">{serviceError}</p>}
-                <Button
-                  type="button"
-                  size="sm"
-                  className="self-start"
-                  disabled={savingService || !newService.name.trim()}
-                  loading={savingService}
-                  loadingText="Saving…"
-                  onClick={handleAddService}
-                >
-                  Add service
-                </Button>
-              </div>
+          )}
+
+          {!embedded && (
+            <>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="hotel-about" className="text-sm font-medium text-foreground">
+                About
+              </label>
+              <textarea
+                id="hotel-about"
+                value={form.about}
+                onChange={(e) => update("about", e.target.value)}
+                rows={4}
+                placeholder="A short description of the hotel"
+                className={cn("rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground", variant === "page" && PILL_AREA)}
+              />
+            </div>
+
+            {variant !== "page" && (
+              <RichTextEditor
+                label="Rules and Policies"
+                value={form.rulesAndPolicies}
+                onChange={(html) => update("rulesAndPolicies", html)}
+                placeholder="Check-in rules, cancellation policy, house rules…"
+              />
             )}
-          </div>
 
-          <MultiSelectSearch
-            label="Amenities"
-            placeholder="Search amenities…"
-            options={amenityOptions.map((a) => ({ value: a.name, label: a.name }))}
-            value={form.amenities}
-            onChange={(v) => update("amenities", v)}
-            onCreateOption={handleCreateAmenity}
-          />
+            <FileUpload label="Images" value={form.images} onChange={(images) => update("images", images)} />
 
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="hotel-about" className="text-sm font-medium text-foreground">
-              About
-            </label>
-            <textarea
-              id="hotel-about"
-              value={form.about}
-              onChange={(e) => update("about", e.target.value)}
-              rows={4}
-              placeholder="A short description of the hotel"
-              className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+            <Select
+              label="Status"
+              options={[
+                { value: "active", label: "Active" },
+                { value: "inactive", label: "Inactive" },
+              ]}
+              value={form.status}
+              onChange={(e) => update("status", e.target.value)}
             />
-          </div>
-
-          <RichTextEditor
-            label="Rules and Policies"
-            value={form.rulesAndPolicies}
-            onChange={(html) => update("rulesAndPolicies", html)}
-            placeholder="Check-in rules, cancellation policy, house rules…"
-          />
-
-          <FileUpload label="Images" value={form.images} onChange={(images) => update("images", images)} />
-
-          <Select
-            label="Status"
-            options={[
-              { value: "active", label: "Active" },
-              { value: "inactive", label: "Inactive" },
-            ]}
-            value={form.status}
-            onChange={(e) => update("status", e.target.value)}
-          />
+            </>
+          )}
         </fieldset>
 
         {formError && (
@@ -916,21 +961,82 @@ export function HotelFormModal({
           </Alert>
         )}
 
-        <div className="flex gap-3 w-full border-t pt-5">
-          <Button
-            type="button"
-            variant="ghost"
-            disabled={saving}
-            onClick={onClose}
-            className="w-full"
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={saving || (!!hotel && !canSubmit)} loading={saving} loadingText="Saving…" className="w-full">
-            Save Hotel
-          </Button>
-        </div>
+        {!readOnly && embedded && (
+          <EditIconActions
+            saving={saving}
+            onCancel={onClose}
+            saveType="submit"
+            saveDisabled={!!hotel && !canSubmit}
+            label="Save hotel details"
+          />
+        )}
+
+        {!readOnly && !embedded && (
+          <div className="flex gap-3 w-full border-t pt-5">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={saving}
+              onClick={onClose}
+              className="w-full"
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saving || (!!hotel && !canSubmit)} loading={saving} loadingText="Saving…" className="w-full">
+              Save Hotel
+            </Button>
+          </div>
+        )}
       </form>
+  );
+
+  if (variant === "page" && embedded) {
+    return (
+      <FormAppearanceProvider value="pill">
+        {/* Read-only: keep the fields white and readable (a disabled field is normally greyed out). */}
+        <div
+          className={
+            readOnly
+              ? "[&_.app-phone-input]:!opacity-100 [&_button:disabled]:!cursor-default [&_button:disabled]:!bg-card [&_button:disabled]:!opacity-100 [&_input:disabled]:!cursor-default [&_textarea:disabled]:!cursor-default [&_textarea:disabled]:!bg-card [&_textarea:disabled]:!text-foreground [&_input:disabled]:!bg-card [&_input:disabled]:!text-foreground [&_.PhoneInputInput:disabled]:!text-foreground"
+              : undefined
+          }
+        >
+          {formBody}
+        </div>
+      </FormAppearanceProvider>
+    );
+  }
+
+  if (variant === "page") {
+    return (
+      <Card variant="page" className="flex min-h-full flex-col gap-4">
+        <button
+          type="button"
+          onClick={onClose}
+          className="inline-flex w-fit items-center gap-0.5 text-[13px] text-foreground/70 transition-colors hover:text-foreground"
+        >
+          <FaChevronLeft size={12} className="shrink-0" />
+          <span className="font-semibold">Back to hotel</span>
+        </button>
+        <h1 className="text-xl font-semibold text-foreground">{hotel ? `Edit ${hotel.name}` : "Add Hotel"}</h1>
+        <FormAppearanceProvider value="pill">
+          <div className="w-full">{formBody}</div>
+        </FormAppearanceProvider>
+      </Card>
+    );
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={() => {
+        if (saving) return;
+        onClose();
+      }}
+      title={hotel ? "Edit Hotel" : "Add Hotel"}
+      className="max-w-xl"
+    >
+      {formBody}
     </Modal>
   );
 }

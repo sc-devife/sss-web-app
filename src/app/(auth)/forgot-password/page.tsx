@@ -101,7 +101,7 @@ function ForgotPasswordForm() {
                 autoComplete="username"
                 placeholder="Enter your email"
                 disabled={loading}
-                className="h-11 w-full rounded-xl border border-border bg-background px-12 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted"
+                className="h-11 w-full rounded-full border border-border bg-card shadow-sm hover:border-primary/40 px-12 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted"
               />
             </div>
 

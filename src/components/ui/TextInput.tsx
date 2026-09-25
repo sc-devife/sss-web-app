@@ -1,5 +1,6 @@
 import { useId, type InputHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
+import { PILL_FIELD, useFormAppearance } from "@/components/ui/FormAppearance";
 
 interface TextInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -11,6 +12,7 @@ export function TextInput({ label, error, id, className, ...props }: TextInputPr
   // Falls back to an auto-generated id so the label is always associated
   // with its input, even when a caller forgets to pass id/name.
   const inputId = id ?? props.name ?? generatedId;
+  const pill = useFormAppearance() === "pill";
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor={inputId} className="text-sm font-medium text-foreground">
@@ -25,6 +27,7 @@ export function TextInput({ label, error, id, className, ...props }: TextInputPr
           error
             ? "border-danger focus:border-danger focus:ring-danger/20"
             : "border-border focus:border-primary focus:ring-primary/20",
+          pill && PILL_FIELD,
           className,
         )}
         aria-invalid={!!error}

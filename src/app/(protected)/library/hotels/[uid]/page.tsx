@@ -8,7 +8,13 @@ import { getRoomTypes } from "@/lib/room-types";
 import { getServices } from "@/lib/services";
 import { getAmenities } from "@/lib/amenities";
 
-export default async function Page({ params }: { params: { uid: string } }) {
+export default async function Page({
+  params,
+  searchParams,
+}: {
+  params: { uid: string };
+  searchParams: { edit?: string };
+}) {
   const [hotel, locations, escapePoints, mealPlans, roomTypes, services, amenities] = await Promise.all([
     getHotelByUid(params.uid).catch(() => null),
     getLocations(),
@@ -32,6 +38,7 @@ export default async function Page({ params }: { params: { uid: string } }) {
       roomTypes={roomTypes}
       services={services}
       amenities={amenities}
+      startInEditMode={searchParams.edit === "1"}
     />
   );
 }

@@ -5,6 +5,7 @@ import RPNInput, { type Country, getCountries, getCountryCallingCode } from "rea
 import baseLabels from "react-phone-number-input/locale/en.json";
 import { CountrySelect } from "@/components/ui/CountrySelect";
 import { cn } from "@/lib/cn";
+import { useFormAppearance } from "@/components/ui/FormAppearance";
 
 // Augments the library's default "India" / "United States" country-select
 // labels with the dialing code ("India (+91)") so the dropdown shows flag +
@@ -55,7 +56,8 @@ export function PhoneInput({
 }: PhoneInputProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
-  const baseInputClassName = inputClassName ?? "app-phone-input";
+  const pill = useFormAppearance() === "pill";
+  const baseInputClassName = inputClassName ?? (pill ? "app-phone-input app-phone-input-pill" : "app-phone-input");
 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
@@ -65,13 +67,12 @@ export function PhoneInput({
       </label>
       <RPNInput
         id={inputId}
-        // `international={false}` (not the shorthand `international`/omitted)
-        // forces the number field to always render national-format digits
-        // only — the calling code is never part of its text, so it can't be
-        // typed inline or misparsed as a different country's prefix. The
-        // code is shown exclusively via the flag in the country dropdown,
-        // which is why that dropdown's trigger doesn't repeat it as text.
-        international={false}
+        // The calling code (+91) shows as a fixed, non-editable prefix inside the number
+        // field itself, and follows the country picked in the flag dropdown. The value
+        // handed to onChange is still the full E.164 number.
+        international
+        withCountryCallingCode
+        countryCallingCodeEditable={false}
         addInternationalOption={false}
         defaultCountry={defaultCountry}
         labels={labelsWithDialCode}

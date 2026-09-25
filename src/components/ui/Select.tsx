@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { HiOutlineChevronDown } from "react-icons/hi";
 import { IoSearchOutline } from "react-icons/io5";
 import { cn } from "@/lib/cn";
+import { PILL_FIELD, useFormAppearance } from "@/components/ui/FormAppearance";
 import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 
 export interface SelectOption {
@@ -50,6 +51,7 @@ export function Select({
 }: SelectProps) {
   const generatedId = useId();
   const selectId = id ?? name ?? generatedId;
+  const pill = useFormAppearance() === "pill";
 
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -184,6 +186,7 @@ export function Select({
           !selectedOption && "text-muted-foreground",
           error ? "border-danger focus:border-danger focus:ring-danger/20" : "border-border focus:border-primary focus:ring-primary/20",
           disabled && "cursor-not-allowed opacity-60",
+          pill && PILL_FIELD,
           className,
         )}
       >

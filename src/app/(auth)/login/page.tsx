@@ -205,7 +205,7 @@ function LoginForm() {
               autoComplete="username"
               placeholder="Enter your email"
               disabled={loading}
-              className={`h-11 w-full rounded-xl border bg-background px-12 text-sm text-foreground outline-none transition placeholder:text-muted-foreground
+              className={`h-11 w-full rounded-full border bg-card shadow-sm hover:border-primary/40 px-12 text-sm text-foreground outline-none transition placeholder:text-muted-foreground
   focus:ring-2 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground
   ${emailError
                   ? "border-danger focus:border-danger focus:ring-danger/20"
@@ -251,7 +251,7 @@ function LoginForm() {
               autoComplete="current-password"
               placeholder="Enter your password"
               disabled={loading}
-              className={`h-11 w-full rounded-xl border bg-background px-12 pr-12 text-sm text-foreground outline-none transition placeholder:text-muted-foreground
+              className={`h-11 w-full rounded-full border bg-card shadow-sm hover:border-primary/40 px-12 pr-12 text-sm text-foreground outline-none transition placeholder:text-muted-foreground
         focus:ring-2 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground
         ${passwordError
                   ? "border-danger focus:border-danger focus:ring-danger/20"

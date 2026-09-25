@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import type { IconType } from "react-icons";
 import { IoAdd, IoClose, IoSearchOutline } from "react-icons/io5";
 import { cn } from "@/lib/cn";
+import { useFormAppearance } from "@/components/ui/FormAppearance";
 import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import type { SelectOption } from "@/components/ui/Select";
 
@@ -64,6 +65,7 @@ export function MultiSelectSearch({
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listboxId = useId();
+  const pill = useFormAppearance() === "pill";
   const panelRef = useRef<HTMLDivElement>(null);
 
   const selectedOptions = value.map((v) => options.find((o) => o.value === v)).filter((o): o is SelectOption => !!o);
@@ -230,6 +232,7 @@ export function MultiSelectSearch({
             "focus:ring-2",
             error ? "border-danger focus:border-danger focus:ring-danger/20" : "border-border focus:border-primary focus:ring-primary/20",
             disabled && "cursor-not-allowed opacity-60",
+            pill && "rounded-full bg-card shadow-sm hover:border-primary/40",
           )}
         />
       </div>

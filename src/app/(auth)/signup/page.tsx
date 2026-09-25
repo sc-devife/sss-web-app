@@ -20,7 +20,7 @@ import { LuLock, LuMail, LuUserRound, LuUserRoundCheck } from "react-icons/lu";
 // — border/radius/height/padding/font/focus/placeholder all reuse the same
 // design-system tokens instead of this page's former one-off hex values.
 const inputClass = (hasError = false) =>
-  `h-11 w-full rounded-xl border bg-background px-12 text-sm text-foreground outline-none transition placeholder:text-muted-foreground
+  `h-11 w-full rounded-full border bg-card shadow-sm hover:border-primary/40 px-12 text-sm text-foreground outline-none transition placeholder:text-muted-foreground
    focus:ring-2 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground
    ${hasError
     ? "border-danger focus:border-danger focus:ring-danger/20"

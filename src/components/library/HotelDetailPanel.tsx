@@ -1,34 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { FaChevronLeft, FaLocationDot, FaPlus } from "react-icons/fa6";
+import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 import { CiImageOff } from "react-icons/ci";
 import { IoSearchOutline } from "react-icons/io5";
-import { PiStar, PiStarFill, PiHashFill } from "react-icons/pi";
+import { PiStarFill, PiHashFill } from "react-icons/pi";
 import { TbCalendarX, TbEditFilled, TbMailForward } from "react-icons/tb";
-import { BsFillBookmarkXFill, BsBookmarkCheckFill, BsCalendarCheck } from "react-icons/bs";
+import { BsCalendarCheck } from "react-icons/bs";
 import type { IconType } from "react-icons";
-import { Card } from "@/components/ui/Card";
+import { FormAppearanceProvider } from "@/components/ui/FormAppearance";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Tabs } from "@/components/ui/Tabs";
 import { Alert } from "@/components/ui/Alert";
 import { Caption } from "@/components/ui/Typography";
 import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
-import { Spinner } from "@/components/ui/Spinner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/Select";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
-import { HotelFormModal } from "@/components/library/HotelFormModal";
 import { HotelPaymentModal } from "@/components/library/HotelPaymentModal";
+import { HotelFormModal } from "@/components/library/HotelFormModal";
+import type { LibraryLocation } from "@/lib/locations";
+import type { EscapePoint } from "@/lib/escape-points";
+import type { MealPlan } from "@/lib/meal-plans";
+import type { RoomType } from "@/lib/room-types";
+import type { Service } from "@/lib/services";
+import type { Amenity } from "@/lib/amenities";
+import { HotelServicesEditor } from "@/components/library/HotelServicesEditor";
+import { EditIconActions, EditableSection, MealPlansEditor, RoomTypesEditor, AmenitiesEditor, RulesEditor, ImagesEditor } from "@/components/library/HotelSectionEditors";
 import { HotelBookingEmailModal } from "@/components/library/HotelBookingEmailModal";
 import { CancellationEmailModal } from "@/components/library/CancellationEmailModal";
 import { CancelBookingModal } from "@/components/library/CancelBookingModal";
-import { GalleryImage } from "@/components/library/GalleryImage";
 import { resolveFileUrl } from "@/lib/files";
 import { formatDisplayDate, formatDisplayTime } from "@/lib/date";
 import { formatMoney, formatMoneyWithOriginal } from "@/lib/currency";
@@ -38,12 +45,6 @@ import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { runValidators, ifscField, accountNumberField } from "@/lib/validators";
 import type { Hotel, HotelBooking, HotelPayment } from "@/lib/hotels";
-import type { LibraryLocation } from "@/lib/locations";
-import type { EscapePoint } from "@/lib/escape-points";
-import type { MealPlan } from "@/lib/meal-plans";
-import type { RoomType } from "@/lib/room-types";
-import type { Service } from "@/lib/services";
-import type { Amenity } from "@/lib/amenities";
 import { useAppDispatch } from "@/store/hooks";
 import { updateHotel, setHotelPriorityImage } from "@/features/hotels/hotelsThunks";
 
@@ -61,7 +62,7 @@ function BackToHotels() {
 
 function EmptyState({ message, icon: Icon }: { message: string; icon?: IconType }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-muted/30 py-14 text-center">
+    <div className="flex flex-col items-center justify-center gap-3 py-14 text-center">
       {Icon && (
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
           <Icon size={20} />
@@ -72,30 +73,32 @@ function EmptyState({ message, icon: Icon }: { message: string; icon?: IconType 
   );
 }
 
-function ServiceList({ services, currency }: { services: { uid: string; name: string; description: string | null; price: number | null }[]; currency?: string | null }) {
+function ServiceList({ services, currency }: { services: { uid: string; name: string; description: string | null; price: number | null; hotelId?: string | null }[]; currency?: string | null }) {
   return (
-    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-      {services.map((s) => (
-        <div
-          key={s.uid}
-          className="flex items-start gap-2.5 rounded-lg border border-border bg-background px-3 py-2.5"
-        >
-          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <BsBookmarkCheckFill size={14} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2">
-              <HoverMarqueeText as="div" className="truncate text-sm font-semibold text-foreground">{s.name}</HoverMarqueeText>
-              {s.price != null && (
-                <span className="shrink-0 text-xs font-semibold text-foreground">{formatMoney(s.price, currency || undefined)}</span>
-              )}
-            </div>
-            {s.description && (
-              <div className="mt-0.5 text-xs leading-snug text-muted-foreground">{s.description}</div>
-            )}
-          </div>
-        </div>
-      ))}
+    <div className="overflow-hidden rounded-lg border border-border">
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="bg-muted/40">
+            <th className="px-3 py-1.5 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">Service</th>
+            <th className="px-3 py-1.5 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">Description</th>
+            <th className="px-3 py-1.5 text-right text-xs font-medium uppercase tracking-wide text-muted-foreground">Price</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {services.map((s) => (
+            <tr key={s.uid}>
+              <td className="whitespace-nowrap px-3 py-2 align-top font-medium text-foreground">
+                {s.name}
+                {s.hotelId && <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary">Custom</span>}
+              </td>
+              <td className="px-3 py-2 align-top text-muted-foreground">{s.description || "—"}</td>
+              <td className="whitespace-nowrap px-3 py-2 text-right align-top font-medium tabular-nums text-foreground">
+                {s.price != null ? formatMoney(s.price, currency || undefined) : "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -103,7 +106,6 @@ function ServiceList({ services, currency }: { services: { uid: string; name: st
 function RoomTypeTable({ roomTypes, currency }: { roomTypes: { roomTypeId: string; name: string; price: number | null }[]; currency?: string | null }) {
   return (
     <div>
-      <Caption>Room Types</Caption>
       {roomTypes.length > 0 ? (
         <div className="mt-1.5 overflow-hidden rounded-lg border border-border">
           <table className="w-full border-collapse text-sm">
@@ -130,15 +132,6 @@ function RoomTypeTable({ roomTypes, currency }: { roomTypes: { roomTypeId: strin
       ) : (
         <div className="mt-1.5 text-sm text-muted-foreground">—</div>
       )}
-    </div>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-border bg-background p-3">
-      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="mt-1 text-sm font-semibold text-foreground">{value}</div>
     </div>
   );
 }
@@ -196,6 +189,7 @@ export function HotelDetailPanel({
   roomTypes,
   services,
   amenities,
+  startInEditMode = false,
 }: {
   hotel: Hotel;
   locations: LibraryLocation[];
@@ -204,10 +198,14 @@ export function HotelDetailPanel({
   roomTypes: RoomType[];
   services: Service[];
   amenities: Amenity[];
+  startInEditMode?: boolean;
 }) {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const [editOpen, setEditOpen] = useState(false);
+  // The hotel's own details show as the same pill fields as the edit form, read-only,
+  // and become editable in place when Edit Hotel is clicked.
+  const [editingDetails, setEditingDetails] = useState(startInEditMode);
+  const [editingSection, setEditingSection] = useState<"roomTypes" | "mealPlans" | "amenities" | "rules" | "services" | "notes" | "images" | null>(null);
   const [notesDraft, setNotesDraft] = useState(hotel.notes ?? "");
   const [savingNotes, setSavingNotes] = useState(false);
   const [accountDraft, setAccountDraft] = useState(accountDraftFromHotel(hotel));
@@ -307,6 +305,19 @@ export function HotelDetailPanel({
 
   const images = current.images ?? [];
   const cover = current.priorityImage ?? images[0] ?? null;
+  // Carousel: the priority image leads, the rest follow in order.
+  const slides = cover ? [cover, ...images.filter((u) => u !== cover)] : [];
+  const [slide, setSlide] = useState(0);
+  const touchX = useRef<number | null>(null);
+  const [paused, setPaused] = useState(false);
+  const slideIdx = slides.length > 0 ? Math.min(slide, slides.length - 1) : 0;
+  const goSlide = (i: number) => setSlide(slides.length ? (i + slides.length) % slides.length : 0);
+  // Auto-advance every 5s; hovering the banner pauses it (and any manual move restarts the timer).
+  useEffect(() => {
+    if (slides.length < 2 || paused || editingSection === "images") return;
+    const t = setTimeout(() => setSlide((slideIdx + 1) % slides.length), 5000);
+    return () => clearTimeout(t);
+  }, [slideIdx, slides.length, paused, editingSection]);
 
   // Matches on trip code or customer name — the two things someone
   // scanning this list actually recognizes an escape by.
@@ -447,135 +458,232 @@ export function HotelDetailPanel({
   const hasRules = (hotel.rulesAndPolicies ?? "").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim() !== "";
 
   return (
-    <Card variant="page" className="flex min-h-full flex-col gap-3">
+    <div className="flex min-h-full flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <BackToHotels />
-        <Button onClick={() => setEditOpen(true)}>
-          <TbEditFilled size={16} />
-          Edit Hotel
-        </Button>
       </div>
 
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl border border-border">
-        {cover ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={resolveFileUrl(cover)} alt={hotel.name} className="h-64 w-full object-cover md:h-80" />
-        ) : (
-          <div className="flex h-64 flex-col items-center justify-center gap-3 bg-muted/30 md:h-80">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              <CiImageOff size={22} />
+      {/* Hero, swapped for the image editor while editing images */}
+      {editingSection === "images" && (
+      <div className="relative flex flex-col gap-4 rounded-2xl border border-border bg-card p-5">
+        <Caption className="font-semibold">Images</Caption>
+        <ImagesEditor
+          hotel={hotel}
+          priorityImage={current.priorityImage ?? null}
+          settingPriorityFor={settingPriorityFor}
+          priorityError={priorityError}
+          onMakePriority={handleMakePriority}
+          onDone={() => setEditingSection(null)}
+        />
+      </div>
+      )}
+      {editingSection !== "images" && (
+        <div className="group/hero relative overflow-hidden rounded-2xl border border-border bg-card" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+          {cover ? (
+            <div
+              className="h-64 w-full overflow-hidden md:h-80"
+              onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
+              onTouchEnd={(e) => {
+                if (touchX.current == null) return;
+                const dx = e.changedTouches[0].clientX - touchX.current;
+                touchX.current = null;
+                if (Math.abs(dx) > 40) goSlide(slideIdx + (dx < 0 ? 1 : -1));
+              }}
+            >
+              <div
+                className="flex h-full transition-transform duration-500 ease-out"
+                style={{ transform: `translateX(-${slideIdx * 100}%)` }}
+              >
+                {slides.map((url) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={url} src={resolveFileUrl(url)} alt={hotel.name} draggable={false} className="h-full w-full shrink-0 object-cover" />
+                ))}
+              </div>
             </div>
-            <div className="text-sm font-medium text-muted-foreground">No image available</div>
-          </div>
-        )}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5">
-          <div className="min-w-0">
-            <HoverMarqueeText as="h1" className="truncate text-2xl font-bold tracking-tight text-white md:text-3xl">{hotel.name}</HoverMarqueeText>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/90">
-              {hotel.stars != null && (
+          ) : (
+            <div className="flex h-64 flex-col items-center justify-center gap-3 bg-muted/30 md:h-80">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                <CiImageOff size={22} />
+              </div>
+              <div className="text-sm font-medium text-muted-foreground">No image available</div>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setEditingSection("images")}
+            aria-label="Edit Images"
+            title="Edit Images"
+            className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] transition-colors hover:text-white/80"
+          >
+            <TbEditFilled size={17} />
+          </button>
+          {slides.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={() => goSlide(slideIdx - 1)}
+                aria-label="Previous image"
+                className="absolute left-3 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-white opacity-0 transition-opacity hover:bg-black/55 focus-visible:opacity-100 group-hover/hero:opacity-100"
+              >
+                <IoChevronBack size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => goSlide(slideIdx + 1)}
+                aria-label="Next image"
+                className="absolute right-3 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-white opacity-0 transition-opacity hover:bg-black/55 focus-visible:opacity-100 group-hover/hero:opacity-100"
+              >
+                <IoChevronForward size={18} />
+              </button>
+              <div className="absolute bottom-3 right-5 z-10 flex items-center gap-1.5">
+                {slides.map((url, i) => (
+                  <button
+                    key={url}
+                    type="button"
+                    onClick={() => goSlide(i)}
+                    aria-label={`Show image ${i + 1}`}
+                    className={`h-2 rounded-full transition-all ${i === slideIdx ? "w-5 bg-white" : "w-2 bg-white/50 hover:bg-white/80"}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5">
+            <div className="min-w-0">
+              <HoverMarqueeText as="h1" className="truncate text-2xl font-bold tracking-tight text-white md:text-3xl">{hotel.name}</HoverMarqueeText>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/90">
+                {hotel.stars != null && (
+                  <span className="flex items-center gap-1">
+                    {Array.from({ length: hotel.stars }, (_, i) => (
+                      <PiStarFill key={i} size={13} />
+                    ))}
+                  </span>
+                )}
                 <span className="flex items-center gap-1">
-                  {Array.from({ length: hotel.stars }, (_, i) => (
-                    <PiStarFill key={i} size={13} />
-                  ))}
+                  <FaLocationDot size={12} />
+                  {hotel.location?.displayName || "No location available"}
                 </span>
-              )}
-              <span className="flex items-center gap-1">
-                <FaLocationDot size={12} />
-                {hotel.location?.displayName || "No location available"}
-              </span>
+              </div>
             </div>
           </div>
-          <Badge tone={hotel.status === "archived" ? "danger" : "success"}>{hotel.status ?? "active"}</Badge>
         </div>
-      </div>
+      )}
 
-      {/* Escape point + quick facts */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <div className="rounded-xl border border-border bg-background p-3">
-          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Escape Point</div>
-          <div className="mt-1">
-            {hotel.escapePoint ? (
-              <Badge tone="dark">{hotel.escapePoint.name}</Badge>
-            ) : (
-              <span className="text-sm text-muted-foreground">Not assigned</span>
-            )}
-          </div>
+      {/* Hotel details: the same fields as the edit form, read-only until Edit Hotel is clicked. */}
+      <div className="relative rounded-2xl border border-border bg-card p-5">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <Caption className="font-semibold">Hotel Details</Caption>
+          {!editingDetails && (
+            <button
+              type="button"
+              onClick={() => setEditingDetails(true)}
+              aria-label="Edit Hotel Details"
+              title="Edit Hotel Details"
+              className="flex h-7 w-7 items-center justify-center text-muted-foreground transition-colors hover:text-primary"
+            >
+              <TbEditFilled size={17} />
+            </button>
+          )}
         </div>
-        <StatCard label="Check-in" value={formatDisplayTime(hotel.checkInTime) || "—"} />
-        <StatCard label="Check-out" value={formatDisplayTime(hotel.checkOutTime) || "—"} />
-        <StatCard
-          label="Rate Valid"
-          value={
-            hotel.rateValidFrom || hotel.rateValidTo
-              ? `${formatDisplayDate(hotel.rateValidFrom) ?? "—"} to ${formatDisplayDate(hotel.rateValidTo) ?? "—"}`
-              : "—"
-          }
+        <HotelFormModal
+          open
+          variant="page"
+          embedded
+          readOnly={!editingDetails}
+          hotel={hotel}
+          onClose={() => setEditingDetails(false)}
+          onSaved={() => {
+            router.refresh();
+            setEditingDetails(false);
+          }}
+          locations={locations}
+          escapePoints={escapePoints}
+          mealPlans={mealPlans}
+          roomTypes={roomTypes}
+          services={services}
+          amenities={amenities}
         />
       </div>
 
-      {/* Property details + offerings */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/20 p-4">
-          <Caption>Property Details</Caption>
-          {hotel.childAgeForExtraBed && (
-            <div>
-              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Child Extra-bed Age</div>
-              <div className="mt-0.5 text-sm font-medium text-foreground">{hotel.childAgeForExtraBed}</div>
-            </div>
-          )}
-          <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Address</div>
-            <div className="mt-0.5 text-sm font-medium text-foreground">{hotel.address || "—"}</div>
-          </div>
-          <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Phone Number</div>
-            <div className="mt-0.5 text-sm font-medium text-foreground">{hotel.phoneNumber || "—"}</div>
-          </div>
-          <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Email</div>
-            <div className="mt-0.5 text-sm font-medium text-foreground">{hotel.email || "—"}</div>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/20 p-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <EditableSection
+          title="Room Types"
+          editing={editingSection === "roomTypes"}
+          onEdit={() => setEditingSection("roomTypes")}
+          editor={<RoomTypesEditor hotel={hotel} onDone={() => setEditingSection(null)} />}
+        >
           <RoomTypeTable roomTypes={hotel.roomTypes ?? []} currency={hotel.priceCurrency} />
-        </div>
+        </EditableSection>
+
+        <EditableSection
+          title="Meal Plans"
+          editing={editingSection === "mealPlans"}
+          onEdit={() => setEditingSection("mealPlans")}
+          editor={<MealPlansEditor hotel={hotel} onDone={() => setEditingSection(null)} />}
+        >
+          {hotel.mealPlans && hotel.mealPlans.length > 0 ? (
+            <div className="overflow-hidden rounded-lg border border-border">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-muted/40">
+                    <th className="px-3 py-1.5 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">Name</th>
+                    <th className="px-3 py-1.5 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">Description</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {hotel.mealPlans.map((m) => (
+                    <tr key={m.uid}>
+                      <td className="whitespace-nowrap px-3 py-2 align-top font-medium text-foreground">
+                        {m.name}
+                        {m.custom && <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary">Custom</span>}
+                      </td>
+                      <td className="px-3 py-2 align-top text-muted-foreground">{m.description || mealPlans.find((p) => p.uid === m.uid)?.description || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <span className="text-sm text-muted-foreground">No meal plans yet.</span>
+          )}
+        </EditableSection>
       </div>
 
-      {/* Meal Plans and Amenities share a row on desktop (lg+, justified to
-          opposite edges, equal width) and stack on tablet and below. A lone
-          card simply takes the full row. */}
-      {((hotel.mealPlans && hotel.mealPlans.length > 0) || (hotel.amenities && hotel.amenities.length > 0)) && (
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:justify-between">
-          {hotel.mealPlans && hotel.mealPlans.length > 0 && (
-            <div className="rounded-xl border border-border bg-muted/20 p-4 lg:flex-1">
-              <Caption className="font-semibold">Meal Plans</Caption>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {hotel.mealPlans.map((m) => (
-                  <Badge key={m.uid} tone="neutral">
-                    {m.code}
-                  </Badge>
-                ))}
-              </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <EditableSection
+          title="Amenities"
+          editing={editingSection === "amenities"}
+          onEdit={() => setEditingSection("amenities")}
+          editor={<AmenitiesEditor hotel={hotel} onDone={() => setEditingSection(null)} />}
+        >
+          {hotel.amenities && hotel.amenities.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {hotel.amenities.map((a) => (
+                <Badge key={a} tone="neutral">
+                  {a}
+                  {!amenities.some((x) => x.name === a) && <span className="ml-1.5 text-[10px] font-semibold uppercase text-primary">Custom</span>}
+                </Badge>
+              ))}
             </div>
+          ) : (
+            <span className="text-sm text-muted-foreground">No amenities yet.</span>
           )}
+        </EditableSection>
 
-          {hotel.amenities && hotel.amenities.length > 0 && (
-            <div className="rounded-xl border border-border bg-muted/20 p-4 lg:flex-1">
-              <Caption className="font-semibold">Amenities</Caption>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {hotel.amenities.map((a) => (
-                  <Badge key={a} tone="neutral">
-                    {a}
-                  </Badge>
-                ))}
-              </div>
-            </div>
+        <EditableSection
+          title="Services"
+          editing={editingSection === "services"}
+          onEdit={() => setEditingSection("services")}
+          editor={<HotelServicesEditor hotel={hotel} onDone={() => setEditingSection(null)} />}
+        >
+          {hotel.services && hotel.services.length > 0 ? (
+            <ServiceList services={hotel.services} currency={hotel.priceCurrency} />
+          ) : (
+            <span className="text-sm text-muted-foreground">No services yet.</span>
           )}
-        </div>
-      )}
+        </EditableSection>
+      </div>
 
       {aboutText && (
         <div className="rounded-xl border border-border bg-muted/20 p-4">
@@ -584,102 +692,67 @@ export function HotelDetailPanel({
         </div>
       )}
 
-      {hasRules && (
-        <div className="rounded-xl border border-border bg-muted/20 p-4">
-          <Caption className="font-semibold">Rules and Policies</Caption>
-          <div
-            className="prose-content mt-2 text-sm text-foreground"
-            dangerouslySetInnerHTML={{ __html: hotel.rulesAndPolicies ?? "" }}
-          />
-        </div>
-      )}
-
-      {images.length > 1 && (
-        <div>
-          <div className="flex items-center justify-between">
-            <Caption className="font-semibold">Gallery</Caption>
-            <span className="text-xs text-muted-foreground">Hover an image to set it as the priority image</span>
-          </div>
-
-          {priorityError && (
-            <Alert tone="danger" autoClose={false} className="mt-2">
-              {priorityError}
-            </Alert>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <EditableSection
+          title="Hotel Notes"
+          editing={editingSection === "notes"}
+          onEdit={() => setEditingSection("notes")}
+          editor={
+            <div className="flex flex-col gap-3">
+              <textarea
+                value={notesDraft}
+                onChange={(e) => setNotesDraft(e.target.value)}
+                placeholder="Add internal notes about this hotel."
+                rows={6}
+                className="w-full rounded-2xl border border-border bg-card p-3 text-sm text-foreground shadow-sm outline-none focus:border-primary"
+              />
+              <EditIconActions
+                saving={savingNotes}
+                onCancel={() => {
+                  setNotesDraft(hotel.notes ?? "");
+                  setEditingSection(null);
+                }}
+                onSave={async () => {
+                  await handleSaveNotes();
+                  setEditingSection(null);
+                }}
+                saveDisabled={notesDraft === (hotel.notes ?? "")}
+                label="Save notes"
+              />
+            </div>
+          }
+        >
+          {hotel.notes ? (
+            <p className="whitespace-pre-line text-sm text-foreground">{hotel.notes}</p>
+          ) : (
+            <span className="text-sm text-muted-foreground">No notes yet.</span>
           )}
+        </EditableSection>
 
-          <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-6">
-            {images.map((url) => {
-              const isPriority = url === current.priorityImage;
-              const isSettingThis = settingPriorityFor === url;
-              return (
-                <div key={url} className="group relative aspect-square overflow-hidden rounded-lg border border-border">
-                  <GalleryImage
-                    src={resolveFileUrl(url)}
-                    alt={hotel.name}
-                    className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
-                  />
-                  {isPriority ? (
-                    <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground shadow">
-                      <PiStarFill size={11} />
-                      Priority Image
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleMakePriority(url)}
-                      disabled={settingPriorityFor !== null}
-                      className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-black/60 py-1.5 text-[11px] font-medium text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 disabled:cursor-not-allowed"
-                    >
-                      {isSettingThis ? (
-                        <Spinner size="sm" tone="current" />
-                      ) : (
-                        <>
-                          <PiStar size={12} />
-                          Make Priority
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+        <EditableSection
+          title="Rules and Policies"
+          editing={editingSection === "rules"}
+          onEdit={() => setEditingSection("rules")}
+          editor={<RulesEditor hotel={hotel} onDone={() => setEditingSection(null)} />}
+        >
+          {hasRules ? (
+            <div className="prose-content text-sm text-foreground" dangerouslySetInnerHTML={{ __html: hotel.rulesAndPolicies ?? "" }} />
+          ) : (
+            <span className="text-sm text-muted-foreground">No rules or policies yet.</span>
+          )}
+        </EditableSection>
+      </div>
 
-      <div className="min-h-0 flex-1">
-        <Tabs
+      <div className="min-h-0 flex-1 rounded-2xl border border-border bg-card p-4">
+        <Tabs bare
           tabs={[
-            { id: "notes", label: "Hotel Notes" },
             { id: "bookings", label: "Bookings" },
             { id: "payments", label: "Payments" },
             { id: "accounting", label: "Account" },
-            { id: "services", label: "Services" },
           ]}
         >
           {(activeTab) => (
             <div className="flex flex-col gap-4 p-1">
-              {activeTab === "notes" && (
-                <div className="flex flex-col gap-3">
-                  <textarea
-                    value={notesDraft}
-                    onChange={(e) => setNotesDraft(e.target.value)}
-                    placeholder="No notes yet — add internal notes about this hotel."
-                    rows={8}
-                    className="w-full rounded-xl border border-border bg-background p-3 text-sm text-foreground outline-none focus:border-primary"
-                  />
-                  <Button
-                    className="self-end"
-                    onClick={handleSaveNotes}
-                    disabled={savingNotes || notesDraft === (hotel.notes ?? "")}
-                    loading={savingNotes}
-                    loadingText="Saving…"
-                  >
-                    Save notes
-                  </Button>
-                </div>
-              )}
-
               {activeTab === "bookings" &&
                 (bookingsLoading ? (
                   <div className="flex flex-col gap-2">
@@ -820,8 +893,9 @@ export function HotelDetailPanel({
               )}
 
               {activeTab === "accounting" && (
-                <div className="flex flex-col gap-3">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <FormAppearanceProvider value="pill">
+                <div className="flex flex-col gap-4">
+                  <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-3">
                     <TextInput
                       label="Account Holder Name"
                       value={accountDraft.accountHolderName}
@@ -863,14 +937,13 @@ export function HotelDetailPanel({
                       }}
                       error={accountErrors.ifsc}
                     />
+                    <TextInput
+                      label="UPI ID"
+                      placeholder="e.g. hotelname@upi"
+                      value={accountDraft.upiId}
+                      onChange={(e) => setAccountDraft((d) => ({ ...d, upiId: e.target.value }))}
+                    />
                   </div>
-                  <TextInput
-                    label="UPI ID"
-                    placeholder="e.g. hotelname@upi"
-                    value={accountDraft.upiId}
-                    onChange={(e) => setAccountDraft((d) => ({ ...d, upiId: e.target.value }))}
-                    className="sm:max-w-xs"
-                  />
 
                   {accountError && (
                     <Alert tone="danger" autoClose={false}>
@@ -888,31 +961,12 @@ export function HotelDetailPanel({
                     Save account details
                   </Button>
                 </div>
+                </FormAppearanceProvider>
               )}
-
-              {activeTab === "services" &&
-                (hotel.services && hotel.services.length > 0 ? (
-                  <ServiceList services={hotel.services} currency={hotel.priceCurrency} />
-                ) : (
-                  <EmptyState message="No services found for this hotel." icon={BsFillBookmarkXFill} />
-                ))}
             </div>
           )}
         </Tabs>
       </div>
-
-      <HotelFormModal
-        open={editOpen}
-        hotel={hotel}
-        onClose={() => setEditOpen(false)}
-        onSaved={() => router.refresh()}
-        locations={locations}
-        escapePoints={escapePoints}
-        mealPlans={mealPlans}
-        roomTypes={roomTypes}
-        services={services}
-        amenities={amenities}
-      />
 
       <HotelPaymentModal
         open={addPaymentOpen}
@@ -956,6 +1010,6 @@ export function HotelDetailPanel({
           }}
         />
       )}
-    </Card>
+    </div>
   );
 }

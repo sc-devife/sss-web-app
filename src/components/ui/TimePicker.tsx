@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useId } from "react";
 import { createPortal } from "react-dom";
 import { IoTimeOutline } from "react-icons/io5";
 import { cn } from "@/lib/cn";
+import { PILL_FIELD, useFormAppearance } from "@/components/ui/FormAppearance";
 import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { formatDisplayTime } from "@/lib/date";
 
@@ -76,6 +77,7 @@ export function TimePicker({
 }: TimePickerProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
+  const pill = useFormAppearance() === "pill";
 
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState<Pending>(EMPTY_PENDING);
@@ -204,11 +206,13 @@ export function TimePicker({
           !value && "text-muted-foreground",
           error ? "border-danger focus:border-danger focus:ring-danger/20" : "border-border focus:border-primary focus:ring-primary/20",
           disabled && "cursor-not-allowed opacity-60",
+          pill && cn(PILL_FIELD, "justify-start"),
           className,
         )}
       >
+        {pill && <IoTimeOutline size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />}
         <HoverMarqueeText className="truncate">{value ? formatDisplayTime(value) : placeholder}</HoverMarqueeText>
-        <IoTimeOutline size={15} className="shrink-0 text-muted-foreground" />
+        {!pill && <IoTimeOutline size={15} className="shrink-0 text-muted-foreground" />}
       </button>
       {error && <span className="text-xs text-danger">{error}</span>}
 

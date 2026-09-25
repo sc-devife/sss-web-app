@@ -72,8 +72,7 @@ export function HotelsPanel({
   }
 
   function openEdit(hotel: Hotel) {
-    setEditing(hotel);
-    setModalOpen(true);
+    router.push(`/library/hotels/${hotel.uid}?edit=1`);
   }
 
   async function handleDelete(hotel: Hotel) {

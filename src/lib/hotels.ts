@@ -12,12 +12,12 @@ export interface Hotel {
   priceCurrency?: string | null;
   location: { uid: string; displayName: string } | null;
   escapePoint: { uid: string; name: string } | null;
-  mealPlans: { uid: string; code: string; name: string }[] | null;
+  mealPlans: { uid: string; code: string; name: string; description?: string | null; custom?: boolean }[] | null;
   // Each pairing carries this hotel's own price/night for that room type —
   // see backend HotelRoomType (a join entity, not a plain M:N selection,
   // since the same shared RoomType can be priced differently per hotel).
   roomTypes: { roomTypeId: string; name: string; description: string | null; price: number | null }[] | null;
-  services: { uid: string; name: string; description: string | null; price: number | null }[] | null;
+  services: { uid: string; name: string; description: string | null; price: number | null; hotelId?: string | null }[] | null;
   checkInTime: string | null;
   checkOutTime: string | null;
   childAgeForExtraBed: string | null;

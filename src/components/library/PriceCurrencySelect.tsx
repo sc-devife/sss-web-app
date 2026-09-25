@@ -6,7 +6,7 @@ import { clientApi } from "@/lib/axios/clientClient";
 import { getOrgCurrency } from "@/lib/currency";
 import type { SupportedCurrency } from "@/lib/currencies";
 
-// "Prices in": the currency a supplier's prices are quoted in. Blank = the
+// "Currency": the currency a supplier's prices are quoted in. Blank = the
 // vendor's base currency. They're converted to base when priced into an itinerary.
 export function PriceCurrencySelect({ value, onChange }: { value: string; onChange: (code: string) => void }) {
   const base = getOrgCurrency();
@@ -18,7 +18,7 @@ export function PriceCurrencySelect({ value, onChange }: { value: string; onChan
 
   return (
     <Select
-      label="Prices in"
+      label="Currency"
       options={[
         { value: base, label: `${base} — vendor currency` },
         ...currencies.filter((c) => c.code !== base).map((c) => ({ value: c.code, label: `${c.code} — ${c.name}` })),

@@ -6,6 +6,8 @@ export interface MealPlan {
   name: string;
   description: string | null;
   isActive: boolean;
+  // true = custom plan owned by one hotel (not in the library).
+  custom?: boolean;
 }
 
 export async function getMealPlans(): Promise<MealPlan[]> {
