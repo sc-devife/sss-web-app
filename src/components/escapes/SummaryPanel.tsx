@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "@/lib/currency";
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/Button";
@@ -27,7 +28,7 @@ const RichTextEditor = dynamic(() => import("@/components/ui/RichTextEditor").th
 });
 
 function money(value: number | null | undefined) {
-  return `₹${(value ?? 0).toFixed(2)}`;
+  return formatMoney(value ?? 0);
 }
 
 // Internal Comments (private, team-only — never sent to QuotationDataService)
@@ -191,8 +192,8 @@ export function SummaryPanel({ itineraryUid, escapeUid }: { itineraryUid: string
           tcsRatePercent: effectiveTcsRatePercent ? Number(effectiveTcsRatePercent) : null,
           discountType: effectiveDiscountType,
           discountValue: effectiveDiscountValue ? Number(effectiveDiscountValue) : null,
-          displayCurrencyCode: null,
-          fxRateSnapshot: null,
+          displayCurrencyCode: quotes.find((q) => q.uid === uid)?.currencyCode ?? null,
+          fxRateSnapshot: quotes.find((q) => q.uid === uid)?.fxRateCustom ? quotes.find((q) => q.uid === uid)?.fxRateSnapshot ?? null : null,
         }),
       ).unwrap();
       setBreakdown(result.breakdown);
@@ -280,12 +281,12 @@ export function SummaryPanel({ itineraryUid, escapeUid }: { itineraryUid: string
         <div className="rounded border border-border p-3">
           <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Breakdown</div>
           <dl className="flex flex-col gap-1.5 text-sm">
-            <div className="flex justify-between"><dt>Hotels</dt><dd>{money(breakdown?.hotelsInr)}</dd></div>
-            <div className="flex justify-between"><dt>Activities</dt><dd>{money(breakdown?.activitiesInr)}</dd></div>
-            <div className="flex justify-between"><dt>Transport</dt><dd>{money(breakdown?.transportInr)}</dd></div>
-            <div className="flex justify-between"><dt>Other</dt><dd>{money(breakdown?.otherInr)}</dd></div>
-            {!!breakdown?.cancellationInr && (
-              <div className="flex justify-between border-t border-border pt-1.5"><dt>Cancellation Charges</dt><dd>{money(breakdown?.cancellationInr)}</dd></div>
+            <div className="flex justify-between"><dt>Hotels</dt><dd>{money(breakdown?.hotelsBase)}</dd></div>
+            <div className="flex justify-between"><dt>Activities</dt><dd>{money(breakdown?.activitiesBase)}</dd></div>
+            <div className="flex justify-between"><dt>Transport</dt><dd>{money(breakdown?.transportBase)}</dd></div>
+            <div className="flex justify-between"><dt>Other</dt><dd>{money(breakdown?.otherBase)}</dd></div>
+            {!!breakdown?.cancellationBase && (
+              <div className="flex justify-between border-t border-border pt-1.5"><dt>Cancellation Charges</dt><dd>{money(breakdown?.cancellationBase)}</dd></div>
             )}
           </dl>
         </div>
@@ -293,11 +294,11 @@ export function SummaryPanel({ itineraryUid, escapeUid }: { itineraryUid: string
         <div className="rounded border border-border p-3">
           <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Totals</div>
           <dl className="flex flex-col gap-1.5 text-sm">
-            <div className="flex justify-between"><dt>Subtotal</dt><dd>{money(q.subtotalInr)}</dd></div>
-            <div className="flex justify-between"><dt>Tax (GST)</dt><dd>{money(q.taxAmountInr)}</dd></div>
-            <div className="flex justify-between"><dt>TCS{q.tcsRatePercent != null ? ` (${q.tcsRatePercent}%)` : ""}</dt><dd>{money(q.tcsAmountInr)}</dd></div>
+            <div className="flex justify-between"><dt>Subtotal</dt><dd>{money(q.subtotalBase)}</dd></div>
+            <div className="flex justify-between"><dt>Tax (GST)</dt><dd>{money(q.taxAmountBase)}</dd></div>
+            <div className="flex justify-between"><dt>TCS{q.tcsRatePercent != null ? ` (${q.tcsRatePercent}%)` : ""}</dt><dd>{money(q.tcsAmountBase)}</dd></div>
             <div className="flex justify-between"><dt>Discount</dt><dd>-{money(q.discountValue)}</dd></div>
-            <div className="flex justify-between border-t border-border pt-1.5 font-semibold text-foreground"><dt>Total</dt><dd>{money(q.totalInr)}</dd></div>
+            <div className="flex justify-between border-t border-border pt-1.5 font-semibold text-foreground"><dt>Total</dt><dd>{money(q.totalBase)}</dd></div>
           </dl>
         </div>
       </div>
@@ -317,7 +318,7 @@ export function SummaryPanel({ itineraryUid, escapeUid }: { itineraryUid: string
             ))}
             <div className="flex justify-between border-t border-border pt-1.5 font-semibold text-foreground">
               <dt>Total Cancellation Charges</dt>
-              <dd>{money(breakdown?.cancellationInr ?? droppedItems.reduce((sum, d) => sum + d.charge, 0))}</dd>
+              <dd>{money(breakdown?.cancellationBase ?? droppedItems.reduce((sum, d) => sum + d.charge, 0))}</dd>
             </div>
           </dl>
         </div>
@@ -337,7 +338,7 @@ export function SummaryPanel({ itineraryUid, escapeUid }: { itineraryUid: string
             label="TCS rate (%)"
             type="number"
             min={0}
-            step="0.01"
+            step="any"
             value={tcsRatePercent}
             onChange={(e) => setTcsRatePercent(e.target.value)}
             placeholder="No TCS"
@@ -356,7 +357,7 @@ export function SummaryPanel({ itineraryUid, escapeUid }: { itineraryUid: string
             label="Discount value"
             type="number"
             min={0}
-            step="0.01"
+            step="any"
             value={discountValue}
             onChange={(e) => setDiscountValue(e.target.value)}
             disabled={discountType === "none"}

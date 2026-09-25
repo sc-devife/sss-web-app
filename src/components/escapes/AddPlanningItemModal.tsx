@@ -9,7 +9,7 @@ import { TimePicker } from "@/components/ui/TimePicker";
 import { Caption } from "@/components/ui/Typography";
 import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { chunkPairs } from "@/lib/forms";
-import { formatInr } from "@/lib/currency";
+import { formatMoney } from "@/lib/currency";
 import { cn } from "@/lib/cn";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { useAppDispatch } from "@/store/hooks";
@@ -360,7 +360,7 @@ export function AddPlanningItemModal({
                             </span>
                             {lowestRoomTypePrice(option) != null && (
                               <span className="shrink-0 text-sm font-semibold text-primary">
-                                from {formatInr(lowestRoomTypePrice(option))}
+                                from {formatMoney(lowestRoomTypePrice(option))}
                               </span>
                             )}
                           </span>
@@ -370,7 +370,7 @@ export function AddPlanningItemModal({
                               {option.label}
                             </HoverMarqueeText>
                             {option.basePrice != null && (
-                              <span className="shrink-0 text-sm font-semibold text-primary">{formatInr(option.basePrice)}</span>
+                              <span className="shrink-0 text-sm font-semibold text-primary">{formatMoney(option.basePrice)}</span>
                             )}
                           </span>
                         ) : (
@@ -449,7 +449,7 @@ export function AddPlanningItemModal({
                   label="Price (INR)"
                   type="number"
                   min={0}
-                  step="0.01"
+                  step="any"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                 />,
@@ -498,7 +498,7 @@ export function AddPlanningItemModal({
                 label="Total Price (INR)"
                 type="number"
                 min={0}
-                step="0.01"
+                step="any"
                 value={hotelForm.totalPrice}
                 onChange={(e) => setHotelForm((f) => ({ ...f, totalPrice: e.target.value }))}
               />
@@ -547,7 +547,7 @@ export function AddPlanningItemModal({
                 label="Cancellation Charge (INR)"
                 type="number"
                 min={0}
-                step="0.01"
+                step="any"
                 placeholder="Charged for the cancellation, if any"
                 value={cancellationCharge}
                 onChange={(e) => setCancellationCharge(e.target.value)}

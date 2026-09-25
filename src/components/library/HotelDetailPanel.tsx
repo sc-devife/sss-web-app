@@ -31,7 +31,7 @@ import { CancelBookingModal } from "@/components/library/CancelBookingModal";
 import { GalleryImage } from "@/components/library/GalleryImage";
 import { resolveFileUrl } from "@/lib/files";
 import { formatDisplayDate, formatDisplayTime } from "@/lib/date";
-import { formatInr } from "@/lib/currency";
+import { formatMoney, formatMoneyWithOriginal } from "@/lib/currency";
 import { hotelStatusTone } from "@/lib/hotel-booking-status";
 import { paymentMethodLabel } from "@/lib/payment-methods";
 import { clientApi } from "@/lib/axios/clientClient";
@@ -72,7 +72,7 @@ function EmptyState({ message, icon: Icon }: { message: string; icon?: IconType 
   );
 }
 
-function ServiceList({ services }: { services: { uid: string; name: string; description: string | null; price: number | null }[] }) {
+function ServiceList({ services, currency }: { services: { uid: string; name: string; description: string | null; price: number | null }[]; currency?: string | null }) {
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {services.map((s) => (
@@ -87,7 +87,7 @@ function ServiceList({ services }: { services: { uid: string; name: string; desc
             <div className="flex items-start justify-between gap-2">
               <HoverMarqueeText as="div" className="truncate text-sm font-semibold text-foreground">{s.name}</HoverMarqueeText>
               {s.price != null && (
-                <span className="shrink-0 text-xs font-semibold text-foreground">{formatInr(s.price)}</span>
+                <span className="shrink-0 text-xs font-semibold text-foreground">{formatMoney(s.price, currency || undefined)}</span>
               )}
             </div>
             {s.description && (
@@ -100,7 +100,7 @@ function ServiceList({ services }: { services: { uid: string; name: string; desc
   );
 }
 
-function RoomTypeTable({ roomTypes }: { roomTypes: { roomTypeId: string; name: string; price: number | null }[] }) {
+function RoomTypeTable({ roomTypes, currency }: { roomTypes: { roomTypeId: string; name: string; price: number | null }[]; currency?: string | null }) {
   return (
     <div>
       <Caption>Room Types</Caption>
@@ -121,7 +121,7 @@ function RoomTypeTable({ roomTypes }: { roomTypes: { roomTypeId: string; name: s
               {roomTypes.map((r) => (
                 <tr key={r.roomTypeId}>
                   <td className="px-3 py-2 text-foreground">{r.name}</td>
-                  <td className="px-3 py-2 text-right font-medium tabular-nums text-foreground">{formatInr(r.price)}</td>
+                  <td className="px-3 py-2 text-right font-medium tabular-nums text-foreground">{formatMoney(r.price, currency || undefined)}</td>
                 </tr>
               ))}
             </tbody>
@@ -353,7 +353,7 @@ export function HotelDetailPanel({
     {
       key: "amount",
       header: "Amount",
-      render: (p) => formatInr(p.amount),
+      render: (p) => formatMoneyWithOriginal(p.amount, p.paidAmount, p.paidCurrency),
       sortValue: (p) => p.amount,
     },
     {
@@ -540,7 +540,7 @@ export function HotelDetailPanel({
         </div>
 
         <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/20 p-4">
-          <RoomTypeTable roomTypes={hotel.roomTypes ?? []} />
+          <RoomTypeTable roomTypes={hotel.roomTypes ?? []} currency={hotel.priceCurrency} />
         </div>
       </div>
 
@@ -752,7 +752,7 @@ export function HotelDetailPanel({
                                 </div>
                                 <div>
                                   <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Total Amount</div>
-                                  <div className="mt-0.5 text-sm font-semibold text-foreground">{formatInr(b.totalAmount)}</div>
+                                  <div className="mt-0.5 text-sm font-semibold text-foreground">{formatMoney(b.totalAmount)}</div>
                                 </div>
                               </div>
 
@@ -892,7 +892,7 @@ export function HotelDetailPanel({
 
               {activeTab === "services" &&
                 (hotel.services && hotel.services.length > 0 ? (
-                  <ServiceList services={hotel.services} />
+                  <ServiceList services={hotel.services} currency={hotel.priceCurrency} />
                 ) : (
                   <EmptyState message="No services found for this hotel." icon={BsFillBookmarkXFill} />
                 ))}

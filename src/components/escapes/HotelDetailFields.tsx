@@ -355,7 +355,7 @@ export function HotelDetailFields({
           label="Cancellation Charge (INR)"
           type="number"
           min={0}
-          step="0.01"
+          step="any"
           placeholder="Charged by the hotel, if any"
           value={value.cancellationCharge}
           onChange={(e) => update("cancellationCharge", e.target.value)}
@@ -513,7 +513,7 @@ export function HotelDetailFields({
           label="Price (INR)"
           type="number"
           min={0}
-          step="0.01"
+          step="any"
           value={value.price}
           onChange={(e) => updateAndRecalcTotal({ price: e.target.value })}
         />
@@ -571,7 +571,7 @@ export function HotelDetailFields({
                     label="Price (INR)"
                     type="number"
                     min={0}
-                    step="0.01"
+                    step="any"
                     value={inclusion.price}
                     onChange={(e) => updateInclusion(i, { price: e.target.value })}
                   />

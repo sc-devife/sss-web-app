@@ -6,7 +6,7 @@ export interface CreatePaymentMilestonePayload {
   dealUid: string;
   label: string;
   dueDate: string;
-  amountInr: number;
+  amountBase: number;
 }
 
 export interface RecordPaymentPayload {
@@ -15,6 +15,10 @@ export interface RecordPaymentPayload {
   amount: number;
   paymentMethod: string;
   paymentReference: string;
+  /** The currency the money arrived in; omitted = the vendor's base currency. */
+  currencyCode?: string;
+  /** "1 base = exchangeRate <currencyCode>"; omitted = today's rate. */
+  exchangeRate?: number;
 }
 
 export interface DeletePaymentMilestonePayload {

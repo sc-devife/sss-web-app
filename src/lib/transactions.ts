@@ -1,4 +1,5 @@
 import { backendJson } from "@/lib/backend";
+import type { PaymentRecord } from "@/lib/payment-milestones";
 
 // Mirrors IncomingTransactionResponseDTO — one recorded customer payment,
 // enriched with who it came from and which trip it belongs to.
@@ -10,13 +11,17 @@ export interface IncomingTransaction {
   customerEmail: string | null;
   customerPhone: string | null;
   label: string;
-  amountInr: number;
-  amountPaidInr: number;
+  amountBase: number;
+  amountPaidBase: number;
   status: string;
   paymentMethod: string | null;
   paymentReference: string | null;
   markedPaidAt: string | null;
   markedPaidByName: string | null;
+  /** Every payment received against this milestone, in the currency it arrived in. */
+  payments: PaymentRecord[] | null;
+  /** Net FX gain/loss across those payments, in base currency. */
+  fxDifferenceBase: number | null;
 }
 
 export async function getIncomingTransactions(): Promise<IncomingTransaction[]> {
@@ -42,6 +47,9 @@ export interface OutgoingTransaction {
   notes: string | null;
   status: string;
   createdAt: string;
+  paidAmount?: number | null;
+  paidCurrency?: string | null;
+  fxRate?: number | null;
 }
 
 export async function getOutgoingTransactions(): Promise<OutgoingTransaction[]> {

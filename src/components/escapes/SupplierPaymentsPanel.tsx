@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Body, Caption } from "@/components/ui/Typography";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { formatDisplayDate } from "@/lib/date";
-import { formatInr } from "@/lib/currency";
+import { formatMoney, formatMoneyWithOriginal } from "@/lib/currency";
 import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import type { OutgoingTransaction } from "@/features/transactions/types";
@@ -78,7 +78,7 @@ export function SupplierPaymentsPanel({ escapeUid }: { escapeUid: string }) {
     <Card className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <Caption>Supplier payments</Caption>
-        <span className="text-sm font-semibold text-foreground">{formatInr(total)} total</span>
+        <span className="text-sm font-semibold text-foreground">{formatMoney(total)} total</span>
       </div>
       <div className="flex flex-col gap-2">
         {payments!.map((p) => {
@@ -100,7 +100,7 @@ export function SupplierPaymentsPanel({ escapeUid }: { escapeUid: string }) {
                 </Caption>
                 {p.notes && <Caption className="mt-0.5 block normal-case text-muted-foreground">{p.notes}</Caption>}
               </div>
-              <span className="shrink-0 font-semibold text-foreground">{formatInr(p.amount)}</span>
+              <span className="shrink-0 font-semibold text-foreground">{formatMoneyWithOriginal(p.amount, p.paidAmount, p.paidCurrency)}</span>
             </div>
           );
         })}

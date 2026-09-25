@@ -8,6 +8,8 @@ export interface Hotel {
   // dropdown alongside stars. Not what a specific stay is actually booked
   // at (that's HotelDetail.price/totalPrice, entered per-itinerary-item).
   basePrice: number | null;
+  /** Currency of this item's prices; null/base = the vendor's base currency. */
+  priceCurrency?: string | null;
   location: { uid: string; displayName: string } | null;
   escapePoint: { uid: string; name: string } | null;
   mealPlans: { uid: string; code: string; name: string }[] | null;
@@ -88,6 +90,10 @@ export interface HotelPayment {
   notes: string | null;
   status: string;
   createdAt: string;
+  /** Set only when the supplier was paid in a non-base currency (amount is the base value). */
+  paidAmount?: number | null;
+  paidCurrency?: string | null;
+  fxRate?: number | null;
 }
 
 // Populates the "Send Hotel Booking Email" popup — bodyHtml is the exact

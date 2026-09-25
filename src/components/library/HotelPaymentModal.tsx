@@ -12,6 +12,8 @@ import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
 import { todayIsoDate } from "@/lib/date";
 import { required, requiredSelection, positiveNumber, runValidators } from "@/lib/validators";
 import { PAYMENT_METHOD_OPTIONS } from "@/lib/payment-methods";
+import { getOrgCurrency } from "@/lib/currency";
+import { SupplierCurrencyFields } from "@/components/library/SupplierCurrencyFields";
 import type { HotelPayment } from "@/lib/hotels";
 
 const emptyForm = {
@@ -19,6 +21,8 @@ const emptyForm = {
   transactionId: "",
   paymentMethod: "",
   amount: "",
+  currencyCode: "",
+  exchangeRate: "",
   paidBy: "",
   paymentDate: todayIsoDate(),
   notes: "",
@@ -89,6 +93,7 @@ export function HotelPaymentModal({
         transactionId: form.transactionId || null,
         paymentMethod: form.paymentMethod,
         amount: Number(form.amount),
+        ...(form.currencyCode ? { currencyCode: form.currencyCode, ...(Number(form.exchangeRate) > 0 ? { exchangeRate: Number(form.exchangeRate) } : {}) } : {}),
         paidBy: form.paidBy || null,
         paymentDate: form.paymentDate,
         notes: form.notes || null,
@@ -137,6 +142,13 @@ export function HotelPaymentModal({
             onChange={(e) => update("transactionId", e.target.value)}
           />
 
+          <SupplierCurrencyFields
+            currencyCode={form.currencyCode}
+            exchangeRate={form.exchangeRate}
+            amount={form.amount}
+            onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+          />
+
           <div className="grid grid-cols-2 gap-3">
             <Select
               label="Payment Method"
@@ -148,10 +160,10 @@ export function HotelPaymentModal({
               required
             />
             <TextInput
-              label="Amount (INR)"
+              label={`Amount (${form.currencyCode || getOrgCurrency()})`}
               type="number"
               min={0}
-              step="0.01"
+              step="any"
               value={form.amount}
               onChange={(e) => update("amount", e.target.value)}
               error={errors.amount}

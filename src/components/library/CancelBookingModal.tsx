@@ -82,7 +82,7 @@ export function CancelBookingModal({
           label="Cancellation Charge (INR)"
           type="number"
           min={0}
-          step="0.01"
+          step="any"
           placeholder="Charged for the cancellation, if any"
           value={charge}
           onChange={(e) => setCharge(e.target.value)}

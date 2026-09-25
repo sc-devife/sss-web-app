@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "@/lib/currency";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { PiFileTextFill, PiPlusFill, PiPencilSimpleFill } from "react-icons/pi";
 import { FaTrashCan } from "react-icons/fa6";
@@ -225,7 +226,7 @@ export function DocumentsCard({
                       </div>
                     )}
                     <HoverMarqueeText className="truncate text-[11px] text-muted-foreground">
-                      {quote.totalInr != null ? `₹${quote.totalInr.toFixed(2)} INR` : "Not priced yet"}
+                      {quote.totalBase != null ? formatMoney(quote.totalBase) : "Not priced yet"}
                     </HoverMarqueeText>
                   </div>
                   <div className="flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">

@@ -5,6 +5,7 @@ export interface SupportedCurrency {
   name: string;
   symbol: string;
   is_active: boolean;
+  minor_units?: number;
 }
 
 export async function getSupportedCurrencies(): Promise<SupportedCurrency[]> {

@@ -33,9 +33,9 @@ export const createPaymentMilestone = createAsyncThunk<void, CreatePaymentMilest
 
 export const recordPayment = createAsyncThunk<void, RecordPaymentPayload, { rejectValue: string }>(
   "paymentMilestones/recordPayment",
-  async ({ uid, amount, paymentMethod, paymentReference }, { rejectWithValue }) => {
+  async ({ uid, amount, paymentMethod, paymentReference, currencyCode, exchangeRate }, { rejectWithValue }) => {
     try {
-      await clientApi.post(`/payment-milestones/${uid}/record-payment`, { amount, paymentMethod, paymentReference });
+      await clientApi.post(`/payment-milestones/${uid}/record-payment`, { amount, paymentMethod, paymentReference, currencyCode, exchangeRate });
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, "Failed to record payment"));
     }

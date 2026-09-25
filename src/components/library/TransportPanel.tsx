@@ -1,5 +1,7 @@
 "use client";
 
+import { formatMoney, getOrgCurrency } from "@/lib/currency";
+import { PriceCurrencySelect } from "@/components/library/PriceCurrencySelect";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
@@ -57,6 +59,7 @@ const emptyForm = {
   capacity: "",
   providerId: "",
   basePrice: "",
+  priceCurrency: "",
   pickupLocation: "",
   dropLocation: "",
   contactName: "",
@@ -185,6 +188,7 @@ export function TransportPanel({
       capacity: transport.capacity ? String(transport.capacity) : "",
       providerId: transport.provider?.uid ?? "",
       basePrice: transport.basePrice != null ? String(transport.basePrice) : "",
+      priceCurrency: transport.priceCurrency ?? "",
       pickupLocation: transport.pickupLocation ?? "",
       dropLocation: transport.dropLocation ?? "",
       contactName: transport.contactName ?? "",
@@ -226,6 +230,7 @@ export function TransportPanel({
         // switching a record to Single doesn't leave a stale provider link.
         providerId: form.ownerType === "multi" ? form.providerId || null : null,
         basePrice: form.basePrice ? Number(form.basePrice) : null,
+        priceCurrency: form.priceCurrency || getOrgCurrency(),
         pickupLocation: form.pickupLocation || null,
         dropLocation: form.dropLocation || null,
         contactName: form.contactName || null,
@@ -291,7 +296,7 @@ export function TransportPanel({
     {
       key: "basePrice",
       header: "Base price (INR)",
-      render: (t) => (t.basePrice != null ? `₹${t.basePrice.toFixed(2)}` : "—"),
+      render: (t) => (t.basePrice != null ? formatMoney(t.basePrice, t.priceCurrency || undefined) : "—"),
       sortValue: (t) => t.basePrice ?? 0,
     },
     {
@@ -414,12 +419,13 @@ export function TransportPanel({
         }}
         error={errors.capacity}
       />,
+      <PriceCurrencySelect key="priceCurrency" value={form.priceCurrency} onChange={(code) => update("priceCurrency", code)} />,
       <TextInput
         key="basePrice"
-        label="Base price (INR)"
+        label={`Base price (${form.priceCurrency || getOrgCurrency()})`}
         type="number"
         min={0}
-        step="0.01"
+        step="any"
         value={form.basePrice}
         onChange={(e) => {
           update("basePrice", e.target.value);

@@ -10,6 +10,8 @@ export interface QuotationTemplate {
   isDefault: boolean;
   createdAt: string;
   updatedAt: string | null;
+  /** Only on the response to an upload: problems found in the HTML (e.g. a hard-coded currency symbol). */
+  warnings?: string[] | null;
 }
 
 export async function getQuotationTemplates(): Promise<QuotationTemplate[]> {

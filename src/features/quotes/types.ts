@@ -36,12 +36,12 @@ export interface ComputeQuotePayload {
 }
 
 export interface PricingBreakdown {
-  hotelsInr: number;
-  activitiesInr: number;
-  transportInr: number;
-  otherInr: number;
+  hotelsBase: number;
+  activitiesBase: number;
+  transportBase: number;
+  otherBase: number;
   /** Cancellation charges from Dropped Hotel/Activity/Transport bookings — kept separate so the type buckets above stay an accurate "active booking cost". */
-  cancellationInr: number;
+  cancellationBase: number;
 }
 
 export interface ComputeQuoteResult {

@@ -8,6 +8,7 @@ import { getInvoiceTemplates } from "@/lib/invoice-templates";
 import { resolveFileUrl } from "@/lib/files";
 import { formatDisplayDate } from "@/lib/date";
 import { PrintButton } from "@/components/quotes/PrintButton";
+import { previewMoney } from "@/lib/currency";
 
 export default async function InvoicePreviewPage({ params }: { params: { uid: string } }) {
   const deal = await getDealByUid(params.uid);
@@ -20,10 +21,20 @@ export default async function InvoicePreviewPage({ params }: { params: { uid: st
     getInvoiceTemplates(),
   ]);
 
+  // Server-rendered, so the vendor's currency comes from their settings here
+  // (explicit, not the client-side singleton, which is shared across requests).
+  const baseCurrency = organization.settings?.default_currency_code || "INR";
+  const rounding = organization.settings?.rounding_mode === "whole" ? "whole" : "decimals";
+  const money = (n: number) => previewMoney(n, baseCurrency, rounding);
+  const quoteInForeign =
+    quote.currencyCode && quote.currencyCode !== baseCurrency && quote.fxRateSnapshot != null && quote.totalBase != null
+      ? previewMoney(quote.totalBase * quote.fxRateSnapshot, quote.currencyCode, rounding)
+      : null;
+
   const template = templates.find((t) => t.id === organization.settings?.invoice_template_id) ?? templates[0];
 
-  const totalPaid = milestones.reduce((sum, m) => sum + m.amountPaidInr, 0);
-  const totalDue = milestones.reduce((sum, m) => sum + m.amountInr, 0);
+  const totalPaid = milestones.reduce((sum, m) => sum + m.amountPaidBase, 0);
+  const totalDue = milestones.reduce((sum, m) => sum + m.amountBase, 0);
   const totalOutstanding = totalDue - totalPaid;
 
   return (
@@ -65,8 +76,13 @@ export default async function InvoicePreviewPage({ params }: { params: { uid: st
         <div className="mb-8 rounded border border-gray-200 p-4 text-sm">
           <div className="flex justify-between border-b pb-2 text-base font-bold" style={{ borderColor: template.accentColor }}>
             <span>Total booking value</span>
-            <span>{quote.totalInr != null ? `₹${quote.totalInr.toFixed(2)}` : "—"} INR</span>
+            <span>{quote.totalBase != null ? money(quote.totalBase) : "—"}</span>
           </div>
+          {quoteInForeign && (
+            <p className="pt-2 text-xs text-gray-500">
+              Quoted to the traveller as {quoteInForeign} (1 {baseCurrency} = {quote.fxRateSnapshot} {quote.currencyCode}).
+            </p>
+          )}
         </div>
 
         <div className="mb-2 text-sm font-semibold uppercase tracking-wide" style={{ color: template.accentColor }}>
@@ -81,7 +97,7 @@ export default async function InvoicePreviewPage({ params }: { params: { uid: st
               </div>
               <div className="text-right">
                 <p className="capitalize text-gray-500">{m.status.replace("_", " ")}</p>
-                <p>₹{m.amountPaidInr.toFixed(2)} / ₹{m.amountInr.toFixed(2)} INR</p>
+                <p>{money(m.amountPaidBase)} / {money(m.amountBase)}</p>
               </div>
             </div>
           ))}
@@ -91,11 +107,11 @@ export default async function InvoicePreviewPage({ params }: { params: { uid: st
         <div className="rounded border border-gray-200 p-4 text-sm">
           <div className="flex justify-between py-1">
             <span className="text-gray-500">Total paid</span>
-            <span>₹{totalPaid.toFixed(2)} INR</span>
+            <span>{money(totalPaid)}</span>
           </div>
           <div className="mt-2 flex justify-between border-t pt-2 text-base font-bold" style={{ borderColor: template.accentColor }}>
             <span>Balance outstanding</span>
-            <span>₹{totalOutstanding.toFixed(2)} INR</span>
+            <span>{money(totalOutstanding)}</span>
           </div>
         </div>
 

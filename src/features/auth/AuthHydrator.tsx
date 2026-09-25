@@ -5,6 +5,7 @@ import { useAppDispatch } from "@/store/hooks";
 import { setLoggedInUser } from "@/features/auth/authSlice";
 import { setSoundEnabled } from "@/features/notifications/notificationsSlice";
 import type { CurrentUser } from "@/lib/current-user";
+import { setOrgCurrency } from "@/lib/currency";
 
 // Restores the Redux auth state from the server-resolved current user (see
 // (protected)/layout.tsx) on every protected-page load/refresh — this is
@@ -12,6 +13,10 @@ import type { CurrentUser } from "@/lib/current-user";
 // without ever reading from localStorage. Renders nothing.
 export function AuthHydrator({ user, roles }: { user: CurrentUser; roles: string[] }) {
   const dispatch = useAppDispatch();
+
+  // Set during render (not in the effect) so the vendor's currency is in place
+  // before any page below this renders its first amount. Idempotent.
+  setOrgCurrency(user.organizationCurrencyCode, user.organizationRoundingMode);
 
   useEffect(() => {
     dispatch(

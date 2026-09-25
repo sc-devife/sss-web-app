@@ -12,7 +12,7 @@ import { Body, Caption } from "@/components/ui/Typography";
 import { HoverMarqueeText } from "@/components/ui/HoverMarqueeText";
 import { ServiceProviderFormModal, SERVICE_PROVIDER_TYPE_OPTIONS } from "@/components/library/ServiceProviderFormModal";
 import { MODE_OPTIONS, VEHICLE_TYPE_OPTIONS, transportModeIcon } from "@/lib/transport-modes";
-import { formatInr } from "@/lib/currency";
+import { formatMoney } from "@/lib/currency";
 import type { ServiceProvider } from "@/lib/service-providers";
 import type { EscapePoint } from "@/lib/escape-points";
 import type { Transport } from "@/lib/transports";
@@ -170,7 +170,7 @@ export function ServiceProviderDetailPanel({
                         {v.escapePoint && ` · ${v.escapePoint.name}`}
                       </Caption>
                     </div>
-                    {v.basePrice != null && <span className="shrink-0 font-semibold text-foreground">{formatInr(v.basePrice)}</span>}
+                    {v.basePrice != null && <span className="shrink-0 font-semibold text-foreground">{formatMoney(v.basePrice, v.priceCurrency || undefined)}</span>}
                   </div>
                 );
               })}

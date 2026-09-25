@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Heading, Body, Caption } from "@/components/ui/Typography";
 import { formatDisplayDate } from "@/lib/date";
-import { formatInr, formatInrCompact } from "@/lib/currency";
+import { formatMoney, formatMoneyCompact } from "@/lib/currency";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchDashboard, fetchLeadsTrend } from "@/features/dashboard/dashboardThunks";
 import {
@@ -126,7 +126,7 @@ function MyUpcomingPayments({ milestones }: { milestones: PaymentMilestone[] }) 
             <Badge tone={milestone.status === "overdue" ? "danger" : milestone.status === "partially_paid" ? "warning" : "neutral"}>
               {milestone.status}
             </Badge>
-            <Caption>₹{(milestone.amountInr - milestone.amountPaidInr).toFixed(2)} remaining</Caption>
+            <Caption>{formatMoney(milestone.amountBase - milestone.amountPaidBase)} remaining</Caption>
           </div>
         </Card>
       ))}
@@ -182,17 +182,17 @@ export function DashboardPanel() {
             />
             <KpiCard label="Conversion Rate" value={`${metrics.conversionRatePercent.toFixed(1)}%`} categoryIcon={HiOutlineTrendingUp} />
             <KpiCard label="Active Escapes" value={metrics.escapesInProgress} categoryIcon={PiBriefcase} />
-            <KpiCard label="Revenue Pipeline" value={formatInrCompact(metrics.revenuePipelineInr)} categoryIcon={PiWallet} />
+            <KpiCard label="Revenue Pipeline" value={formatMoneyCompact(metrics.revenuePipelineBase)} categoryIcon={PiWallet} />
             <KpiCard
               label="Revenue Collected"
-              value={formatInrCompact(metrics.revenueCollectedInr)}
-              trend={trendFor(metrics.revenueCollectedInr, metrics.previousPeriodRevenueCollectedInr)}
+              value={formatMoneyCompact(metrics.revenueCollectedBase)}
+              trend={trendFor(metrics.revenueCollectedBase, metrics.previousPeriodRevenueCollectedBase)}
               categoryIcon={PiCurrencyCircleDollar}
             />
             <KpiCard
               label="Overdue Payments"
               value={metrics.overduePaymentsCount}
-              icon={metrics.overduePaymentsCount > 0 ? <Badge tone="danger">{formatInrCompact(metrics.overduePaymentsAmountInr)}</Badge> : undefined}
+              icon={metrics.overduePaymentsCount > 0 ? <Badge tone="danger">{formatMoneyCompact(metrics.overduePaymentsAmountBase)}</Badge> : undefined}
               categoryIcon={PiClockCountdown}
             />
           </div>
@@ -212,19 +212,19 @@ export function DashboardPanel() {
                 <div className="grid grid-cols-2 gap-3 sm:w-48 sm:shrink-0">
                   <div>
                     <Caption>Revenue</Caption>
-                    <Body className="font-semibold">{formatInr(metrics.totalRevenueInr)}</Body>
+                    <Body className="font-semibold">{formatMoney(metrics.totalRevenueBase)}</Body>
                   </div>
                   <div>
                     <Caption>Collected</Caption>
-                    <Body className="font-semibold text-success">{formatInr(metrics.revenueCollectedInr)}</Body>
+                    <Body className="font-semibold text-success">{formatMoney(metrics.revenueCollectedBase)}</Body>
                   </div>
                   <div>
                     <Caption>Outstanding</Caption>
-                    <Body className="font-semibold">{formatInr(metrics.revenuePipelineInr)}</Body>
+                    <Body className="font-semibold">{formatMoney(metrics.revenuePipelineBase)}</Body>
                   </div>
                   <div>
                     <Caption>Overdue</Caption>
-                    <Body className="font-semibold text-danger">{formatInr(metrics.overduePaymentsAmountInr)}</Body>
+                    <Body className="font-semibold text-danger">{formatMoney(metrics.overduePaymentsAmountBase)}</Body>
                   </div>
                 </div>
               </div>
@@ -299,11 +299,11 @@ export function DashboardPanel() {
                   </div>
                   <div>
                     <Caption>Avg Quote Value</Caption>
-                    <Body className="font-semibold">{formatInr(metrics.quoteAnalytics.averageQuoteValueInr)}</Body>
+                    <Body className="font-semibold">{formatMoney(metrics.quoteAnalytics.averageQuoteValueBase)}</Body>
                   </div>
                   <div>
                     <Caption>Total Quote Value</Caption>
-                    <Body className="font-semibold">{formatInr(metrics.quoteAnalytics.totalQuoteValueInr)}</Body>
+                    <Body className="font-semibold">{formatMoney(metrics.quoteAnalytics.totalQuoteValueBase)}</Body>
                   </div>
                 </div>
               </div>

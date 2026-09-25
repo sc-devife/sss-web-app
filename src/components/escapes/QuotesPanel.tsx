@@ -18,9 +18,9 @@ import { Spinner } from "@/components/ui/Spinner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { clientApi } from "@/lib/axios/clientClient";
 import { extractErrorMessage } from "@/lib/axios/extractErrorMessage";
-import { formatDisplayDateTime } from "@/lib/date";
+import { formatDisplayDateTime, formatDisplayDate } from "@/lib/date";
 import { formatAuditActor } from "@/lib/audit";
-import { formatInr } from "@/lib/currency";
+import { formatMoney, getOrgCurrency, currencySymbol, toDisplayAmount } from "@/lib/currency";
 import type { Quote, QuoteLineItem, QuoteLineItemsResult } from "@/lib/quotes";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -33,7 +33,8 @@ import {
   computeQuote,
   updateQuoteValidUntil,
 } from "@/features/quotes/quotesThunks";
-import { selectQuotesForItinerary, selectQuotesStatus } from "@/features/quotes/quotesSelectors";
+import { selectQuotesForItinerary, selectQuotesStatus, selectCurrencies } from "@/features/quotes/quotesSelectors";
+import { formatRate } from "@/lib/exchange-rates";
 import { fetchTaxProfiles } from "@/features/taxProfiles/taxProfilesThunks";
 import { selectTaxProfiles } from "@/features/taxProfiles/taxProfilesSelectors";
 import { fetchQuoteTemplates } from "@/features/quoteTemplates/quoteTemplatesThunks";
@@ -55,8 +56,16 @@ const STATUS_TONE: Record<string, "success" | "danger" | "warning" | "neutral"> 
 
 type DiscountDraft = { discountType: string; discountValue: string };
 
-function toDraft(li: { discountType: string; discountValue: number | null }): DiscountDraft {
-  return { discountType: li.discountType, discountValue: li.discountValue != null ? String(li.discountValue) : "" };
+// A flat discount is stored in the vendor's base currency but typed and shown in the
+// quote's currency (rate = 1 for a quote in the vendor's own currency).
+function toDraft(
+  li: { discountType: string; discountValue: number | null },
+  rate = 1,
+  currency: string = getOrgCurrency(),
+): DiscountDraft {
+  if (li.discountValue == null) return { discountType: li.discountType, discountValue: "" };
+  const shown = li.discountType === "flat" && rate !== 1 ? toDisplayAmount(li.discountValue, rate, currency) : li.discountValue;
+  return { discountType: li.discountType, discountValue: String(shown) };
 }
 
 const emptyPricingForm = {
@@ -75,9 +84,17 @@ function pricingFormFrom(q: Quote): typeof emptyPricingForm {
     taxRateOverride: q.taxRatePercentOverride != null ? String(q.taxRatePercentOverride) : "",
     tcsRatePercent: q.tcsRatePercent != null ? String(q.tcsRatePercent) : "",
     discountType: q.discountType ?? "none",
-    discountValue: q.discountValue != null ? String(q.discountValue) : "",
-    displayCurrencyCode: q.currencyCode ?? "",
-    fxRateSnapshot: q.fxRateSnapshot != null ? String(q.fxRateSnapshot) : "",
+    discountValue:
+      q.discountValue == null
+        ? ""
+        : String(
+            q.discountType === "flat" && q.currencyCode && q.currencyCode !== getOrgCurrency() && q.fxRateSnapshot != null
+              ? toDisplayAmount(q.discountValue, q.fxRateSnapshot, q.currencyCode)
+              : q.discountValue,
+          ),
+    // "" = the vendor's own (base) currency. The rate is only carried when it's pinned on this quote.
+    displayCurrencyCode: q.currencyCode && q.currencyCode !== getOrgCurrency() ? q.currencyCode : "",
+    fxRateSnapshot: q.fxRateCustom && q.fxRateSnapshot != null ? String(q.fxRateSnapshot) : "",
   };
 }
 
@@ -89,11 +106,16 @@ function pricingFormFrom(q: Quote): typeof emptyPricingForm {
 function LineItemRow({
   item,
   onSave,
+  rate = 1,
+  currency,
 }: {
   item: QuoteLineItem;
   onSave: (lineItemUid: string, draft: DiscountDraft) => Promise<void>;
+  /** Quote currency conversion: amounts are stored in base and shown as base x rate in `currency`. */
+  rate?: number;
+  currency?: string;
 }) {
-  const [draft, setDraft] = useState<DiscountDraft>(() => toDraft(item));
+  const [draft, setDraft] = useState<DiscountDraft>(() => toDraft(item, rate, currency));
   // The % / ₹ unit is remembered separately so it can be chosen before a
   // number is typed; the draft only carries it while the field is non-empty.
   const [unit, setUnit] = useState<"percent" | "flat">(item.discountType === "flat" ? "flat" : "percent");
@@ -106,11 +128,11 @@ function LineItemRow({
 
   useEffect(() => {
     if (editedRef.current) return;
-    setDraft(toDraft(item));
+    setDraft(toDraft(item, rate, currency));
     setUnit(item.discountType === "flat" ? "flat" : "percent");
-  }, [item]);
+  }, [item, rate, currency]);
 
-  const dirty = draft.discountType !== item.discountType || draft.discountValue !== (item.discountValue != null ? String(item.discountValue) : "");
+  const dirty = draft.discountType !== item.discountType || draft.discountValue !== toDraft(item, rate, currency).discountValue;
 
   // Saves itself shortly after the last edit — no confirm button.
   useEffect(() => {
@@ -142,7 +164,7 @@ function LineItemRow({
           {item.cancellation && <span className="text-danger"> · cancellation charge</span>}
         </span>
       </div>
-      <div className="col-span-2 text-right text-foreground">{formatInr(item.baseAmountInr)}</div>
+      <div className="col-span-2 text-right text-foreground">{formatMoney(item.grossAmountBase * rate, currency)}</div>
       <div className="col-span-3 flex items-center justify-center gap-1">
         {/* Number field with both units shown at its end; the active one is
             filled. An empty field means no discount. */}
@@ -150,7 +172,7 @@ function LineItemRow({
           <input
             type="number"
             min={0}
-            step="0.01"
+            step="any"
             value={draft.discountValue}
             onChange={(e) => {
               const value = e.target.value;
@@ -162,7 +184,7 @@ function LineItemRow({
             className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-60"
           />
           <div className="flex shrink-0 items-center gap-0.5">
-            {([["percent", "%"], ["flat", "₹"]] as const).map(([type, symbol]) => (
+            {([["percent", "%"], ["flat", currencySymbol(currency ?? getOrgCurrency())]] as const).map(([type, symbol]) => (
               <button
                 key={type}
                 type="button"
@@ -186,7 +208,7 @@ function LineItemRow({
         </div>
         {saving && <Spinner size="sm" />}
       </div>
-      <div className="col-span-2 text-right font-medium text-foreground">{formatInr(item.finalAmountInr)}</div>
+      <div className="col-span-2 text-right font-medium text-foreground">{formatMoney(item.netAmountBase * rate, currency)}</div>
       {error && <div className="col-span-12 text-xs text-danger">{error}</div>}
     </div>
   );
@@ -243,6 +265,7 @@ export function QuotesPanel({
   const dispatch = useAppDispatch();
   const quotes = useAppSelector((s) => selectQuotesForItinerary(s, itineraryUid));
   const quotesStatus = useAppSelector((s) => selectQuotesStatus(s, itineraryUid));
+  const currencies = useAppSelector(selectCurrencies);
   const taxProfiles = useAppSelector(selectTaxProfiles);
   const templates = useAppSelector(selectQuoteTemplates);
   const currentEscape = useAppSelector(selectCurrentEscape);
@@ -335,9 +358,16 @@ export function QuotesPanel({
 
   async function handleSaveLineItemDiscount(lineItemUid: string, draft: DiscountDraft) {
     if (!quote) return;
+    // A flat discount is typed in the quote's currency; the server stores it in base.
+    const rate =
+      quote.currencyCode && quote.currencyCode !== getOrgCurrency() && quote.fxRateSnapshot ? quote.fxRateSnapshot : 1;
     const res = await clientApi.put<QuoteLineItemsResult>(`/quotes/${quote.uid}/line-items/${lineItemUid}`, {
       discountType: draft.discountType,
-      discountValue: draft.discountValue ? Number(draft.discountValue) : null,
+      discountValue: draft.discountValue
+        ? draft.discountType === "flat"
+          ? Number(draft.discountValue) / rate
+          : Number(draft.discountValue)
+        : null,
     });
     setLiveQuote(res.data.quote);
     setLineItems(res.data.lineItems);
@@ -362,7 +392,15 @@ export function QuotesPanel({
           taxRatePercentOverride: form.taxProfileUid && form.taxRateOverride ? Number(form.taxRateOverride) : null,
           tcsRatePercent: form.tcsRatePercent ? Number(form.tcsRatePercent) : null,
           discountType: form.discountType,
-          discountValue: form.discountValue ? Number(form.discountValue) : null,
+          discountValue: form.discountValue
+            ? form.discountType === "flat" &&
+              quote.currencyCode &&
+              quote.currencyCode !== getOrgCurrency() &&
+              quote.currencyCode === form.displayCurrencyCode &&
+              quote.fxRateSnapshot
+              ? Number(form.discountValue) / (form.fxRateSnapshot ? Number(form.fxRateSnapshot) : quote.fxRateSnapshot)
+              : Number(form.discountValue)
+            : null,
           displayCurrencyCode: form.displayCurrencyCode || null,
           fxRateSnapshot: form.fxRateSnapshot ? Number(form.fxRateSnapshot) : null,
         }),
@@ -496,6 +534,23 @@ export function QuotesPanel({
   if (!quote) return null;
 
   const paxCount = currentEscape?.travellers?.length ?? 0;
+
+  // Amounts are stored in the vendor's base currency; a quote issued in a
+  // traveller currency shows them converted at the quote's rate.
+  const baseCode = getOrgCurrency();
+  const foreign = Boolean(quote.currencyCode && quote.currencyCode !== baseCode && quote.fxRateSnapshot != null);
+  const shownCode = foreign ? (quote.currencyCode as string) : undefined;
+  const rateToShown = foreign ? (quote.fxRateSnapshot as number) : 1;
+  const money = (n: number | null | undefined) => formatMoney(n == null ? null : n * rateToShown, shownCode);
+  const rateLocked = quote.status !== "draft";
+  const rateInput = pricingForm.fxRateSnapshot !== "" ? pricingForm.fxRateSnapshot : quote.fxRateSnapshot != null ? formatRate(quote.fxRateSnapshot) : "";
+  const rateSourceLabel = rateLocked
+    ? "Rate locked"
+    : quote.fxRateSource === "custom"
+      ? "Custom rate for this quote"
+      : quote.fxRateSource === "vendor"
+        ? "Your rate from Organization settings"
+        : `Market rate${quote.fxRateAsOf ? ` as of ${formatDisplayDate(quote.fxRateAsOf)}` : ""}`;
   let groupedDay: number | null = null;
 
   return (
@@ -504,27 +559,72 @@ export function QuotesPanel({
           all together at the top so building the quote below and acting on
           it never compete for space. */}
       <div className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3">
-        <div className="flex flex-nowrap items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2">
+        {/* Row 1: which quote + its status, and the quote currency (with the rate when it isn't the vendor's own). */}
+        <div className="flex flex-nowrap items-center gap-x-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <div className="flex min-w-0 flex-col">
               <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Quote</span>
               <span className="truncate text-sm font-semibold text-foreground">{quote.name ?? "Untitled quote"}</span>
             </div>
             <Badge tone={STATUS_TONE[quote.status] ?? "neutral"} className="shrink-0">{quote.status}</Badge>
           </div>
-          <div className="w-48 shrink-0">
-            <DatePicker
-              value={quote.validUntil ?? ""}
-              onChange={handleValidUntilChange}
-              placeholder="Set valid until"
-              prefix="Valid until"
-              showIcon
-              className="h-8 rounded-full bg-card px-3 text-sm shadow-sm hover:border-primary/40"
+          <div className="w-44 shrink-0 [&_label]:sr-only">
+            <Select
+              label="Quote currency"
+              className="h-8 rounded-full bg-card px-3 font-semibold shadow-sm"
+              disabled={rateLocked}
+              options={[
+                { value: baseCode, label: `${baseCode} — vendor currency` },
+                ...currencies.filter((c) => c.code !== baseCode).map((c) => ({ value: c.code, label: `${c.code} — ${c.name}` })),
+              ]}
+              value={pricingForm.displayCurrencyCode || baseCode}
+              onChange={(e) => {
+                const code = e.target.value;
+                setPricingForm((f) => ({ ...f, displayCurrencyCode: code === baseCode ? "" : code, fxRateSnapshot: "" }));
+              }}
             />
           </div>
+          {foreign && (
+            <div className="flex shrink-0 flex-col gap-0.5">
+              <div className="flex items-center gap-1.5 text-sm">
+                <span className="whitespace-nowrap text-xs text-muted-foreground">1 {baseCode} =</span>
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  value={rateInput}
+                  disabled={rateLocked}
+                  aria-label="Exchange rate"
+                  onChange={(e) => setPricingForm((f) => ({ ...f, fxRateSnapshot: e.target.value }))}
+                  className="h-8 w-24 rounded-full border border-border bg-card px-3 text-sm font-semibold text-foreground shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
+                />
+                <span className="text-xs text-muted-foreground">{quote.currencyCode}</span>
+              </div>
+            </div>
+          )}
         </div>
-        <div className="flex flex-nowrap items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2">
+        {/* Row 2: who created it and when (left) and where the exchange rate came from (right). */}
+        <div className="flex items-center justify-between gap-3 text-[11px] leading-tight text-muted-foreground">
+          <span className="min-w-0 truncate text-[10px] uppercase tracking-wide">
+            Created {formatDisplayDateTime(quote.createdAt)} by {formatAuditActor(quote.createdByName)}
+          </span>
+          {foreign && (
+            <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
+              <span>{rateSourceLabel}</span>
+              {!rateLocked && quote.fxRateSource === "custom" && (
+                <button
+                  type="button"
+                  onClick={() => setPricingForm((f) => ({ ...f, fxRateSnapshot: "" }))}
+                  className="font-medium text-primary hover:underline"
+                >
+                  Use market rate
+                </button>
+              )}
+            </span>
+          )}
+        </div>
+        {/* Row 3: template, actions, then the valid-until date. */}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               type="button"
               disabled={busy}
@@ -533,7 +633,7 @@ export function QuotesPanel({
                 setTemplateSearch("");
                 setShowTemplatePicker(true);
               }}
-              className="flex h-8 w-48 shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 text-left text-sm text-foreground shadow-sm transition-colors hover:border-primary/40 disabled:opacity-60"
+              className="flex h-8 w-40 shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 text-left text-sm text-foreground shadow-sm transition-colors hover:border-primary/40 disabled:opacity-60"
             >
               <LuLayoutTemplate className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <span className="truncate">{templates.find((t) => t.id === templateChoice)?.name ?? "Org default"}</span>
@@ -560,10 +660,16 @@ export function QuotesPanel({
             {quote.generatedAt && quote.changedSinceGenerated && (
               <Badge tone="warning" className="shrink-0">Changed since generated</Badge>
             )}
-          </div>
-          <Caption className="shrink-0 self-end whitespace-nowrap text-[10px] leading-none">
-            Created {formatDisplayDateTime(quote.createdAt)} by {formatAuditActor(quote.createdByName)}
-          </Caption>
+            <div className="ml-auto w-44 shrink-0">
+              <DatePicker
+                value={quote.validUntil ?? ""}
+                onChange={handleValidUntilChange}
+                placeholder="Set valid until"
+                prefix="Valid until"
+                showIcon
+                className="h-8 rounded-full bg-card px-3 text-sm shadow-sm hover:border-primary/40"
+              />
+            </div>
         </div>
         {actionError && <p className="text-sm text-danger">{actionError}</p>}
       </div>
@@ -599,7 +705,7 @@ export function QuotesPanel({
                   <Caption className="text-[11px]">Day {item.dayNumber}</Caption>
                 </div>
               )}
-              <LineItemRow item={item} onSave={handleSaveLineItemDiscount} />
+              <LineItemRow item={item} onSave={handleSaveLineItemDiscount} rate={rateToShown} currency={shownCode} />
             </div>
           );
         })}
@@ -654,14 +760,14 @@ export function QuotesPanel({
         {/* Right: the running totals, separated from tax by a vertical line. */}
         <div className="flex flex-col gap-2 border-border md:border-l md:pl-6">
           <Caption>Summary</Caption>
-        <div className="flex justify-between"><span className="text-muted-foreground">Subtotal{savingPricing && <Spinner size="sm" />}</span><span>{formatInr(quote.subtotalInr)}</span></div>
+        <div className="flex justify-between"><span className="text-muted-foreground">Subtotal{savingPricing && <Spinner size="sm" />}</span><span>{money(quote.subtotalBase)}</span></div>
         <div className="flex items-center justify-between gap-2">
           <span className="text-muted-foreground">Overall discount</span>
           <div className="flex h-9 w-28 items-center rounded-full border border-border bg-card pl-3 pr-1 shadow-sm transition-colors hover:border-primary/40 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
             <input
               type="number"
               min={0}
-              step="0.01"
+              step="any"
               value={pricingForm.discountValue}
               onChange={(e) => {
                 const value = e.target.value;
@@ -672,7 +778,7 @@ export function QuotesPanel({
               className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground"
             />
             <div className="flex shrink-0 items-center gap-0.5">
-              {([["percent", "%"], ["flat", "₹"]] as const).map(([type, symbol]) => (
+              {([["percent", "%"], ["flat", currencySymbol(shownCode ?? baseCode)]] as const).map(([type, symbol]) => (
                 <button
                   key={type}
                   type="button"
@@ -693,15 +799,18 @@ export function QuotesPanel({
             </div>
           </div>
         </div>
-        {quote.taxAmountInr != null && quote.taxAmountInr > 0 && (
-          <div className="flex justify-between"><span className="text-muted-foreground">Tax</span><span>{formatInr(quote.taxAmountInr)}</span></div>
+        {quote.taxAmountBase != null && quote.taxAmountBase > 0 && (
+          <div className="flex justify-between"><span className="text-muted-foreground">Tax</span><span>{money(quote.taxAmountBase)}</span></div>
         )}
-        {quote.tcsAmountInr != null && quote.tcsAmountInr > 0 && (
-          <div className="flex justify-between"><span className="text-muted-foreground">TCS</span><span>{formatInr(quote.tcsAmountInr)}</span></div>
+        {quote.tcsAmountBase != null && quote.tcsAmountBase > 0 && (
+          <div className="flex justify-between"><span className="text-muted-foreground">TCS</span><span>{money(quote.tcsAmountBase)}</span></div>
         )}
-        <div className="flex justify-between border-t border-border pt-1 text-base font-semibold"><span>Total</span><span>{formatInr(quote.totalInr)}</span></div>
-        {paxCount > 0 && quote.totalInr != null && (
-          <div className="flex justify-between text-xs text-muted-foreground"><span>Per traveller ({paxCount})</span><span>{formatInr(quote.totalInr / paxCount)}</span></div>
+        <div className="flex justify-between border-t border-border pt-1 text-base font-semibold"><span>Total</span><span>{money(quote.totalBase)}</span></div>
+        {foreign && (
+          <div className="flex justify-between text-xs font-normal text-muted-foreground"><span>Total in {baseCode}</span><span>{formatMoney(quote.totalBase)}</span></div>
+        )}
+        {paxCount > 0 && quote.totalBase != null && (
+          <div className="flex justify-between text-xs text-muted-foreground"><span>Per traveller ({paxCount})</span><span>{money(quote.totalBase / paxCount)}</span></div>
         )}
         </div>
       </div>

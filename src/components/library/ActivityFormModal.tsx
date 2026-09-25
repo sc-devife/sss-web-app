@@ -1,5 +1,7 @@
 "use client";
 
+import { getOrgCurrency } from "@/lib/currency";
+import { PriceCurrencySelect } from "@/components/library/PriceCurrencySelect";
 import { useEffect, useState, type FormEvent } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/Button";
@@ -38,6 +40,7 @@ const emptyForm = {
   description: "",
   images: [] as string[],
   basePrice: "",
+  priceCurrency: "",
   status: "active",
   email: "",
   contactNumber: "",
@@ -71,6 +74,7 @@ function snapshotFromActivity(activity: Activity | null): FormState {
     description: activity.description ?? "",
     images: activity.images ?? [],
     basePrice: activity.basePrice != null ? String(activity.basePrice) : "",
+    priceCurrency: activity.priceCurrency ?? "",
     status: activity.status ?? "active",
     email: activity.email ?? "",
     contactNumber: activity.contactNumber ?? "",
@@ -137,6 +141,7 @@ export function ActivityFormModal({
         description: form.description,
         images: form.images,
         basePrice: form.basePrice ? Number(form.basePrice) : null,
+        priceCurrency: form.priceCurrency || getOrgCurrency(),
         status: form.status,
         email: form.email || null,
         contactNumber: form.contactNumber || null,
@@ -213,12 +218,14 @@ export function ActivityFormModal({
             />
           </div>
 
+          <PriceCurrencySelect value={form.priceCurrency} onChange={(code) => update("priceCurrency", code)} />
+
           <div className="grid grid-cols-2 gap-3">
             <TextInput
-              label="Base price (INR)"
+              label={`Base price (${form.priceCurrency || getOrgCurrency()})`}
               type="number"
               min={0}
-              step="0.01"
+              step="any"
               value={form.basePrice}
               onChange={(e) => {
                 update("basePrice", e.target.value);

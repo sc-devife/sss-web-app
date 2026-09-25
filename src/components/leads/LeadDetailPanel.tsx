@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "@/lib/currency";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -184,7 +185,7 @@ export function LeadDetailPanel({
         <StatCard label="Travellers" value={lead.numberOfPeople != null ? String(lead.numberOfPeople) : "—"} />
         <StatCard label="Travel Date" value={formatDisplayDate(lead.travelDate) ?? "—"} />
         <StatCard label="Duration" value={lead.durationNights ? `${lead.durationNights} night${lead.durationNights === 1 ? "" : "s"}` : "—"} />
-        <StatCard label="Budget" value={lead.budget != null ? `₹${lead.budget}` : "—"} />
+        <StatCard label="Budget" value={lead.budget != null ? formatMoney(lead.budget) : "—"} />
         <StatCard label="Origin City" value={lead.originCity || "—"} />
         <StatCard label="Travel Type" value={lead.travelType || "—"} />
         <StatCard label="Assigned To" value={lead.assignedToUserName ?? "Unassigned"} />

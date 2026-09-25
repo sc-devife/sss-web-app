@@ -11,6 +11,8 @@ export interface Transport {
   ownerType: string | null;
   provider: { uid: string; name: string } | null;
   basePrice: number | null;
+  /** Currency of this item's prices; null/base = the vendor's base currency. */
+  priceCurrency?: string | null;
   pickupLocation: string | null;
   dropLocation: string | null;
   contactName: string | null;

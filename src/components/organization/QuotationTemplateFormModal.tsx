@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { toast } from "react-toastify";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
@@ -36,9 +37,11 @@ export function QuotationTemplateFormModal({ onClose, template }: { onClose: () 
     setError(undefined);
     try {
       if (isEdit) {
-        await dispatch(updateQuotationTemplate({ uid: template.uid, name, description, file, previewImage })).unwrap();
+        const saved = await dispatch(updateQuotationTemplate({ uid: template.uid, name, description, file, previewImage })).unwrap();
+        saved.warnings?.forEach((w) => toast.warning(w, { autoClose: 12000 }));
       } else {
-        await dispatch(createQuotationTemplate({ name, description, file: file as File, previewImage })).unwrap();
+        const saved = await dispatch(createQuotationTemplate({ name, description, file: file as File, previewImage })).unwrap();
+        saved.warnings?.forEach((w) => toast.warning(w, { autoClose: 12000 }));
       }
       onClose();
     } catch (err) {

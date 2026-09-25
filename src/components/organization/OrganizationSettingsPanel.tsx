@@ -14,6 +14,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { updateOrganizationSettings, fetchMyOrganization } from "@/features/organization/organizationThunks";
 import { selectOrganization, selectOrganizationStatus, selectOrganizationError } from "@/features/organization/organizationSelectors";
 import type { SupportedCurrency } from "@/lib/currencies";
+import { setOrgCurrency, previewMoney } from "@/lib/currency";
 
 export function OrganizationSettingsPanel() {
   const dispatch = useAppDispatch();
@@ -26,6 +27,7 @@ export function OrganizationSettingsPanel() {
   }, [dispatch]);
 
   const [defaultCurrencyCode, setDefaultCurrencyCode] = useState("");
+  const [roundingMode, setRoundingMode] = useState<"decimals" | "whole">("decimals");
   const [currencies, setCurrencies] = useState<SupportedCurrency[]>([]);
   const [timezone, setTimezone] = useState("");
   const [defaultLocale, setDefaultLocale] = useState("");
@@ -43,6 +45,7 @@ export function OrganizationSettingsPanel() {
   useEffect(() => {
     if (!organization) return;
     setDefaultCurrencyCode(organization.settings?.default_currency_code ?? "");
+    setRoundingMode(organization.settings?.rounding_mode === "whole" ? "whole" : "decimals");
     setTimezone(organization.settings?.timezone ?? "");
     setDefaultLocale(organization.settings?.default_locale ?? "");
     setDefaultPaymentTermsDays(
@@ -60,12 +63,15 @@ export function OrganizationSettingsPanel() {
     try {
       await dispatch(updateOrganizationSettings({
         default_currency_code: defaultCurrencyCode || undefined,
+        rounding_mode: roundingMode,
         timezone: timezone || undefined,
         default_locale: defaultLocale || undefined,
         default_payment_terms_days: defaultPaymentTermsDays ? Number(defaultPaymentTermsDays) : undefined,
         brand_primary_color: brandPrimaryColor || undefined,
       })).unwrap();
 
+      // Apply immediately so amounts on this and later pages use the new settings.
+      setOrgCurrency(defaultCurrencyCode, roundingMode);
       setSaved(true);
     } catch (err) {
       setSaveError(typeof err === "string" ? err : extractErrorMessage(err, "Failed to save"));
@@ -102,13 +108,34 @@ export function OrganizationSettingsPanel() {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <fieldset disabled={saving} className="contents">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <Select
-            label="Default Currency"
-            options={currencies.map((c) => ({ value: c.code, label: `${c.code} — ${c.name}` }))}
-            value={defaultCurrencyCode}
-            onChange={(e) => setDefaultCurrencyCode(e.target.value)}
-            placeholder="Select a currency"
-          />
+          <div className="flex flex-col gap-1.5">
+            <Select
+              label="Base Currency"
+              options={currencies.map((c) => ({ value: c.code, label: `${c.code} — ${c.name}` }))}
+              value={defaultCurrencyCode}
+              onChange={(e) => setDefaultCurrencyCode(e.target.value)}
+              placeholder="Select a currency"
+              disabled={Boolean(organization.settings?.base_currency_locked)}
+            />
+            <span className="text-xs text-muted-foreground">
+              {organization.settings?.base_currency_locked
+                ? "Locked: your quotes and payments are stored in this currency, so it can no longer be changed. Contact support if you need to migrate."
+                : "The currency your books, margins and reports are kept in. It locks as soon as you create your first quote."}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Select
+              label="Amount Rounding"
+              options={[
+                { value: "decimals", label: `Show decimals (${previewMoney(1234.5, defaultCurrencyCode || "INR", "decimals")})` },
+                { value: "whole", label: `Round to whole numbers (${previewMoney(1235, defaultCurrencyCode || "INR", "whole")})` },
+              ]}
+              value={roundingMode}
+              onChange={(e) => setRoundingMode(e.target.value === "whole" ? "whole" : "decimals")}
+            />
+            <span className="text-xs text-muted-foreground">How amounts are shown to you and on customer documents.</span>
+          </div>
 
           <TextInput label="Timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)} placeholder="e.g. Asia/Kolkata" />
           <TextInput label="Default Locale" value={defaultLocale} onChange={(e) => setDefaultLocale(e.target.value)} placeholder="e.g. en" />

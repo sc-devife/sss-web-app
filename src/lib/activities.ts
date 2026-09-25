@@ -9,6 +9,8 @@ export interface Activity {
   description: string | null;
   images: string[] | null;
   basePrice: number | null;
+  /** Currency of this item's prices; null/base = the vendor's base currency. */
+  priceCurrency?: string | null;
   status: string | null;
   notes: string | null;
   // Vendor/supplier email — recipient for the "Send Booking Email"
@@ -63,6 +65,10 @@ export interface ActivityPayment {
   notes: string | null;
   status: string;
   createdAt: string;
+  /** Set only when the supplier was paid in a non-base currency (amount is the base value). */
+  paidAmount?: number | null;
+  paidCurrency?: string | null;
+  fxRate?: number | null;
 }
 
 // Populates the "Send Activity Booking Email" popup — bodyHtml is the exact

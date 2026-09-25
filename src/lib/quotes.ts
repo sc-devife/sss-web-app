@@ -9,15 +9,20 @@ export interface Quote {
   status: string;
   currencyCode: string | null;
   fxRateSnapshot: number | null;
-  subtotalInr: number | null;
+  /** The rate was typed on this quote and is pinned (never auto-refreshed). */
+  fxRateCustom: boolean | null;
+  /** Where the rate came from: market, vendor (Organization settings) or custom (this quote). */
+  fxRateSource: "market" | "vendor" | "custom" | null;
+  fxRateAsOf: string | null;
+  subtotalBase: number | null;
   taxProfileId: string | null;
   // Wins over taxProfileId's own stored rate% when set — a one-off tax % or
   // a tweak to the selected profile's rate.
   taxRatePercentOverride: number | null;
-  taxAmountInr: number | null;
+  taxAmountBase: number | null;
   tcsRatePercent: number | null;
-  tcsAmountInr: number | null;
-  totalInr: number | null;
+  tcsAmountBase: number | null;
+  totalBase: number | null;
   discountType: string;
   discountValue: number | null;
   templateId: string | null; // per-quote template override — falls back to the org default when null
@@ -41,9 +46,9 @@ export async function getQuoteByUid(uid: string): Promise<Quote> {
 
 // One itinerary item's row in a Quote's day-wise breakdown (the Quote tab's
 // main list) — see QuoteLineItemResponseDTO. Synced from the itinerary's
-// current items server-side every time it's fetched, so `baseAmountInr`
+// current items server-side every time it's fetched, so `grossAmountBase`
 // always reflects the itinerary-planning estimate; `discountType`/
-// `discountValue`/`finalAmountInr` are this quote's own, independently
+// `discountValue`/`netAmountBase` are this quote's own, independently
 // editable per item.
 export interface QuoteLineItem {
   uid: string;
@@ -52,10 +57,10 @@ export interface QuoteLineItem {
   itemType: string;
   label: string;
   cancellation: boolean;
-  baseAmountInr: number;
+  grossAmountBase: number;
   discountType: string;
   discountValue: number | null;
-  finalAmountInr: number;
+  netAmountBase: number;
 }
 
 export interface QuoteLineItemsResult {

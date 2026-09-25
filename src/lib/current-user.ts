@@ -16,6 +16,8 @@ export interface CurrentUser {
   organizationLogo: string | null;
   organizationLogoShape: LogoShape | null;
   notificationSoundEnabled: boolean | null;
+  organizationCurrencyCode: string | null;
+  organizationRoundingMode: string | null;
 }
 
 export async function getCurrentUser(): Promise<CurrentUser> {

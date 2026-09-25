@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "@/lib/currency";
 import { useEffect, useRef } from "react";
 import { TextInput } from "@/components/ui/TextInput";
 import { TimePicker } from "@/components/ui/TimePicker";
@@ -268,7 +269,7 @@ export function TransportDetailFields({
             label="Price (INR)"
             type="number"
             min={0}
-            step="0.01"
+            step="any"
             value={value.price}
             onChange={(e) => update("price", e.target.value)}
           />
@@ -403,7 +404,7 @@ export function TransportDetailFields({
                   label="Cost Price (INR)"
                   type="number"
                   min={0}
-                  step="0.01"
+                  step="any"
                   value={value.costPrice}
                   onChange={(e) => update("costPrice", e.target.value)}
                 />
@@ -422,7 +423,7 @@ export function TransportDetailFields({
                   label="Selling Price (INR)"
                   type="number"
                   min={0}
-                  step="0.01"
+                  step="any"
                   value={value.sellingPrice}
                   onChange={(e) => update("sellingPrice", e.target.value)}
                 />
@@ -441,9 +442,9 @@ export function TransportDetailFields({
               <div className="mt-3 flex items-center justify-between rounded border border-border bg-muted/30 px-3 py-2 text-sm">
                 <span className="font-medium text-foreground">Total</span>
                 <span className="text-muted-foreground">
-                  {costTotal !== null && `Cost ₹${costTotal.toFixed(2)}`}
+                  {costTotal !== null && `Cost ${formatMoney(costTotal)}`}
                   {costTotal !== null && sellingTotal !== null && " · "}
-                  {sellingTotal !== null && `Selling ₹${sellingTotal.toFixed(2)}`}
+                  {sellingTotal !== null && `Selling ${formatMoney(sellingTotal)}`}
                 </span>
               </div>
             )}

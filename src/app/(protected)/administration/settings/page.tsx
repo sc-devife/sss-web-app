@@ -3,6 +3,7 @@ import { Heading, Body } from "@/components/ui/Typography";
 import { OrganizationSettingsPanel } from "@/components/organization/OrganizationSettingsPanel";
 import { TaxProfilesPanel } from "@/components/organization/TaxProfilesPanel";
 import { ReminderRulesPanel } from "@/components/organization/ReminderRulesPanel";
+import { ExchangeRatesPanel } from "@/components/organization/ExchangeRatesPanel";
 
 export default function OrganizationSettingsPage() {
   return (
@@ -14,6 +15,17 @@ export default function OrganizationSettingsPage() {
           <Body muted>Behavior and defaults — how the CRM operates for your team, not who you are.</Body>
         </div>
         <OrganizationSettingsPanel />
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-border pt-4">
+        <div>
+          <Heading as="h3">Exchange rates</Heading>
+          <Body muted>
+            Your base currency against every other currency. Market rates refresh daily; set your own rate and switch
+            Manual on to keep it fixed.
+          </Body>
+        </div>
+        <ExchangeRatesPanel />
       </div>
 
       <div className="flex flex-col gap-3 border-t border-border pt-4">

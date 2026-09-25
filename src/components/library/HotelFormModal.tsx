@@ -1,5 +1,7 @@
 "use client";
 
+import { getOrgCurrency } from "@/lib/currency";
+import { PriceCurrencySelect } from "@/components/library/PriceCurrencySelect";
 import { useEffect, useState, type FormEvent } from "react";
 import dynamic from "next/dynamic";
 import { FaRegTrashCan } from "react-icons/fa6";
@@ -47,6 +49,7 @@ const emptyForm = {
   escapePointId: "",
   locationId: "",
   mealPlanIds: [] as string[],
+  priceCurrency: "",
   roomTypePricing: [] as RoomTypePricingRow[],
   serviceIds: [] as string[],
   checkInTime: "",
@@ -104,6 +107,7 @@ function snapshotFromHotel(hotel: Hotel | null): FormState {
     escapePointId: hotel.escapePoint?.uid ?? "",
     locationId: hotel.location?.uid ?? "",
     mealPlanIds: hotel.mealPlans?.map((m) => m.uid) ?? [],
+    priceCurrency: hotel.priceCurrency ?? "",
     roomTypePricing: hotel.roomTypes?.map((r) => ({
       roomTypeId: r.roomTypeId,
       price: r.price != null ? String(r.price) : "",
@@ -406,6 +410,7 @@ export function HotelFormModal({
         // Drop any row still awaiting a room-type selection (an empty
         // roomTypeId would fail UUID parsing server-side) — every kept row
         // sends its price as a number, or null if left blank.
+        priceCurrency: form.priceCurrency || getOrgCurrency(),
         roomTypePricing: form.roomTypePricing
           .filter((r) => r.roomTypeId)
           .map((r) => ({ roomTypeId: r.roomTypeId, price: r.price ? Number(r.price) : null })),
@@ -685,6 +690,7 @@ export function HotelFormModal({
           </div>
 
           <div className="flex flex-col gap-2">
+            <PriceCurrencySelect value={form.priceCurrency} onChange={(code) => update("priceCurrency", code)} />
             <span className="text-sm font-medium text-foreground">Room Types</span>
 
             {form.roomTypePricing.length > 0 && (
@@ -716,7 +722,7 @@ export function HotelFormModal({
                           label="Price / Night"
                           type="number"
                           min={0}
-                          step="0.01"
+                          step="any"
                           placeholder="e.g. 8000"
                           value={row.price}
                           onChange={(e) => updateRoomTypeRow(index, { price: e.target.value })}
@@ -838,10 +844,10 @@ export function HotelFormModal({
                   onChange={(e) => setNewService((s) => ({ ...s, description: e.target.value }))}
                 />
                 <TextInput
-                  label="Price (INR)"
+                  label={`Price (${form.priceCurrency || getOrgCurrency()})`}
                   type="number"
                   min={0}
-                  step="0.01"
+                  step="any"
                   value={newService.price}
                   onChange={(e) => setNewService((s) => ({ ...s, price: e.target.value }))}
                 />

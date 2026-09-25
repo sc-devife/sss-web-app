@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Body } from "@/components/ui/Typography";
 import { formatDisplayDate, formatDisplayDateTime } from "@/lib/date";
 import { formatAuditActor } from "@/lib/audit";
-import { formatInr } from "@/lib/currency";
+import { formatMoney, formatMoneyWithOriginal } from "@/lib/currency";
 import { paymentMethodLabel } from "@/lib/payment-methods";
 import type { IncomingTransaction, OutgoingTransaction } from "@/lib/transactions";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -106,6 +106,8 @@ function IncomingTransactionsTable() {
 
   const period = usePeriodFilter(transactions, (t) => t.markedPaidAt);
 
+  const netFx = period.filtered.reduce((sum, t) => sum + (t.fxDifferenceBase ?? 0), 0);
+
   const columns: DataTableColumn<IncomingTransaction>[] = [
     {
       key: "customer",
@@ -125,10 +127,33 @@ function IncomingTransactionsTable() {
       filterValue: (t) => t.label,
     },
     {
-      key: "amountPaidInr",
+      key: "amountPaidBase",
       header: "Amount",
-      render: (t) => `₹${t.amountPaidInr.toFixed(2)}`,
-      sortValue: (t) => t.amountPaidInr,
+      render: (t) => formatMoney(t.amountPaidBase),
+      sortValue: (t) => t.amountPaidBase,
+    },
+    {
+      key: "received",
+      header: "Received as",
+      render: (t) =>
+        t.payments && t.payments.length > 0
+          ? t.payments.map((p) => formatMoney(p.receivedAmount, p.receivedCurrency)).join(", ")
+          : "—",
+      filterValue: (t) => (t.payments ?? []).map((p) => p.receivedCurrency).join(" "),
+    },
+    {
+      key: "fx",
+      header: "FX gain / loss",
+      render: (t) =>
+        !t.fxDifferenceBase ? (
+          "—"
+        ) : (
+          <span className={t.fxDifferenceBase > 0 ? "text-success" : "text-danger"}>
+            {t.fxDifferenceBase > 0 ? "+" : "−"}
+            {formatMoney(Math.abs(t.fxDifferenceBase))}
+          </span>
+        ),
+      sortValue: (t) => t.fxDifferenceBase ?? 0,
     },
     {
       key: "paymentMethod",
@@ -170,7 +195,17 @@ function IncomingTransactionsTable() {
       columns={columns}
       rows={period.filtered}
       rowKey={(t) => t.milestoneUid}
-      toolbarExtra={<div className="flex items-center gap-2">{period.control}</div>}
+      toolbarExtra={
+        <div className="flex w-full flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">{period.control}</div>
+          {netFx !== 0 && (
+            <span className="text-xs text-muted-foreground">
+              Net FX {netFx > 0 ? "gain" : "loss"}:{" "}
+              <span className={netFx > 0 ? "font-semibold text-success" : "font-semibold text-danger"}>{formatMoney(Math.abs(netFx))}</span>
+            </span>
+          )}
+        </div>
+      }
       searchPlaceholder="Search by customer, amount, reference…"
       emptyMessage={period.isAll ? "No incoming payments recorded yet." : "No incoming payments in this period."}
       onRowClick={(t) => router.push(`/escapes/${t.escapeUid}`)}
@@ -228,7 +263,7 @@ function OutgoingTransactionsTable() {
     {
       key: "amount",
       header: "Amount",
-      render: (t) => formatInr(t.amount),
+      render: (t) => formatMoneyWithOriginal(t.amount, t.paidAmount, t.paidCurrency),
       sortValue: (t) => t.amount,
     },
     {

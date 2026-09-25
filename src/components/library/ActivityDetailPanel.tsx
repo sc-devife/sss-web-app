@@ -30,7 +30,7 @@ import { CancellationEmailModal } from "@/components/library/CancellationEmailMo
 import { GalleryImage } from "@/components/library/GalleryImage";
 import { resolveFileUrl } from "@/lib/files";
 import { formatDisplayDate, formatDisplayTime } from "@/lib/date";
-import { formatInr } from "@/lib/currency";
+import { formatMoney, formatMoneyWithOriginal } from "@/lib/currency";
 import { hotelStatusTone } from "@/lib/hotel-booking-status";
 import { paymentMethodLabel } from "@/lib/payment-methods";
 import { clientApi } from "@/lib/axios/clientClient";
@@ -255,7 +255,7 @@ export function ActivityDetailPanel({
     {
       key: "amount",
       header: "Amount",
-      render: (p) => formatInr(p.amount),
+      render: (p) => formatMoneyWithOriginal(p.amount, p.paidAmount, p.paidCurrency),
       sortValue: (p) => p.amount,
     },
     {
@@ -383,7 +383,7 @@ export function ActivityDetailPanel({
           </div>
         </div>
         <StatCard label="Duration" value={activity.durationMinutes ? `${activity.durationMinutes} min` : "—"} />
-        <StatCard label="Base Price" value={activity.basePrice != null ? formatInr(activity.basePrice) : "—"} />
+        <StatCard label="Base Price" value={activity.basePrice != null ? formatMoney(activity.basePrice, activity.priceCurrency || undefined) : "—"} />
         <StatCard label="Category" value={categoryLabel ?? "—"} />
       </div>
 
@@ -532,7 +532,7 @@ export function ActivityDetailPanel({
 
                               <div className="mt-2.5">
                                 <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Total Amount</div>
-                                <div className="mt-0.5 text-sm font-semibold text-foreground">{formatInr(b.totalAmount)}</div>
+                                <div className="mt-0.5 text-sm font-semibold text-foreground">{formatMoney(b.totalAmount)}</div>
                               </div>
 
                               <div className="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-border pt-2.5">

@@ -1,5 +1,8 @@
 "use client";
 
+import { formatMoney, getOrgCurrency } from "@/lib/currency";
+import { formatRate, type ResolvedExchangeRate } from "@/lib/exchange-rates";
+import type { SupportedCurrency } from "@/lib/currencies";
 import { useEffect, useState, type FormEvent } from "react";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
@@ -25,7 +28,7 @@ import { selectPaymentMilestones, selectPaymentMilestonesStatus, selectPaymentMi
 import { cancelDeal } from "@/features/deals/dealsThunks";
 import { fetchEscapeById, fetchEscapeAuditLog } from "@/features/escapes/escapesThunks";
 
-const emptyForm = { label: "", dueDate: "", amountInr: "" };
+const emptyForm = { label: "", dueDate: "", amountBase: "" };
 
 // No existing payment-method taxonomy anywhere in the app (checked) — this
 // is a new, deliberately small fixed list rather than free text, so
@@ -67,6 +70,11 @@ export function DealPanel({ deal }: { deal: Deal }) {
   const [formError, setFormError] = useState<string | undefined>();
 
   const [quoteTotal, setQuoteTotal] = useState<number | null>(null);
+  const [acceptedQuote, setAcceptedQuote] = useState<Quote | null>(null);
+  const [currencies, setCurrencies] = useState<SupportedCurrency[]>([]);
+  const [payCurrencies, setPayCurrencies] = useState<Record<string, string>>({});
+  const [payRates, setPayRates] = useState<Record<string, string>>({});
+  const [rateHints, setRateHints] = useState<Record<string, ResolvedExchangeRate>>({});
   const [showCancelForm, setShowCancelForm] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelError, setCancelError] = useState<string | undefined>();
@@ -81,9 +89,61 @@ export function DealPanel({ deal }: { deal: Deal }) {
   useEffect(() => {
     clientApi
       .get<Quote>(`/quotes/${deal.acceptedQuoteUid}`)
-      .then((res) => setQuoteTotal(res.data.totalInr))
+      .then((res) => {
+        setQuoteTotal(res.data.totalBase);
+        setAcceptedQuote(res.data);
+      })
       .catch(() => setQuoteTotal(null));
   }, [deal.acceptedQuoteUid]);
+
+  useEffect(() => {
+    clientApi.get<SupportedCurrency[]>("/currencies").then((res) => setCurrencies(res.data)).catch(() => {});
+  }, []);
+
+  // Payments default to the vendor's base currency, or to the currency the
+  // accepted quote was issued in (the usual case when a traveller pays in theirs).
+  const baseCode = getOrgCurrency();
+  const quoteForeignCode =
+    acceptedQuote?.currencyCode && acceptedQuote.currencyCode !== baseCode && acceptedQuote.fxRateSnapshot != null
+      ? acceptedQuote.currencyCode
+      : null;
+  function currencyFor(uid: string): string {
+    return payCurrencies[uid] ?? quoteForeignCode ?? baseCode;
+  }
+
+  // Today's rate for each foreign currency in use (vendor's manual rate, else market),
+  // shown as the default the user can overwrite.
+  useEffect(() => {
+    const needed = new Set<string>();
+    if (quoteForeignCode) needed.add(quoteForeignCode);
+    Object.values(payCurrencies).forEach((c) => {
+      if (c && c !== baseCode) needed.add(c);
+    });
+    needed.forEach((code) => {
+      if (rateHints[code]) return;
+      clientApi
+        .get<ResolvedExchangeRate>(`/exchange-rates?from=${baseCode}&to=${code}`)
+        .then((res) => setRateHints((h) => ({ ...h, [code]: res.data })))
+        .catch(() => {});
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payCurrencies, quoteForeignCode, baseCode]);
+
+  // What a payment of `amount` in `currency` credits to the milestone and its FX gain/loss —
+  // mirrors the server's rule so the user sees the outcome before recording.
+  function paymentPreview(uid: string): { applied: number; fxDifference: number; rate: number } | null {
+    const currency = currencyFor(uid);
+    const amount = Number(payAmounts[uid]);
+    if (!amount || amount <= 0) return null;
+    if (currency === baseCode) return { applied: amount, fxDifference: 0, rate: 1 };
+    const typed = Number(payRates[uid]);
+    const rate = typed > 0 ? typed : rateHints[currency]?.rate;
+    if (!rate) return null;
+    const baseValue = amount / rate;
+    const sameAsQuote = acceptedQuote?.currencyCode === currency && acceptedQuote.fxRateSnapshot;
+    const applied = sameAsQuote ? amount / (acceptedQuote!.fxRateSnapshot as number) : baseValue;
+    return { applied, fxDifference: baseValue - applied, rate };
+  }
 
   function refresh() {
     dispatch(fetchMilestonesForDeal(deal.uid));
@@ -99,7 +159,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
           dealUid: deal.uid,
           label: form.label,
           dueDate: form.dueDate,
-          amountInr: Number(form.amountInr),
+          amountBase: Number(form.amountBase),
         }),
       ).unwrap();
       refresh();
@@ -124,7 +184,20 @@ export function DealPanel({ deal }: { deal: Deal }) {
     const paymentReference = payReferences[uid].trim();
     setRecordingUid(uid);
     try {
-      await dispatch(recordPayment({ uid, dealUid: deal.uid, amount, paymentMethod, paymentReference }));
+      const currency = currencyFor(uid);
+      const typedRate = Number(payRates[uid]);
+      await dispatch(
+        recordPayment({
+          uid,
+          dealUid: deal.uid,
+          amount,
+          paymentMethod,
+          paymentReference,
+          ...(currency !== baseCode ? { currencyCode: currency, ...(typedRate > 0 ? { exchangeRate: typedRate } : {}) } : {}),
+        }),
+      );
+      setPayCurrencies((p) => Object.fromEntries(Object.entries(p).filter(([key]) => key !== uid)));
+      setPayRates((p) => ({ ...p, [uid]: "" }));
       setPayAmounts((p) => ({ ...p, [uid]: "" }));
       setPayMethods((p) => ({ ...p, [uid]: "" }));
       setPayReferences((p) => ({ ...p, [uid]: "" }));
@@ -181,7 +254,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
     }
   }
 
-  const milestonesTotal = milestones.reduce((sum, m) => sum + m.amountInr, 0);
+  const milestonesTotal = milestones.reduce((sum, m) => sum + m.amountBase, 0);
   const milestonesMismatch =
     quoteTotal != null && milestones.length > 0 && Math.abs(milestonesTotal - quoteTotal) > 0.01;
 
@@ -259,7 +332,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
 
       {milestonesMismatch && (
         <div className="rounded border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
-          Payment milestones total ₹{milestonesTotal.toFixed(2)} INR, which doesn&apos;t match the accepted quote&apos;s total of ₹{quoteTotal!.toFixed(2)} INR.
+          Payment milestones total {formatMoney(milestonesTotal)}, which doesn&apos;t match the accepted quote&apos;s total of {formatMoney(quoteTotal!)}.
         </div>
       )}
 
@@ -307,7 +380,7 @@ export function DealPanel({ deal }: { deal: Deal }) {
                       </Badge>{" "}
                       <span className="font-medium text-foreground">{m.label}</span>{" "}
                       <span className="text-muted-foreground">
-                        due {formatDisplayDate(m.dueDate)} · ₹{m.amountPaidInr.toFixed(2)} / ₹{m.amountInr.toFixed(2)} INR
+                        due {formatDisplayDate(m.dueDate)} · {formatMoney(m.amountPaidBase)} / {formatMoney(m.amountBase)}
                       </span>
                       {m.markedPaidAt && (
                         <span className="block text-xs text-muted-foreground">
@@ -340,13 +413,31 @@ export function DealPanel({ deal }: { deal: Deal }) {
                       </div>
                     )}
                   </div>
+                  {m.payments && m.payments.length > 0 && (
+                    <div className="flex flex-col gap-0.5 border-t border-border pt-2 text-xs text-muted-foreground">
+                      {m.payments.map((p) => (
+                        <span key={p.uid}>
+                          {formatMoney(p.receivedAmount, p.receivedCurrency)} received
+                          {p.receivedCurrency !== baseCode && ` (1 ${baseCode} = ${formatRate(p.fxRate)} ${p.receivedCurrency})`}
+                          {" → "}credited {formatMoney(p.appliedAmountBase)}
+                          {p.fxDifferenceBase !== 0 && p.receivedCurrency !== baseCode && (
+                            <span className={p.fxDifferenceBase > 0 ? "text-success" : "text-danger"}>
+                              {" · FX "}{p.fxDifferenceBase > 0 ? "gain " : "loss "}{formatMoney(Math.abs(p.fxDifferenceBase))}
+                            </span>
+                          )}
+                          {p.paymentReference && ` · Ref: ${p.paymentReference}`}
+                          <span className={p.verifiedAt ? "text-success" : "text-warning"}>{p.verifiedAt ? " · verified" : " · awaiting verification"}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   {m.status !== "paid" && m.status !== "unverified" && (
                     <div className="flex flex-col gap-2 border-t border-border pt-2 sm:flex-row sm:flex-wrap sm:items-end">
                       <TextInput
-                        label="Amount (INR)"
+                        label={`Amount (${currencyFor(m.uid)})`}
                         type="number"
                         min={0}
-                        step="0.01"
+                        step="any"
                         placeholder="Amount"
                         value={payAmounts[m.uid] ?? ""}
                         onChange={(e) => setPayAmounts((p) => ({ ...p, [m.uid]: e.target.value }))}
@@ -354,6 +445,34 @@ export function DealPanel({ deal }: { deal: Deal }) {
                         disabled={isCancelled}
                         required
                       />
+                      <Select
+                        label="Currency"
+                        options={[
+                          { value: baseCode, label: `${baseCode} — vendor currency` },
+                          ...currencies.filter((c) => c.code !== baseCode).map((c) => ({ value: c.code, label: `${c.code} — ${c.name}` })),
+                        ]}
+                        value={currencyFor(m.uid)}
+                        onChange={(e) => {
+                          const code = e.target.value;
+                          setPayCurrencies((p) => ({ ...p, [m.uid]: code }));
+                          setPayRates((p) => ({ ...p, [m.uid]: "" }));
+                        }}
+                        disabled={isCancelled}
+                        className="w-44"
+                      />
+                      {currencyFor(m.uid) !== baseCode && (
+                        <TextInput
+                          label={`Rate: 1 ${baseCode} = ? ${currencyFor(m.uid)}`}
+                          type="number"
+                          min={0}
+                          step="any"
+                          placeholder={rateHints[currencyFor(m.uid)] ? formatRate(rateHints[currencyFor(m.uid)].rate) : "Rate"}
+                          value={payRates[m.uid] ?? ""}
+                          onChange={(e) => setPayRates((p) => ({ ...p, [m.uid]: e.target.value }))}
+                          className="w-36"
+                          disabled={isCancelled}
+                        />
+                      )}
                       <Select
                         label="Payment method"
                         options={PAYMENT_METHOD_OPTIONS}
@@ -393,6 +512,20 @@ export function DealPanel({ deal }: { deal: Deal }) {
                           Delete
                         </button>
                       </div>
+                      {(() => {
+                        const preview = paymentPreview(m.uid);
+                        if (!preview || currencyFor(m.uid) === baseCode) return null;
+                        return (
+                          <p className="w-full text-xs text-muted-foreground">
+                            Credits <span className="font-medium text-foreground">{formatMoney(preview.applied)}</span> to this milestone
+                            {Math.abs(preview.fxDifference) >= 0.005 && (
+                              <span className={preview.fxDifference > 0 ? "text-success" : "text-danger"}>
+                                {" · FX "}{preview.fxDifference > 0 ? "gain " : "loss "}{formatMoney(Math.abs(preview.fxDifference))}
+                              </span>
+                            )}
+                          </p>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
@@ -418,9 +551,9 @@ export function DealPanel({ deal }: { deal: Deal }) {
             label="Amount (INR)"
             type="number"
             min={0}
-            step="0.01"
-            value={form.amountInr}
-            onChange={(e) => setForm((f) => ({ ...f, amountInr: e.target.value }))}
+            step="any"
+            value={form.amountBase}
+            onChange={(e) => setForm((f) => ({ ...f, amountBase: e.target.value }))}
             required
           />
           {formError && <p className="col-span-full text-sm text-danger">{formError}</p>}

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "@/lib/currency";
 import { useEffect, useState, type ReactNode } from "react";
 import type { IconType } from "react-icons";
 import { toast } from "react-toastify";
@@ -401,7 +402,7 @@ export function EscapeSummaryCard({
                 <InfoRow
                   icon={PiCurrencyDollarFill}
                   label="Budget"
-                  value={lead.budget != null ? `₹${lead.budget.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null}
+                  value={lead.budget != null ? formatMoney(lead.budget) : null}
                 />
               </div>
             </>

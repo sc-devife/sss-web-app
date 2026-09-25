@@ -5,6 +5,7 @@ export type { Organization, OrganizationSettings, LogoShape };
 export interface UpdateOrganizationSettingsPayload {
   auto_assign_enabled?: boolean;
   default_currency_code?: string;
+  rounding_mode?: "decimals" | "whole";
   quote_template_id?: string | null;
   invoice_template_id?: string | null;
   timezone?: string;

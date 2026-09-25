@@ -30,7 +30,7 @@ import {
   availableHotelNights,
 } from "@/lib/itinerary-planning";
 import { transportModeIcon } from "@/lib/transport-modes";
-import { formatInr } from "@/lib/currency";
+import { formatMoney } from "@/lib/currency";
 import { hotelStatusTone, HOTEL_BOOKING_STATUS_OPTIONS } from "@/lib/hotel-booking-status";
 import { ESCAPE_STATUS_CANCELLED } from "@/lib/escape-status";
 import { Badge } from "@/components/ui/Badge";
@@ -64,6 +64,7 @@ import {
 import { RiEdit2Line } from "react-icons/ri";
 import { TbMailForward } from "react-icons/tb";
 import { toast } from "react-toastify";
+import { useBaseRates } from "@/lib/useBaseRates";
 import { clientApi } from "@/lib/axios/clientClient";
 import { CancellationEmailModal } from "@/components/library/CancellationEmailModal";
 
@@ -196,7 +197,7 @@ function TimelineRow({
   const hotelServices =
     item.hotelDetail?.inclusions
       .filter((i) => i.service)
-      .map((i) => (i.totalPrice != null ? `${i.service} (${formatInr(i.totalPrice)})` : i.service))
+      .map((i) => (i.totalPrice != null ? `${i.service} (${formatMoney(i.totalPrice)})` : i.service))
       .join(", ") || null;
   const totalPrice = getItemTotalPrice(item);
 
@@ -241,7 +242,7 @@ function TimelineRow({
         {item.notes && <Caption className="mt-0.5 block normal-case text-muted-foreground">{item.notes}</Caption>}
       </div>
       {totalPrice != null && (
-        <div className="shrink-0 pt-0.5 text-sm font-semibold text-foreground">{formatInr(totalPrice)}</div>
+        <div className="shrink-0 pt-0.5 text-sm font-semibold text-foreground">{formatMoney(totalPrice)}</div>
       )}
       {!readOnly && (
         <div className="flex shrink-0 items-center gap-0.5">
@@ -345,6 +346,14 @@ export function ItineraryDayPlanner({
   const hotelsForEscape = localHotels.filter((h) => h.escapePoint && escapePointUids.has(h.escapePoint.uid));
   const activitiesForEscape = activities.filter((a) => a.escapePoint && escapePointUids.has(a.escapePoint.uid));
   const transportsForEscape = transports.filter((t) => t.escapePoint && escapePointUids.has(t.escapePoint.uid));
+
+  // Library prices may be in a supplier's own currency; itinerary prices are always
+  // in the vendor's base currency, so prefills convert (rates load once, then it's synchronous).
+  const toBase = useBaseRates([
+    ...hotelsForEscape.map((h) => h.priceCurrency),
+    ...activitiesForEscape.map((a) => a.priceCurrency),
+    ...transportsForEscape.map((t) => t.priceCurrency),
+  ]);
 
   // Real pax counts from the escape's travellers — used to pre-fill the
   // flight pricing grid instead of starting it blank. Relies on each
@@ -1026,7 +1035,7 @@ export function ItineraryDayPlanner({
       libraryOptions: transportsForEscape.map((t) => ({
         uid: t.uid,
         label: `${t.modeCode}${t.vehicleTypeCode ? " — " + t.vehicleTypeCode : ""}`,
-        transportPrefill: { modeCode: t.modeCode, vehicleTypeCode: t.vehicleTypeCode, price: t.basePrice },
+        transportPrefill: { modeCode: t.modeCode, vehicleTypeCode: t.vehicleTypeCode, price: toBase(t.basePrice, t.priceCurrency) },
       })),
     },
     hotel: {
@@ -1042,10 +1051,10 @@ export function ItineraryDayPlanner({
         // (remapped from roomTypeId) and now also carry this hotel's own
         // price/night for each one — used both for the suggestion list's
         // "from ₹X" display and to prefill Price once a room type is picked.
-        roomTypes: (h.roomTypes ?? []).map((rt) => ({ uid: rt.roomTypeId, name: rt.name, price: rt.price })),
+        roomTypes: (h.roomTypes ?? []).map((rt) => ({ uid: rt.roomTypeId, name: rt.name, price: toBase(rt.price, h.priceCurrency) })),
         mealPlans: h.mealPlans ?? [],
         stars: h.stars,
-        basePrice: h.basePrice,
+        basePrice: toBase(h.basePrice, h.priceCurrency),
       })),
     },
     activity: {
@@ -1057,8 +1066,8 @@ export function ItineraryDayPlanner({
       libraryOptions: activitiesForEscape.map((a) => ({
         uid: a.uid,
         label: a.name,
-        basePrice: a.basePrice,
-        activityPrefill: { price: a.basePrice },
+        basePrice: toBase(a.basePrice, a.priceCurrency),
+        activityPrefill: { price: toBase(a.basePrice, a.priceCurrency) },
       })),
     },
     other: {
@@ -1115,7 +1124,7 @@ export function ItineraryDayPlanner({
             >
               <span className="leading-none">Day {day}</span>
               {date && <span className="leading-none text-[8px] font-normal text-muted-foreground">{formatDayDateWithWeekday(date)}</span>}
-              {dayTotal > 0 && <span className="leading-none text-[10px] font-semibold text-primary">{formatInr(dayTotal)}</span>}
+              {dayTotal > 0 && <span className="leading-none text-[10px] font-semibold text-primary">{formatMoney(dayTotal)}</span>}
             </button>
           );
           nodes.push(
@@ -1374,7 +1383,7 @@ export function ItineraryDayPlanner({
                   label="Cancellation Charge (INR)"
                   type="number"
                   min={0}
-                  step="0.01"
+                  step="any"
                   placeholder="Charged for the cancellation, if any"
                   value={modal.cancellationCharge}
                   onChange={(e) => setModal((m) => (m ? { ...m, cancellationCharge: e.target.value } : m))}
@@ -1453,7 +1462,7 @@ export function ItineraryDayPlanner({
                 roomTypes={(hotelsForEscape.find((h) => h.uid === modal.referenceId)?.roomTypes ?? []).map((rt) => ({
                   uid: rt.roomTypeId,
                   name: rt.name,
-                  price: rt.price,
+                  price: toBase(rt.price, hotelsForEscape.find((h) => h.uid === modal.referenceId)?.priceCurrency),
                 }))}
                 hotelName={hotelsForEscape.find((h) => h.uid === modal.referenceId)?.name ?? modal.title}
                 hotelUid={modal.referenceId || null}
@@ -1474,7 +1483,7 @@ export function ItineraryDayPlanner({
                         label="Price (INR)"
                         type="number"
                         min={0}
-                        step="0.01"
+                        step="any"
                         value={modal.price}
                         onChange={(e) => setModal((m) => (m ? { ...m, price: e.target.value } : m))}
                       />,
@@ -1513,7 +1522,7 @@ export function ItineraryDayPlanner({
                       label="Total Price (INR)"
                       type="number"
                       min={0}
-                      step="0.01"
+                      step="any"
                       value={modal.hotelForm.totalPrice}
                       onChange={(e) =>
                         setModal((m) => (m ? { ...m, hotelForm: { ...m.hotelForm, totalPrice: e.target.value } } : m))

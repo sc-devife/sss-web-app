@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "@/lib/currency";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -130,7 +131,7 @@ export function ActivitiesPanel({
     {
       key: "basePrice",
       header: "Base price (INR)",
-      render: (a) => (a.basePrice != null ? `₹${a.basePrice.toFixed(2)}` : "—"),
+      render: (a) => (a.basePrice != null ? formatMoney(a.basePrice, a.priceCurrency || undefined) : "—"),
       sortValue: (a) => a.basePrice ?? 0,
     },
     {

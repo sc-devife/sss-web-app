@@ -5,6 +5,10 @@ export type LogoShape = "round" | "square" | "rectangle";
 export interface OrganizationSettings {
   auto_assign_enabled: boolean;
   default_currency_code: string | null;
+  rounding_mode: "decimals" | "whole" | null;
+  /** True once the vendor has quotes - the base currency can no longer change. */
+  base_currency_locked?: boolean;
+  payment_gateway_enabled?: boolean;
   quote_template_id: string | null;
   invoice_template_id: string | null;
   timezone: string;
